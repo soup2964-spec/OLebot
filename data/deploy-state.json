@@ -1,7 +1,7 @@
 {
-  "deployVersion": 1,
-  "lastPromotedAt": "2026-07-02T07:43:30.176Z",
-  "lastPromotedVariantId": "v4-credibility",
+  "deployVersion": 3,
+  "lastPromotedAt": "2026-07-02T18:46:34.477Z",
+  "lastPromotedVariantId": "g1-demo5",
   "previousVariants": [
     {
       "id": "v0-baseline",
@@ -10,17 +10,16 @@
       "generation": 0,
       "parentIds": [],
       "ctaGoal": "Book a demo",
-      "thesis": "Exact Framer snapshot of schole.ai's live landing page — the control arm every other variant is measured against.",
+      "thesis": "Production baseline — merged from Evidence-bred hybrid (g1-demo0). Crossover of EU compliance lead (AI Act-led) (fitness 30.4) and HR & L&D buyer (dashboard-led).",
       "sections": [
         {
           "id": "hero",
           "type": "hero",
-          "headline": "Faster competency. Higher engagement. Agentic Learning with Scholé.",
-          "body": "Scholé uses the best of AI to construct exactly the right lesson for each learner. It's targeted, practical, and built on 10+ years of AI-for-education research from EPFL and UC Berkeley.",
-          "ctaLabel": "Book a demo",
+          "headline": "The EU AI Act made AI literacy mandatory. Scholé makes it auditable.",
+          "body": "Role-specific AI literacy for your entire workforce, live this quarter, with per-employee evidence that regulators and boards can read.",
+          "ctaLabel": "Get compliant this quarter",
           "addresses": [
-            "credibility",
-            "relevance_to_role"
+            "compliance_coverage"
           ],
           "readSeconds": 10
         },
@@ -38,10 +37,11 @@
         {
           "id": "problem",
           "type": "problem",
-          "headline": "The adoption gap is real. Scholé closes it.",
-          "body": "You bought the tools — ChatGPT, Copilot, Gemini, Claude. But if employees don't know how to use them in their daily work, you're not getting the return. Scholé helps every employee understand why AI is relevant to their role.",
+          "headline": "Article 4 requires AI literacy. Generic training won't pass audit.",
+          "body": "Providers and deployers must ensure sufficient AI literacy that accounts for technical knowledge, experience, and context of use. A one-size-fits-all webinar does not meet that bar.",
           "addresses": [
-            "employee_adoption"
+            "compliance_coverage",
+            "roi_proof"
           ],
           "readSeconds": 15
         },
@@ -84,8 +84,8 @@
         {
           "id": "proof",
           "type": "social_proof",
-          "headline": "Teams at these organizations are already learning on Scholé",
-          "body": "Decathlon Switzerland and the Harvard Data Science Initiative use Scholé today.",
+          "headline": "One of the most business-oriented HR dashboards I have encountered",
+          "body": "\"A true asset for any L&D leader whose role is increasingly evolving to align more closely with business priorities.\" Raphaëlle Rey, Leader of People Development, Decathlon Switzerland",
           "items": [
             {
               "title": "Decathlon",
@@ -98,7 +98,7 @@
           ],
           "addresses": [
             "credibility",
-            "employee_adoption"
+            "roi_proof"
           ],
           "readSeconds": 20
         },
@@ -136,10 +136,12 @@
         {
           "id": "cta",
           "type": "cta",
-          "headline": "Ready to turn AI tools into real AI adoption?",
-          "body": "Whether you're preparing for the EU AI Act or want your teams to use AI with clarity and confidence, Scholé helps you move from awareness to measurable adoption. 20 minutes, live with a founder.",
-          "ctaLabel": "Book a demo",
-          "addresses": [],
+          "headline": "The deadline isn't moving. Neither is your board.",
+          "body": "A 20 minute call: we map Article 4 requirements to your org and show you the audit trail live.",
+          "ctaLabel": "Book a compliance walkthrough",
+          "addresses": [
+            "compliance_coverage"
+          ],
           "readSeconds": 8
         }
       ]
@@ -870,38 +872,39 @@
       "generation": 0,
       "parentIds": [],
       "ctaGoal": "Book a demo",
-      "thesis": "Production baseline — merged from Technical evaluator (research + integration) (v4-credibility). Same schole.ai layout; hero and credibility sections retargeted to EPFL/Berkeley research pedigree and integration answers for the IT gatekeeper.",
+      "thesis": "Production baseline — merged from Credibility hybrid (g1-demo5). Crossover of Executive adoption gap (problem-first) (fitness 11.1) and HR & L&D buyer (dashboard-led).",
       "sections": [
         {
           "id": "hero",
           "type": "hero",
-          "headline": "Ten years of learning science research. Now a product.",
-          "body": "Scholé was built inside EPFL's Machine Learning for Education Lab and UC Berkeley by researchers with 40+ papers on personalized learning, LLMs, and knowledge tracing. Not another AI wrapper. The actual research, productized.",
-          "ctaLabel": "Book a demo",
+          "headline": "Most companies have AI. Very few turn it into measurable impact.",
+          "body": "You bought ChatGPT, Copilot, Gemini, Claude. The subscriptions are active. Ask most employees what changed in their daily work, and the answer is: not much. Scholé closes that gap.",
+          "ctaLabel": "See how",
           "addresses": [
-            "credibility",
-            "content_quality"
+            "employee_adoption"
           ],
           "readSeconds": 10
         },
         {
           "id": "how",
           "type": "how_it_works",
-          "headline": "What a pedagogical engine actually does",
-          "body": "Scholé models each learner's knowledge state in real time, using the same knowledge tracing research the founders published for a decade, and only generates lesson content it can ground in validated knowledge.",
+          "headline": "The fix: meet employees where they already are",
+          "body": "Scholé's multi-agent engine builds each employee's path around their actual role and daily tools like Notion, Excel, PowerPoint, and Slack. 2 minute micro-lessons that fit inside the workday.",
           "addresses": [
-            "content_quality",
-            "relevance_to_role"
+            "relevance_to_role",
+            "time_cost",
+            "employee_adoption"
           ],
           "readSeconds": 12
         },
         {
           "id": "problem",
           "type": "problem",
-          "headline": "The adoption gap is real. Scholé closes it.",
-          "body": "You bought the tools — ChatGPT, Copilot, Gemini, Claude. But if employees don't know how to use them in their daily work, you're not getting the return. Scholé helps every employee understand why AI is relevant to their role.",
+          "headline": "The adoption gap, in your own numbers.",
+          "body": "83% of HR leaders believe their company supports AI learning. Only 64% of employees agree. Half of your workforce says workload leaves no room for training at all. Meanwhile the licenses renew, and the productivity gains stay theoretical.",
           "addresses": [
-            "employee_adoption"
+            "employee_adoption",
+            "time_cost"
           ],
           "readSeconds": 15
         },
@@ -944,8 +947,8 @@
         {
           "id": "proof",
           "type": "social_proof",
-          "headline": "Teams at these organizations are already learning on Scholé",
-          "body": "Decathlon Switzerland and the Harvard Data Science Initiative use Scholé today.",
+          "headline": "One of the most business-oriented HR dashboards I have encountered",
+          "body": "\"A true asset for any L&D leader whose role is increasingly evolving to align more closely with business priorities.\" Raphaëlle Rey, Leader of People Development, Decathlon Switzerland",
           "items": [
             {
               "title": "Decathlon",
@@ -958,18 +961,17 @@
           ],
           "addresses": [
             "credibility",
-            "employee_adoption"
+            "roi_proof"
           ],
           "readSeconds": 20
         },
         {
           "id": "press",
           "type": "credibility",
-          "headline": "Recognized by the institutions that set the bar",
-          "body": "UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. MultiModN, the peer-reviewed modular architecture featured at NeurIPS, inspired Scholé's agent-first approach.",
+          "headline": "Backed by the best, featured in the press",
+          "body": "Scholé AI is already featured in the press. Recognized by UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. Launched #1 on Product Hunt.",
           "addresses": [
-            "credibility",
-            "content_quality"
+            "credibility"
           ],
           "readSeconds": 12
         },
@@ -997,12 +999,10 @@
         {
           "id": "cta",
           "type": "cta",
-          "headline": "Talk to the researchers, not a sales team",
-          "body": "20 minutes, live with a founder. Ask the hard questions. They wrote the papers.",
+          "headline": "Your licenses renew either way",
+          "body": "20 minutes with a founder. Bring your adoption numbers if you have them and we will show you what closing the gap looks like.",
           "ctaLabel": "Book a demo",
-          "addresses": [
-            "credibility"
-          ],
+          "addresses": [],
           "readSeconds": 8
         }
       ]
@@ -1733,10 +1733,30 @@
     "v5-learner",
     "g1-demo0",
     "g1-demo1",
+    "g1-demo2",
+    "g1-demo3",
+    "g1-demo4",
+    "g1-demo5",
     "production",
     "v0-baseline"
   ],
   "history": [
+    {
+      "at": "2026-07-02T18:46:34.477Z",
+      "variantId": "g1-demo5",
+      "runId": "run-17993827",
+      "runVersion": 19,
+      "reason": "Best lift candidate (+3.2pp, P(best) 34%)",
+      "patchCount": 13
+    },
+    {
+      "at": "2026-07-02T18:42:56.044Z",
+      "variantId": "g1-demo0",
+      "runId": "run-17775499",
+      "runVersion": 18,
+      "reason": "Best lift candidate (+2.3pp, P(best) 33%)",
+      "patchCount": 12
+    },
     {
       "at": "2026-07-02T07:43:30.178Z",
       "variantId": "v4-credibility",

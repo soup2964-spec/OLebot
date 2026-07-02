@@ -29,6 +29,13 @@ export function llmProvider(): LLMProvider {
   return "openai";
 }
 
+export function isLlmConfigured(): boolean {
+  if (llmProvider() === "kie") {
+    return Boolean(process.env.KIE_API_KEY);
+  }
+  return Boolean(process.env.OPENAI_API_KEY);
+}
+
 async function openaiChatJSON<T>(
   system: string,
   user: string,

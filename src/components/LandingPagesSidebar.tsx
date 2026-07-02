@@ -114,13 +114,13 @@ function sortGen0(variants: PageVariant[]) {
 /** Full-page grid of Generation-0 landing page runs only. */
 export function LandingPagesGrid({
   initialVariants,
-  initialRunVersion = 0,
+  initialDeployVersion = 0,
   embedded = false,
   selectedVariantId,
   onSelectVariant,
 }: {
   initialVariants?: PageVariant[];
-  initialRunVersion?: number;
+  initialDeployVersion?: number;
   embedded?: boolean;
   selectedVariantId?: string | null;
   onSelectVariant?: (variantId: string) => void;
@@ -128,19 +128,19 @@ export function LandingPagesGrid({
   const [variants, setVariants] = useState<PageVariant[]>(
     () => sortGen0(initialVariants ?? GENERATION_0)
   );
-  const [runVersion, setRunVersion] = useState(initialRunVersion);
+  const [deployVersion, setDeployVersion] = useState(initialDeployVersion);
   const [previewPage, setPreviewPage] = useState(0);
 
   const refresh = useCallback(async () => {
     try {
       const res = await fetch("/api/run");
       if (!res.ok) return;
-      const data = (await res.json()) as { variants: PageVariant[]; runVersion: number };
+      const data = (await res.json()) as {
+        variants: PageVariant[];
+        deployVersion?: number;
+      };
       setVariants(sortGen0(data.variants));
-      setRunVersion((prev) => {
-        if (data.runVersion > prev) setPreviewPage(0);
-        return data.runVersion;
-      });
+      setDeployVersion(data.deployVersion ?? 0);
     } catch {
       /* ignore poll errors */
     }
@@ -163,7 +163,7 @@ export function LandingPagesGrid({
     return variants.slice(start, start + PREVIEWS_PER_PAGE);
   }, [previewPage, variants]);
 
-  const experimentNumber = Math.max(1, runVersion + 1);
+  const experimentNumber = Math.max(1, deployVersion || 1);
   const previewStart = previewPage * PREVIEWS_PER_PAGE + 1;
   const previewEnd = Math.min((previewPage + 1) * PREVIEWS_PER_PAGE, variants.length);
 

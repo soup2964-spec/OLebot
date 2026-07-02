@@ -9,6 +9,7 @@ import {
   minNewVisitors,
   minSyncIntervalMs,
   saveLoopState,
+  isAutonomousMode,
 } from "./state";
 
 export interface LoopStatus {
@@ -166,6 +167,7 @@ export async function syncLoop(force = false): Promise<SyncResult> {
 
 /** Check thresholds and sync if ready — safe to call on every poll. */
 export async function maybeAutoSync(): Promise<SyncResult | null> {
+  if (!isAutonomousMode()) return null;
   const status = await getLoopStatus();
   if (!status.readyToSync) return null;
   return syncLoop(false);

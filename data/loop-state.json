@@ -1,11 +1,22 @@
 {
-  "runVersion": 17,
-  "lastSyncAt": "2026-07-02T07:21:13.789Z",
-  "lastVisitorCount": 23,
+  "autonomous": false,
+  "runVersion": 19,
+  "lastSyncAt": "2026-07-02T18:46:34.274Z",
+  "lastVisitorCount": 24,
   "heartbeatVisits": 24,
-  "lastCalibrationVersion": 17,
-  "lastRunId": "run-976873401",
+  "lastCalibrationVersion": 18,
+  "lastRunId": "run-17993827",
   "syncHistory": [
+    {
+      "at": "2026-07-02T18:46:34.274Z",
+      "visitors": 0,
+      "reason": "manual-experiment"
+    },
+    {
+      "at": "2026-07-02T18:42:55.792Z",
+      "visitors": 24,
+      "reason": "auto"
+    },
     {
       "at": "2026-07-02T07:21:13.789Z",
       "visitors": 23,

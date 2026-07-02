@@ -1,5 +1,11 @@
 export const CRITERIA = [
   {
+    id: "0",
+    short: "Control center",
+    title: "Experiment control center",
+    question: "Run simulations manually or let live traffic drive the loop.",
+  },
+  {
     id: "1",
     short: "Page comparison",
     title: "The initial landing page versions",

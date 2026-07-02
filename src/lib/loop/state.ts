@@ -2,6 +2,8 @@ import fs from "fs";
 import path from "path";
 
 export interface LoopState {
+  /** When true, live traffic triggers auto calibrate + re-simulate. */
+  autonomous: boolean;
   /** Monotonic version — bumps on each full sync (calibrate + re-simulate). */
   runVersion: number;
   lastSyncAt: string | null;
@@ -17,6 +19,7 @@ export interface LoopState {
 const STATE_PATH = path.join(process.cwd(), "data", "loop-state.json");
 
 const DEFAULT_STATE: LoopState = {
+  autonomous: false,
   runVersion: 0,
   lastSyncAt: null,
   lastVisitorCount: 0,
@@ -32,6 +35,10 @@ export function loadLoopState(): LoopState {
   } catch {
     return { ...DEFAULT_STATE };
   }
+}
+
+export function isAutonomousMode(state: LoopState = loadLoopState()): boolean {
+  return Boolean(state.autonomous);
 }
 
 export function saveLoopState(state: LoopState) {

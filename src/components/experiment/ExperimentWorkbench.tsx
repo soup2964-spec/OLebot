@@ -6,7 +6,7 @@ import type { VisitIndex } from "@/lib/registry";
 import type { PageVariant } from "@/lib/schema/page";
 import { CRITERIA } from "@/config/criteria";
 import { buildJudgmentsFromMetrics } from "@/lib/judgment/criteria";
-import { DeployBanner } from "@/components/experiment/DeployBanner";
+import { ControlCenterView } from "@/components/experiment/ControlCenterView";
 import { ExperimentDetailPanel } from "@/components/experiment/ExperimentDetailPanel";
 import {
   PageComparisonView,
@@ -37,7 +37,13 @@ interface RunPayload {
   generations?: Array<
     Pick<
       GenerationRun,
-      "generation" | "variantIds" | "totalVisits" | "metrics" | "decisions" | "allocationHistory"
+      | "generation"
+      | "variantIds"
+      | "totalVisits"
+      | "metrics"
+      | "decisions"
+      | "allocationHistory"
+      | "offspringIds"
     > & { report: { insights: string } }
   >;
 }
@@ -55,7 +61,7 @@ function runFromPayload(
     generations: data.generations.map((g) => ({
       ...g,
       visits: [],
-      offspringIds: [],
+      offspringIds: g.offspringIds ?? [],
       report: {
         generation: g.generation,
         insights: g.report.insights,
@@ -69,31 +75,31 @@ function runFromPayload(
 export function ExperimentWorkbench({
   initialRun,
   initialVariants,
-  initialRunVersion,
+  initialDeployVersion,
   initialIndex,
 }: {
   initialRun: ExperimentRun | null;
   initialVariants: PageVariant[];
-  initialRunVersion: number;
+  initialDeployVersion: number;
   initialIndex: VisitIndex | null;
 }) {
   const [run, setRun] = useState(initialRun);
   const [variants, setVariants] = useState(initialVariants);
   const [visitIndex, setVisitIndex] = useState(initialIndex);
-  const [activeView, setActiveView] = useState<WorkbenchView>("versions");
+  const [activeView, setActiveView] = useState<WorkbenchView>("control");
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [comparisonVariantId, setComparisonVariantId] = useState<string | null>(null);
-  const [runVersion, setRunVersion] = useState(initialRunVersion);
-  const [deployVersion, setDeployVersion] = useState(0);
+  const [deployVersion, setDeployVersion] = useState(initialDeployVersion);
   const [lastPromotedVariantId, setLastPromotedVariantId] = useState<string | null>(null);
   const [lastDeployReason, setLastDeployReason] = useState<string | null>(null);
   const [comparisonVariants, setComparisonVariants] = useState<{
     previous: PageVariant[];
     current: PageVariant[];
   } | null>(null);
-  const [iteration, setIteration] = useState(Math.max(1, initialRunVersion + 1));
+  const experimentNumber = Math.max(1, deployVersion || 1);
+  const [iteration, setIteration] = useState(experimentNumber);
 
-  const maxIteration = Math.max(1, runVersion + 1);
+  const maxIteration = experimentNumber;
 
   const refresh = useCallback(async () => {
     try {
@@ -102,7 +108,8 @@ export function ExperimentWorkbench({
       const data = (await res.json()) as RunPayload;
       setVariants(data.variants);
       setVisitIndex(data.index);
-      setDeployVersion(data.deployVersion ?? data.deploy?.deployVersion ?? 0);
+      const nextDeploy = data.deployVersion ?? data.deploy?.deployVersion ?? 0;
+      setDeployVersion(nextDeploy);
       setLastPromotedVariantId(
         data.lastPromotedVariantId ?? data.deploy?.lastPromotedVariantId ?? null
       );
@@ -114,13 +121,8 @@ export function ExperimentWorkbench({
         });
       }
       setRun((prev) => runFromPayload(prev, data));
-      setRunVersion((prev) => {
-        const next = data.runVersion;
-        if (next > prev) {
-          setIteration(next + 1);
-        }
-        return next;
-      });
+      const nextExperiment = Math.max(1, nextDeploy || 1);
+      setIteration((i) => Math.min(Math.max(1, i), nextExperiment));
     } catch {
       /* ignore */
     }
@@ -170,7 +172,14 @@ export function ExperimentWorkbench({
       />
 
       <div className="min-w-0 flex-1 overflow-y-auto lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)]">
-        {activeView === "versions" ? (
+        {activeView === "control" ? (
+          <ControlCenterView
+            onExperimentComplete={() => {
+              void refresh();
+              setActiveView("new");
+            }}
+          />
+        ) : activeView === "versions" ? (
           <div className="p-6">
             {comparisonMeta && (
               <div className="mb-6">
@@ -178,13 +187,8 @@ export function ExperimentWorkbench({
                 <p className="mt-1 text-sm text-slate-500">{comparisonMeta.question}</p>
               </div>
             )}
-            <DeployBanner
-              deployVersion={deployVersion}
-              lastPromotedVariantId={lastPromotedVariantId}
-              lastDeployReason={lastDeployReason}
-            />
             <PageComparisonView
-              experimentNumber={deployVersion || iteration}
+              experimentNumber={experimentNumber}
               previousSnapshot={previousSnapshot}
               currentSnapshot={currentSnapshot}
               selectedVariantId={comparisonVariantId}

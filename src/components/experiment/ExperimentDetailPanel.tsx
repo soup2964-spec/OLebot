@@ -15,6 +15,7 @@ import type { WorkbenchView } from "./ExperimentSideMenu";
 export type DetailTab = "method" | "behavior" | "winners" | "new" | "changelog";
 
 const VIEW_CRITERION: Record<WorkbenchView, string> = {
+  control: "0",
   versions: "1",
   method: "2",
   behavior: "3",

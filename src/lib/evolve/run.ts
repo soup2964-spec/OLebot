@@ -22,11 +22,25 @@ export interface RunConfig {
 
 export const DEFAULT_CONFIG: RunConfig = {
   seed: 20260701,
-  visitsPerGeneration: 600,
-  readingsPerPair: 3,
-  generations: 3,
-  offspringPerGeneration: 2,
+  visitsPerGeneration: 4800,
+  readingsPerPair: 2,
+  generations: 2,
+  offspringPerGeneration: 6,
 };
+
+/** Config for UI-triggered LLM experiments (overridable via env). */
+export function llmExperimentConfig(seed: number, log?: RunConfig["log"]): RunConfig {
+  return {
+    seed,
+    visitsPerGeneration: Number(process.env.LLM_VISITS_PER_GEN ?? DEFAULT_CONFIG.visitsPerGeneration),
+    readingsPerPair: Number(process.env.LLM_READINGS_PER_PAIR ?? DEFAULT_CONFIG.readingsPerPair),
+    generations: Number(process.env.LLM_GENERATIONS ?? DEFAULT_CONFIG.generations),
+    offspringPerGeneration: Number(
+      process.env.LLM_OFFSPRING_PER_GEN ?? DEFAULT_CONFIG.offspringPerGeneration
+    ),
+    log,
+  };
+}
 
 /**
  * Full experiment: for each generation, LLM-read every (persona, variant)
@@ -109,8 +123,9 @@ export async function runExperiment(cfg: RunConfig = DEFAULT_CONFIG): Promise<Ex
       const top = ranked.slice(0, Math.min(3, ranked.length));
 
       for (let c = 0; c < cfg.offspringPerGeneration; c++) {
-        const mode = c === 0 ? "mutation" : "crossover";
-        const parents = mode === "mutation" ? [top[0]] : top;
+        const mode = c % 2 === 0 ? "mutation" : "crossover";
+        const parents =
+          mode === "mutation" ? [top[c % top.length] ?? top[0]] : top;
         log(`  breeding ${mode} child ${c}...`);
         let child = await breedVariant(mode, parents, metrics, report, gen, c);
 

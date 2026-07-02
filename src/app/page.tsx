@@ -1,18 +1,18 @@
 import { allVariants, loadRun, visitIndex } from "@/lib/registry";
-import { loadLoopState } from "@/lib/loop/state";
+import { loadDeployState } from "@/lib/deploy/state";
 import { ExperimentWorkbench } from "@/components/experiment/ExperimentWorkbench";
 
 export default function Home() {
   const run = loadRun();
   const variants = allVariants();
-  const { runVersion } = loadLoopState();
+  const { deployVersion } = loadDeployState();
   const index = run ? visitIndex(run) : null;
 
   return (
     <ExperimentWorkbench
       initialRun={run}
       initialVariants={variants}
-      initialRunVersion={runVersion}
+      initialDeployVersion={deployVersion}
       initialIndex={index}
     />
   );

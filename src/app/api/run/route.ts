@@ -39,6 +39,7 @@ export async function GET() {
       metrics: g.metrics,
       decisions: g.decisions,
       allocationHistory: g.allocationHistory,
+      offspringIds: g.offspringIds,
       report: { insights: g.report.insights },
     })),
     lastGenBest: lastGen.metrics[0]

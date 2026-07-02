@@ -3,9 +3,10 @@
 import { CRITERIA } from "@/config/criteria";
 import type { DetailTab } from "./ExperimentDetailPanel";
 
-export type WorkbenchView = DetailTab | "versions";
+export type WorkbenchView = DetailTab | "control" | "versions";
 
 const MENU_ITEMS: { id: WorkbenchView; criterionId: string }[] = [
+  { id: "control", criterionId: "0" },
   { id: "versions", criterionId: "1" },
   { id: "method", criterionId: "2" },
   { id: "behavior", criterionId: "3" },
