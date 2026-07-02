@@ -22,6 +22,77 @@ const VALID_OBJECTIONS = [
   "compliance_coverage", "credibility", "price_clarity",
 ];
 
+export interface BreedingAngle {
+  key: string;
+  /** Becomes the offspring page name — mirrors the base preview angles. */
+  name: string;
+  strategy: PageVariant["strategy"];
+  persona: string;
+  brief: string;
+}
+
+/**
+ * Strategic angles taken directly from the base preview variants. Each offspring
+ * in a generation is pinned to one angle so the batch explores distinct bets
+ * instead of converging on a single narrative. The offspring's page name is set
+ * to the angle name so the six pages read as the base preview's angles, improved
+ * by behavioral evidence rather than replaced by it.
+ */
+export const BREEDING_ANGLES: BreedingAngle[] = [
+  {
+    key: "roi",
+    name: "HR & L&D buyer (dashboard-led)",
+    strategy: "roi",
+    persona: "HR and L&D leaders who must defend budget",
+    brief:
+      "Lead with the HR/adoption dashboard and hard ROI: adoption rate, mastery, time to skill, numbers a CFO respects. Commit fully to this ROI angle and use the behavioral evidence to strengthen it. Do not drift into compliance or learner self serve.",
+  },
+  {
+    key: "compliance",
+    name: "EU compliance lead (AI Act-led)",
+    strategy: "compliance",
+    persona: "EU compliance and risk leads",
+    brief:
+      "Lead with EU AI Act Article 4 literacy as mandatory and auditable: per employee evidence and an exportable audit trail. Commit to this compliance angle even if it did not top fitness. Make it the strongest possible compliance page using the evidence.",
+  },
+  {
+    key: "problem_first",
+    name: "Executive adoption gap (problem-first)",
+    strategy: "problem_first",
+    persona: "executives staring at the AI adoption gap",
+    brief:
+      "Lead with the adoption gap problem in the executive's own numbers (licenses active, behavior unchanged), agitating the gap before the solution. Commit to this problem first angle.",
+  },
+  {
+    key: "credibility",
+    name: "Technical evaluator (research + integration)",
+    strategy: "credibility",
+    persona: "technical evaluators and IT gatekeepers",
+    brief:
+      "Lead with research pedigree (EPFL, UC Berkeley, peer reviewed knowledge tracing) and integration answers (LMS and HRIS). Commit to this credibility angle for the skeptical technical buyer.",
+  },
+  {
+    key: "learner_first",
+    name: "Employee self-serve (learner-first)",
+    strategy: "learner_first",
+    persona: "individual employees",
+    brief:
+      "Lead with the individual learner experience (the Ole tutor, 2 minute lessons tied to their own tools) and a self serve, no demo CTA. Commit to this learner first angle.",
+  },
+  {
+    key: "generalist",
+    name: "Generalist (full schole.ai story)",
+    strategy: "baseline",
+    persona: "a mixed buying committee",
+    brief:
+      "Tell the full balanced schole.ai story for a mixed buying committee: value, proof, and a clear demo CTA, without over indexing on any single objection. Commit to this generalist angle.",
+  },
+];
+
+export function angleForChild(childIndex: number): BreedingAngle {
+  return BREEDING_ANGLES[childIndex % BREEDING_ANGLES.length];
+}
+
 /** Remove em/en dashes and hyphens from customer-facing copy. */
 function stripDashesFromCopy(text: string): string {
   return text
@@ -69,7 +140,9 @@ export async function breedVariant(
   metrics: VariantMetrics[],
   report: GenerationReport,
   generation: number,
-  childIndex: number
+  childIndex: number,
+  angle?: BreedingAngle,
+  verdictBlock?: string
 ): Promise<PageVariant> {
   const parentBlock = parents
     .map((p) => {
@@ -98,17 +171,34 @@ ${sections}`;
       ? `MODE: MUTATION. Start from the fittest parent (${parents[0].id}). Keep its winning sections, rewrite/replace/reorder the underperforming ones, and add content resolving the objections that cost it conversions.`
       : `MODE: CROSSOVER. Combine the strongest sections across ALL parents into one page with a coherent narrative arc. Use sourceVariantId in the changelog to credit each imported section.`;
 
+  const angleBlock = angle
+    ? `ANGLE ASSIGNMENT (authoritative)
+This page MUST commit to one angle: "${angle.name}" (strategy: ${angle.strategy}).
+Target audience: ${angle.persona}.
+${angle.brief}
+Use the behavioral evidence below to make this the strongest possible version of THIS angle. Do NOT converge on a different angle even if another scored higher — the goal is a distinct, testable variant, not a copy of the leader.
+
+`
+    : "";
+
+  const verdictInstr = verdictBlock
+    ? `SAMPLED VISITOR VERDICTS (verbatim — ground the copy in these reactions)
+${verdictBlock}
+
+`
+    : "";
+
   const user = `GENERATION ${generation} EVIDENCE
 
-ANALYST FINDINGS
+${angleBlock}BEHAVIORAL FINDINGS
 ${findings}
 
-ANALYST SUMMARY
+BEHAVIORAL SUMMARY
 ${report.insights}
 
 ${parentBlock}
 
-${modeInstr}
+${verdictInstr}${modeInstr}
 
 Produce the JSON for the new variant.`;
 
@@ -122,8 +212,8 @@ Produce the JSON for the new variant.`;
   const id = `g${generation + 1}-${mode === "mutation" ? "mut" : "x"}${childIndex}`;
   return {
     id,
-    name: stripDashesFromCopy(out.name),
-    strategy: "generated",
+    name: angle ? angle.name : stripDashesFromCopy(out.name),
+    strategy: angle ? angle.strategy : "generated",
     generation: generation + 1,
     parentIds: parents.map((p) => p.id),
     ctaGoal: stripDashesFromCopy(out.ctaGoal || parents[0].ctaGoal),

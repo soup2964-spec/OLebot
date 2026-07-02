@@ -11,8 +11,9 @@ import { computeMetrics } from "@/lib/sim/metrics";
 import { makeRng, pickWeighted } from "@/lib/sim/rng";
 import { analyzeGeneration } from "@/lib/stats/bayes";
 import { mapPool } from "@/lib/async/pool";
-import { evaluateGeneration } from "./evaluator";
-import { breedVariant, pageSimilarity } from "./optimizer";
+import { buildComputedReport } from "./computed-report";
+import { breedVariant, pageSimilarity, angleForChild, BREEDING_ANGLES } from "./optimizer";
+import type { BreedingAngle } from "./optimizer";
 import type { ExperimentProgressReporter } from "@/lib/loop/experiment-progress";
 import { loadSourceBaselineHtml, writeVariantHtml } from "@/lib/deploy/write-html";
 import type { GenerationReport } from "@/lib/schema/experiment";
@@ -38,17 +39,53 @@ function crossoverParents(top: PageVariant[], index: number): PageVariant[] {
   );
 }
 
-function isDuplicateOffspring(candidate: PageVariant, existing: PageVariant[]): boolean {
+function textWordSet(text: string): Set<string> {
+  return new Set(
+    (text ?? "")
+      .toLowerCase()
+      .split(/\W+/)
+      .filter((w) => w.length > 4)
+  );
+}
+
+function jaccard(a: Set<string>, b: Set<string>): number {
+  if (!a.size || !b.size) return 0;
+  const inter = [...a].filter((w) => b.has(w)).length;
+  const union = new Set([...a, ...b]).size;
+  return union ? inter / union : 0;
+}
+
+/**
+ * A candidate is a duplicate of a sibling if it shares a hero headline, is too
+ * similar on section copy, or makes the same strategic bet (thesis overlap).
+ * Compared against SIBLINGS only — offspring are intentionally anchored to base
+ * angles, so resembling a base parent is expected, not a collision.
+ */
+function isDuplicateOffspring(candidate: PageVariant, siblings: PageVariant[]): boolean {
   const hero = heroHeadline(candidate);
-  if (
-    existing.some((v) => {
-      if (pageSimilarity(candidate, v) > 0.58) return true;
-      return hero && heroHeadline(v) === hero;
-    })
-  ) {
-    return true;
+  const candThesis = textWordSet(candidate.thesis ?? "");
+  return siblings.some((v) => {
+    if (hero && heroHeadline(v) === hero) return true;
+    if (pageSimilarity(candidate, v) > 0.5) return true;
+    if (jaccard(candThesis, textWordSet(v.thesis ?? "")) > 0.6) return true;
+    return false;
+  });
+}
+
+/** Sample a few verbatim converted/lost verdicts per parent to ground the copy. */
+function sampleVerdictBlock(visits: Visit[], parents: PageVariant[]): string {
+  const lines: string[] = [];
+  for (const p of parents) {
+    const vs = visits.filter((x) => x.variantId === p.id);
+    const converted = vs.filter((x) => x.converted).slice(0, 2);
+    const lost = vs.filter((x) => !x.converted).slice(0, 3);
+    for (const x of [...converted, ...lost]) {
+      lines.push(
+        `  [${p.id} · ${x.personaId} · ${x.converted ? "CONVERTED" : "LOST"}] "${x.verdict}"`
+      );
+    }
   }
-  return false;
+  return lines.join("\n");
 }
 
 async function breedDistinctOffspring(
@@ -57,7 +94,9 @@ async function breedDistinctOffspring(
   metrics: VariantMetrics[],
   report: GenerationReport,
   generation: number,
-  existing: PageVariant[],
+  siblings: PageVariant[],
+  angle: BreedingAngle,
+  verdictBlock: string,
   log: (msg: string) => void
 ): Promise<PageVariant> {
   const attempts: { mode: "mutation" | "crossover"; parents: PageVariant[] }[] = [
@@ -76,11 +115,20 @@ async function breedDistinctOffspring(
   let last: PageVariant | null = null;
   for (let attempt = 0; attempt < attempts.length; attempt++) {
     const { mode, parents } = attempts[attempt];
-    log(`  breeding ${mode} child ${childIndex}${attempt ? ` (retry ${attempt})` : ""}...`);
-    const child = await breedVariant(mode, parents, metrics, report, generation, childIndex);
+    log(`  breeding ${angle.name} (child ${childIndex}, ${mode})${attempt ? ` retry ${attempt}` : ""}...`);
+    const child = await breedVariant(
+      mode,
+      parents,
+      metrics,
+      report,
+      generation,
+      childIndex,
+      angle,
+      verdictBlock
+    );
     last = child;
-    if (!isDuplicateOffspring(child, existing)) return child;
-    log(`    child ${childIndex} too similar to a sibling; retrying...`);
+    if (!isDuplicateOffspring(child, siblings)) return child;
+    log(`    ${angle.name} too similar to a sibling; retrying...`);
   }
   return last!;
 }
@@ -93,6 +141,87 @@ interface ReadingTask {
 
 function readConcurrency(): number {
   return Number(process.env.LLM_READ_CONCURRENCY ?? 6);
+}
+
+function breedConcurrency(): number {
+  return Number(process.env.LLM_BREED_CONCURRENCY ?? 6);
+}
+
+/**
+ * Breed all offspring with bounded parallel KIE calls. Each child is pinned to a
+ * distinct base-preview angle so the batch explores different bets; duplicates
+ * (same hero/thesis as an already-accepted sibling) are retried sequentially.
+ */
+async function breedAllOffspring(
+  count: number,
+  top: PageVariant[],
+  metrics: VariantMetrics[],
+  report: GenerationReport,
+  generation: number,
+  visits: Visit[],
+  baselineHtml: string,
+  baselineVariant: PageVariant,
+  log: (msg: string) => void,
+  progress?: ExperimentProgressReporter
+): Promise<PageVariant[]> {
+  const parallel = Math.max(1, Math.min(breedConcurrency(), count));
+  const verdictBlock = sampleVerdictBlock(visits, top);
+  const angleCount = Math.min(count, BREEDING_ANGLES.length);
+
+  log(`  breeding ${count} offspring across ${angleCount} angles (${parallel} parallel KIE calls)...`);
+  progress?.breedingStart(count);
+
+  let bredDone = 0;
+  const draft = await mapPool(
+    Array.from({ length: count }, (_, i) => i),
+    parallel,
+    async (childIndex) => {
+      const angle = angleForChild(childIndex);
+      // Parallel first pass: no siblings visible yet — angles keep them distinct.
+      const child = await breedDistinctOffspring(
+        childIndex,
+        top,
+        metrics,
+        report,
+        generation,
+        [],
+        angle,
+        verdictBlock,
+        log
+      );
+      bredDone++;
+      log(`  bred ${angle.name} (${bredDone}/${count})`);
+      return { childIndex, child };
+    }
+  );
+
+  draft.sort((a, b) => a.childIndex - b.childIndex);
+  const offspring: PageVariant[] = [];
+
+  for (const { childIndex, child } of draft) {
+    let accepted = child;
+    if (isDuplicateOffspring(accepted, offspring)) {
+      const angle = angleForChild(childIndex);
+      log(`  ${angle.name} duplicate after parallel batch; retrying against siblings...`);
+      accepted = await breedDistinctOffspring(
+        childIndex,
+        top,
+        metrics,
+        report,
+        generation,
+        offspring,
+        angle,
+        verdictBlock,
+        log
+      );
+    }
+    offspring.push(accepted);
+    progress?.breedingProgress(offspring.length, count);
+    progress?.addBredVariant(accepted);
+    writeVariantHtml(accepted, baselineHtml, baselineVariant);
+  }
+
+  return offspring;
 }
 
 export type PersonaReadingMode = "llm" | "heuristic";
@@ -254,9 +383,9 @@ export async function runExperiment(cfg: RunConfig = DEFAULT_CONFIG): Promise<Ex
       baselineId,
       cfg.seed + gen * 7919
     );
-    log(`  evaluating generation ${gen}...`);
+    log(`  building behavior report for generation ${gen}...`);
     progress?.evaluating();
-    const report = await evaluateGeneration(gen, pool, metrics, visits);
+    const report = buildComputedReport(gen, pool, metrics, decisions);
 
     // 4. Breed offspring (skip after the final generation).
     const offspring: PageVariant[] = [];
@@ -266,24 +395,19 @@ export async function runExperiment(cfg: RunConfig = DEFAULT_CONFIG): Promise<Ex
         .filter(Boolean);
       const top = ranked.slice(0, Math.min(3, ranked.length));
 
-      log(`  breeding ${cfg.offspringPerGeneration} offspring (sequential for diversity)...`);
-      progress?.breedingStart(cfg.offspringPerGeneration);
-
-      for (let c = 0; c < cfg.offspringPerGeneration; c++) {
-        const child = await breedDistinctOffspring(
-          c,
-          top,
-          metrics,
-          report,
-          gen,
-          [...allVariants, ...offspring],
-          log
-        );
-        offspring.push(child);
-        progress?.breedingProgress(c + 1, cfg.offspringPerGeneration);
-        progress?.addBredVariant(child);
-        writeVariantHtml(child, baselineHtml, baselineVariant);
-      }
+      const bred = await breedAllOffspring(
+        cfg.offspringPerGeneration,
+        top,
+        metrics,
+        report,
+        gen,
+        visits,
+        baselineHtml,
+        baselineVariant,
+        log,
+        progress
+      );
+      offspring.push(...bred);
       allVariants.push(...offspring);
     }
 
