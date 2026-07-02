@@ -59,7 +59,7 @@ export function ExperimentDetailPanel({
           />
         )}
         {activeView === "winners" && <WinnersDetail run={run} variants={variants} />}
-        {activeView === "new" && <NewVariantsDetail variants={variants} />}
+        {activeView === "new" && <NewVariantsDetail run={run} variants={variants} />}
         {activeView === "changelog" && <ChangelogDetail variants={variants} />}
       </div>
     </div>

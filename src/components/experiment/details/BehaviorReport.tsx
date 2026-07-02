@@ -34,7 +34,6 @@ export function BehaviorReport({
   const [genIdx, setGenIdx] = useState(Math.max(0, (index?.length ?? 1) - 1));
   const [live, setLive] = useState<LiveBehaviorSnapshot | null>(null);
   const [liveConfigured, setLiveConfigured] = useState<boolean | null>(null);
-  const [liveError, setLiveError] = useState<string | null>(null);
   const [loadingLive, setLoadingLive] = useState(true);
 
   const refreshLive = useCallback(async () => {
@@ -49,11 +48,9 @@ export function BehaviorReport({
       const data = await res.json();
       if (!res.ok) {
         setLiveConfigured(true);
-        setLiveError(data.error ?? "Failed to load live data");
         return;
       }
       setLiveConfigured(true);
-      setLiveError(null);
       setLive(data as LiveBehaviorSnapshot);
     } catch {
       setLiveConfigured(false);
@@ -148,7 +145,6 @@ export function BehaviorReport({
   if (showEmpty) {
     return (
       <div className="space-y-4">
-        <LiveStatusBanner mode={mode} live={live} liveError={liveError} />
         <p className="text-sm text-slate-600">
           No live sessions yet. Visit a variant page (e.g.{" "}
           <code className="rounded bg-slate-100 px-1">/v/v1-roi</code>) to record real behavior.
@@ -168,8 +164,6 @@ export function BehaviorReport({
 
   return (
     <div className="space-y-8">
-      <LiveStatusBanner mode={mode} live={live} liveError={liveError} />
-
       {/* 1. CRITERIA */}
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -416,39 +410,6 @@ export function BehaviorReport({
           )}
         </section>
       )}
-    </div>
-  );
-}
-
-function LiveStatusBanner({
-  mode,
-  live,
-  liveError,
-}: {
-  mode: DataMode;
-  live: LiveBehaviorSnapshot | null;
-  liveError: string | null;
-}) {
-  if (mode === "loading") return null;
-
-  const isLive = mode === "live";
-  return (
-    <div
-      className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-4 py-2.5 text-xs ${
-        isLive
-          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-          : "border-amber-200 bg-amber-50 text-amber-900"
-      }`}
-    >
-      <span className="font-semibold">
-        {isLive ? "Live data · Supabase" : "Simulated data · run.json"}
-      </span>
-      {isLive && live && (
-        <span className="text-emerald-700">
-          {live.totalSessions.toLocaleString()} sessions · last {live.windowDays}d
-        </span>
-      )}
-      {liveError && <span className="text-rose-600">{liveError}</span>}
     </div>
   );
 }

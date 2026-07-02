@@ -10,10 +10,42 @@ import {
   buildVariantHtmlReplacements,
 } from "../src/lib/replica/apply-variant";
 import { injectLabGuard, stripLabGuard } from "../src/lib/replica/prepare-lab-html";
+import { normalizeVariantForReplica } from "../src/lib/deploy/normalize-variant";
+import type { PageVariant } from "../src/lib/schema/page";
 
 const ROOT = path.join(__dirname, "..");
 const BASELINE_HTML = path.join(ROOT, "public", "baseline", "index.html");
 const OUT_DIR = path.join(ROOT, "public", "baseline", "variants");
+const RUN_JSON = path.join(ROOT, "data", "run.json");
+
+function writeVariantReplica(
+  baselineHtml: string,
+  baselineVariant: PageVariant,
+  variant: PageVariant
+) {
+  const normalized = normalizeVariantForReplica(variant);
+  const patches = buildVariantHtmlReplacements(baselineVariant, normalized);
+  let html = applyVariantToBaselineHtml(baselineHtml, baselineVariant, normalized);
+  html = injectLabGuard(stripLabGuard(html), patches);
+
+  const outPath = path.join(OUT_DIR, `${variant.id}.html`);
+  fs.writeFileSync(outPath, html, "utf8");
+
+  const framerScripts = (html.match(/framerusercontent\.com\/sites/gi) ?? []).length;
+  console.log(
+    `  ${variant.id}: ${patches.length} swaps, guard injected, ${framerScripts} Framer refs → ${path.relative(ROOT, outPath)}`
+  );
+}
+
+function loadBredVariants(): PageVariant[] {
+  if (!fs.existsSync(RUN_JSON)) return [];
+  try {
+    const run = JSON.parse(fs.readFileSync(RUN_JSON, "utf8")) as { variants?: PageVariant[] };
+    return (run.variants ?? []).filter((v) => v.generation > 0);
+  } catch {
+    return [];
+  }
+}
 
 function main() {
   if (!fs.existsSync(BASELINE_HTML)) {
@@ -30,20 +62,17 @@ function main() {
       continue;
     }
 
-    const patches = buildVariantHtmlReplacements(baselineVariant, variant);
-    let html = applyVariantToBaselineHtml(baselineHtml, baselineVariant, variant);
-    html = injectLabGuard(stripLabGuard(html), patches);
-
-    const outPath = path.join(OUT_DIR, `${variant.id}.html`);
-    fs.writeFileSync(outPath, html, "utf8");
-
-    const framerScripts = (html.match(/framerusercontent\.com\/sites/gi) ?? []).length;
-    console.log(
-      `  ${variant.id}: ${patches.length} swaps, guard injected, ${framerScripts} Framer refs → ${path.relative(ROOT, outPath)}`
-    );
+    writeVariantReplica(baselineHtml, baselineVariant, variant);
   }
 
-  console.log(`\nWrote ${GENERATION_0.length - 1} variant replicas to ${OUT_DIR}`);
+  const bred = loadBredVariants();
+  for (const variant of bred) {
+    writeVariantReplica(baselineHtml, baselineVariant, variant);
+  }
+
+  console.log(
+    `\nWrote ${GENERATION_0.length - 1 + bred.length} variant replicas to ${OUT_DIR}`
+  );
 }
 
 main();

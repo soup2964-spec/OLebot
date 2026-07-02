@@ -4,6 +4,7 @@
 import fs from "fs";
 import path from "path";
 import { runDemoExperiment } from "../src/lib/evolve/demo-run";
+import { writeAllVariantHtml } from "../src/lib/deploy/write-html";
 
 const SEED = 20260701;
 
@@ -14,6 +15,9 @@ function main() {
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(run));
   console.log(`Wrote ${outPath} (${(fs.statSync(outPath).size / 1024 / 1024).toFixed(1)} MB)`);
+
+  const htmlResults = writeAllVariantHtml(run.variants);
+  console.log(`Wrote ${htmlResults.length} variant HTML replicas`);
 
   for (const g of run.generations) {
     console.log(`\nGen ${g.generation}:`);

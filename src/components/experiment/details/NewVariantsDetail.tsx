@@ -1,10 +1,47 @@
-import Link from "next/link";
-import { LandingPagePreview } from "@/components/LandingPagePreview";
-import { staticReplicaPath } from "@/lib/replica/paths";
-import type { PageVariant } from "@/lib/schema/page";
+"use client";
 
-export function NewVariantsDetail({ variants }: { variants: PageVariant[] }) {
-  const bred = variants.filter((v) => v.generation > 0);
+import { useMemo, useState } from "react";
+import type { ExperimentRun } from "@/lib/schema/experiment";
+import type { PageVariant } from "@/lib/schema/page";
+import { NineVariantGrid } from "@/components/experiment/PageTile";
+
+const NEW_VARIANT_GRID_SIZE = 6;
+
+function latestBredVariants(
+  run: ExperimentRun | null,
+  variants: PageVariant[]
+): PageVariant[] {
+  const byId = new Map(variants.map((v) => [v.id, v]));
+
+  if (run?.generations.length) {
+    for (let i = run.generations.length - 1; i >= 0; i--) {
+      const ids = run.generations[i].offspringIds ?? [];
+      if (ids.length) {
+        return ids
+          .map((id) => byId.get(id))
+          .filter((v): v is PageVariant => Boolean(v))
+          .slice(0, NEW_VARIANT_GRID_SIZE);
+      }
+    }
+  }
+
+  return variants
+    .filter((v) => v.generation > 0)
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .slice(0, NEW_VARIANT_GRID_SIZE);
+}
+
+export function NewVariantsDetail({
+  run,
+  variants,
+}: {
+  run: ExperimentRun | null;
+  variants: PageVariant[];
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const bred = useMemo(() => latestBredVariants(run, variants), [run, variants]);
+  const selected = bred.find((v) => v.id === selectedId) ?? bred[0] ?? null;
 
   if (bred.length === 0) {
     return (
@@ -14,42 +51,43 @@ export function NewVariantsDetail({ variants }: { variants: PageVariant[] }) {
     );
   }
 
+  const genLabel = selected?.generation ?? bred[0]?.generation;
+
   return (
-    <div className="space-y-4">
-      {bred.map((v) => {
-        const src = staticReplicaPath(v.id);
-        return (
-          <article
-            key={v.id}
-            className="overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm"
-          >
-            {src ? (
-              <LandingPagePreview src={src} title={v.name} />
-            ) : (
-              <div className="flex aspect-[4/3] items-center justify-center bg-slate-50 text-xs text-slate-400">
-                {v.id}
-              </div>
-            )}
-            <div className="space-y-2 border-t border-slate-100 px-4 py-3">
-              <div className="text-xs font-bold uppercase tracking-wide text-emerald-700">
-                Gen {v.generation} · bred variant
-              </div>
-              <h3 className="text-sm font-semibold text-slate-900">{v.name}</h3>
-              <p className="text-xs leading-relaxed text-slate-600">{v.thesis}</p>
-              {v.parentIds.length > 0 && (
-                <p className="text-xs text-slate-500">Parents: {v.parentIds.join(" + ")}</p>
-              )}
-              <Link
-                href={`/v/${v.id}`}
-                target="_blank"
-                className="inline-flex rounded-lg bg-schole-primary px-3 py-2 text-sm font-semibold text-white hover:bg-schole-primary-hover"
-              >
-                View page
-              </Link>
-            </div>
-          </article>
-        );
-      })}
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 border-b border-slate-100 pb-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+            Optimizer output
+          </p>
+          <h3 className="mt-1 text-lg font-semibold text-slate-900">
+            Generation {genLabel} · {bred.length} new variant{bred.length === 1 ? "" : "s"}
+          </h3>
+        </div>
+
+        <NineVariantGrid
+          variants={bred}
+          selectedVariantId={selected?.id}
+          onSelectVariant={setSelectedId}
+          compact
+          uniformSize
+        />
+      </section>
+
+      {selected && (
+        <section className="rounded-2xl border border-emerald-200 bg-white p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
+            Selected · {selected.id}
+          </p>
+          <h4 className="mt-1 text-base font-semibold text-slate-900">{selected.name}</h4>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">{selected.thesis}</p>
+          {selected.parentIds.length > 0 && (
+            <p className="mt-2 text-xs text-slate-500">
+              Parents: {selected.parentIds.join(" + ")}
+            </p>
+          )}
+        </section>
+      )}
     </div>
   );
 }

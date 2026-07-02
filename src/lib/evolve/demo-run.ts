@@ -35,6 +35,17 @@ function clamp(n: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, n));
 }
 
+const OFFSPRING_PER_GENERATION = 6;
+
+const OFFSPRING_NAMES = [
+  "Evidence-bred hybrid",
+  "Objection-targeted remix",
+  "ROI-led crossover",
+  "Compliance crossover",
+  "Problem-first remix",
+  "Credibility hybrid",
+];
+
 function breedHeuristic(
   parents: PageVariant[],
   metrics: ReturnType<typeof computeMetrics>[],
@@ -47,8 +58,8 @@ function breedHeuristic(
     .map((m) => parents.find((p) => p.id === m.variantId)!)
     .filter(Boolean);
 
-  const winner = ranked[0];
-  const runnerUp = ranked[1] ?? winner;
+  const winner = ranked[index % ranked.length] ?? ranked[0];
+  const runnerUp = ranked[(index + 1) % ranked.length] ?? winner;
   const pick = (v: PageVariant, id: string) => v.sections.find((s) => s.id === id) ?? v.sections[0];
   const winnerOutcomes =
     winner.sections.find((s) => s.type === "outcomes") ??
@@ -73,7 +84,7 @@ function breedHeuristic(
 
   return {
     id,
-    name: index === 0 ? "Evidence-bred hybrid" : "Objection-targeted remix",
+    name: OFFSPRING_NAMES[index] ?? `Bred variant ${index + 1}`,
     strategy: "generated",
     generation: generation + 1,
     parentIds: [winner.id, runnerUp.id],
@@ -187,8 +198,9 @@ function runGeneration(
 
   const offspring: PageVariant[] = [];
   if (gen < maxGenerations - 1) {
-    offspring.push(breedHeuristic(pool, metrics, gen, 0));
-    offspring.push(breedHeuristic(pool, metrics, gen, 1));
+    for (let i = 0; i < OFFSPRING_PER_GENERATION; i++) {
+      offspring.push(breedHeuristic(pool, metrics, gen, i));
+    }
   }
 
   // Store a stratified sample of traces (metrics/decisions used the full set):
