@@ -29,13 +29,3 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
-/* Scale full-width Framer snapshots down to grid tile size. */
-.landing-preview {
-  container-type: inline-size;
-}
-
-.landing-preview iframe {
-  transform: scale(calc(100cqw / 1280));
-  transform-origin: top left;
-}
