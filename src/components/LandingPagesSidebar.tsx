@@ -9,7 +9,7 @@ function PageTile({ variant }: { variant: ReturnType<typeof allVariants>[number]
     <Link
       href={`/v/${variant.id}`}
       target="_blank"
-      className="group block overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:border-schole-primary hover:shadow-md"
+      className="group block overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-schole-primary hover:shadow-md"
     >
       {src ? (
         <div className="relative aspect-[4/3] overflow-hidden bg-slate-50">
@@ -22,41 +22,38 @@ function PageTile({ variant }: { variant: ReturnType<typeof allVariants>[number]
           />
         </div>
       ) : (
-        <div className="flex aspect-[4/3] items-center justify-center bg-slate-50 text-[10px] text-slate-400">
+        <div className="flex aspect-[4/3] items-center justify-center bg-slate-50 text-xs text-slate-400">
           {variant.id}
         </div>
       )}
-      <p className="truncate px-2 py-1.5 text-[10px] font-medium text-slate-800 group-hover:text-schole-primary">
-        {variant.id}
-      </p>
+      <div className="border-t border-slate-100 px-3 py-2">
+        <p className="truncate text-sm font-semibold text-slate-900 group-hover:text-schole-primary">
+          {variant.name}
+        </p>
+        <p className="truncate font-mono text-[10px] text-slate-500">{variant.id}</p>
+      </div>
     </Link>
   );
 }
 
-/** Left menu: grid of all landing page runs only. */
-export function LandingPagesGrid({ compact }: { compact?: boolean }) {
+/** Full-page grid of all landing page runs. */
+export function LandingPagesGrid() {
   const variants = [...allVariants()].sort(
     (a, b) => a.generation - b.generation || a.id.localeCompare(b.id)
   );
 
   return (
-    <div
-      className={
-        compact
-          ? "flex gap-2 overflow-x-auto p-2"
-          : "grid h-full grid-cols-2 gap-2 overflow-y-auto p-2 content-start"
-      }
-    >
-      {variants.map((v) => (
-        <div key={v.id} className={compact ? "w-32 shrink-0" : undefined}>
-          <PageTile variant={v} />
-        </div>
-      ))}
+    <div className="min-h-screen bg-slate-100 p-4 sm:p-6">
+      <div className="mx-auto grid max-w-[1600px] grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {variants.map((v) => (
+          <PageTile key={v.id} variant={v} />
+        ))}
+      </div>
     </div>
   );
 }
 
-/** @deprecated use LandingPagesGrid */
+/** @deprecated */
 export function LandingPagesSidebar({ compact }: { compact?: boolean }) {
-  return <LandingPagesGrid compact={compact} />;
+  return <LandingPagesGrid />;
 }
