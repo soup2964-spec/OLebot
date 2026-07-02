@@ -8,7 +8,7 @@ import type { ExperimentProgress } from "@/lib/schema/experiment-progress";
 import type { ExperimentHistoryEntry } from "@/lib/loop/state";
 import { CRITERIA } from "@/config/criteria";
 import { buildJudgmentsFromMetrics } from "@/lib/judgment/criteria";
-import { comparisonSnapshotsForIteration, sortGen0Variants } from "@/lib/comparison/snapshots";
+import { comparisonSnapshotsForIteration, maxExperimentIteration } from "@/lib/comparison/snapshots";
 import { ControlCenterView } from "@/components/experiment/ControlCenterView";
 import { ExperimentDetailPanel } from "@/components/experiment/ExperimentDetailPanel";
 import { PageComparisonView } from "@/components/experiment/PageComparisonView";
@@ -18,7 +18,10 @@ import {
 } from "@/components/experiment/ExperimentSideMenu";
 
 interface RunPayload {
+  runId?: string | null;
   runVersion: number;
+  updatedAt?: string;
+  personaSetVersion?: number;
   experimentHistory?: ExperimentHistoryEntry[];
   experimentProgress?: ExperimentProgress;
   deployVersion?: number;
@@ -50,15 +53,12 @@ interface RunPayload {
   >;
 }
 
-function runFromPayload(
-  initial: ExperimentRun | null,
-  data: RunPayload
-): ExperimentRun | null {
-  if (!data.generations?.length) return initial;
+function runFromPayload(data: RunPayload): ExperimentRun | null {
+  if (!data.generations?.length) return null;
   return {
-    id: initial?.id ?? "live",
-    createdAt: initial?.createdAt ?? new Date().toISOString(),
-    personaSetVersion: initial?.personaSetVersion ?? 1,
+    id: data.runId ?? "live",
+    createdAt: data.updatedAt ?? new Date().toISOString(),
+    personaSetVersion: data.personaSetVersion ?? 1,
     variants: data.variants,
     generations: data.generations.map((g) => ({
       ...g,
@@ -98,16 +98,11 @@ export function ExperimentWorkbench({
   const [iteration, setIteration] = useState(1);
 
   const isRunning = progress?.status === "running";
-  const maxIteration = Math.max(
-    1,
-    runVersion,
-    experimentHistory.length,
-    isRunning ? runVersion + 1 : 0
-  );
+  const maxIteration = maxExperimentIteration(experimentHistory, isRunning);
 
   const refresh = useCallback(async (): Promise<RunPayload | null> => {
     try {
-      const res = await fetch("/api/run");
+      const res = await fetch("/api/run", { cache: "no-store" });
       if (!res.ok) return null;
       const data = (await res.json()) as RunPayload;
       setVariants(data.variants);
@@ -117,8 +112,12 @@ export function ExperimentWorkbench({
       if (data.experimentProgress) setProgress(data.experimentProgress);
       const nextDeploy = data.deployVersion ?? data.deploy?.deployVersion ?? 0;
       setDeployVersion(nextDeploy);
-      setRun((prev) => runFromPayload(prev, data));
-      setIteration((i) => Math.min(Math.max(1, i), Math.max(1, data.runVersion ?? 1)));
+      setRun(runFromPayload(data));
+      const hist = data.experimentHistory ?? [];
+      const running = data.experimentProgress?.status === "running";
+      setIteration((i) =>
+        Math.min(Math.max(1, i), maxExperimentIteration(hist, running))
+      );
       return data;
     } catch {
       return null;
@@ -155,12 +154,15 @@ export function ExperimentWorkbench({
     setIteration((i) => Math.min(Math.max(1, i), maxIteration));
   }, [maxIteration]);
 
+  useEffect(() => {
+    if (activeView === "control") return;
+    void refresh();
+  }, [activeView, iteration, refresh]);
+
   const handleSelectVariant = (variantId: string) => {
     setSelectedVariantId(variantId);
     setActiveView("behavior");
   };
-
-  const gen0Variants = useMemo(() => sortGen0Variants(variants), [variants]);
 
   const judgmentsByVariant = useMemo(() => {
     const lastGen = run?.generations[run.generations.length - 1];
@@ -171,13 +173,11 @@ export function ExperimentWorkbench({
   const { previous: previousVariants, current: currentVariants } = useMemo(
     () =>
       comparisonSnapshotsForIteration(iteration, {
-        gen0Variants,
         run,
-        runVersion,
         experimentHistory,
         progress,
       }),
-    [iteration, gen0Variants, run, runVersion, experimentHistory, progress]
+    [iteration, run, experimentHistory, progress]
   );
 
   const comparisonMeta = CRITERIA.find((c) => c.id === "1");
@@ -199,9 +199,8 @@ export function ExperimentWorkbench({
             onExperimentComplete={async () => {
               const data = await refresh();
               await pollProgress();
-              const rv = data?.runVersion ?? 0;
-              const histLen = data?.experimentHistory?.length ?? 0;
-              setIteration(Math.max(rv, histLen, 1));
+              const hist = data?.experimentHistory ?? [];
+              setIteration(maxExperimentIteration(hist, false));
               setActiveView("versions");
             }}
           />
@@ -221,17 +220,20 @@ export function ExperimentWorkbench({
               selectedVariantId={comparisonVariantId}
               onSelectVariant={setComparisonVariantId}
               onViewBehavior={handleSelectVariant}
-              isRunning={isRunning && iteration === runVersion + 1}
+              isRunning={isRunning && iteration === maxIteration}
             />
           </div>
         ) : (
           <div className="bg-white">
             <ExperimentDetailPanel
+              key={`${run?.id ?? "none"}-${iteration}`}
               activeView={activeView}
               run={run}
               variants={variants}
               visitIndex={visitIndex}
               selectedVariantId={selectedVariantId}
+              experimentNumber={iteration}
+              bredVariants={currentVariants}
             />
           </div>
         )}

@@ -1,7 +1,19 @@
+"use client";
+
+import { useMemo } from "react";
 import type { PageVariant } from "@/lib/schema/page";
 
-export function ChangelogDetail({ variants }: { variants: PageVariant[] }) {
-  const bred = variants.filter((v) => v.generation > 0 && v.changelog?.length);
+export function ChangelogDetail({
+  variants,
+  bredVariants = [],
+}: {
+  variants: PageVariant[];
+  bredVariants?: PageVariant[];
+}) {
+  const bred = useMemo(() => {
+    const pool = bredVariants.length ? bredVariants : variants;
+    return pool.filter((v) => v.generation > 0 && v.changelog?.length);
+  }, [bredVariants, variants]);
 
   if (bred.length === 0) {
     return (

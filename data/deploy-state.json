@@ -1,870 +1,8 @@
 {
-  "deployVersion": 3,
-  "lastPromotedAt": "2026-07-02T18:46:34.477Z",
-  "lastPromotedVariantId": "g1-demo5",
+  "deployVersion": 4,
+  "lastPromotedAt": "2026-07-02T20:20:17.348Z",
+  "lastPromotedVariantId": "g1-mut0",
   "previousVariants": [
-    {
-      "id": "v0-baseline",
-      "name": "Baseline (exact schole.ai replica)",
-      "strategy": "baseline",
-      "generation": 0,
-      "parentIds": [],
-      "ctaGoal": "Book a demo",
-      "thesis": "Production baseline — merged from Evidence-bred hybrid (g1-demo0). Crossover of EU compliance lead (AI Act-led) (fitness 30.4) and HR & L&D buyer (dashboard-led).",
-      "sections": [
-        {
-          "id": "hero",
-          "type": "hero",
-          "headline": "The EU AI Act made AI literacy mandatory. Scholé makes it auditable.",
-          "body": "Role-specific AI literacy for your entire workforce, live this quarter, with per-employee evidence that regulators and boards can read.",
-          "ctaLabel": "Get compliant this quarter",
-          "addresses": [
-            "compliance_coverage"
-          ],
-          "readSeconds": 10
-        },
-        {
-          "id": "how",
-          "type": "how_it_works",
-          "headline": "Learn the new way with Scholé",
-          "body": "Scholé is a multi-agent pedagogical engine for adaptive and personalized learning. No more one-size-fits-all courses.",
-          "addresses": [
-            "relevance_to_role",
-            "content_quality"
-          ],
-          "readSeconds": 12
-        },
-        {
-          "id": "problem",
-          "type": "problem",
-          "headline": "Article 4 requires AI literacy. Generic training won't pass audit.",
-          "body": "Providers and deployers must ensure sufficient AI literacy that accounts for technical knowledge, experience, and context of use. A one-size-fits-all webinar does not meet that bar.",
-          "addresses": [
-            "compliance_coverage",
-            "roi_proof"
-          ],
-          "readSeconds": 15
-        },
-        {
-          "id": "features",
-          "type": "features",
-          "headline": "Learning that adapts to each person",
-          "body": "Every employee follows a path built around their tools, skills, and pace. The lesson content adjusts in real time as they progress.",
-          "items": [
-            {
-              "title": "Adapts in real time",
-              "detail": "Lesson content adjusts as each learner progresses."
-            },
-            {
-              "title": "Content tied to daily work",
-              "detail": "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function."
-            },
-            {
-              "title": "Measurable outcomes",
-              "detail": "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one."
-            }
-          ],
-          "addresses": [
-            "relevance_to_role",
-            "roi_proof"
-          ],
-          "readSeconds": 18
-        },
-        {
-          "id": "tour",
-          "type": "product_tour",
-          "headline": "What your employees get",
-          "body": "Ask Olé, an AI tutor team that adjusts to each learner — never too easy, never too hard. Skill scores updated after every lesson, XP and level-ups that reward consistency. 2-minute micro-lessons on mobile, desktop, text, audio, and video.",
-          "addresses": [
-            "time_cost",
-            "relevance_to_role"
-          ],
-          "readSeconds": 16
-        },
-        {
-          "id": "proof",
-          "type": "social_proof",
-          "headline": "One of the most business-oriented HR dashboards I have encountered",
-          "body": "\"A true asset for any L&D leader whose role is increasingly evolving to align more closely with business priorities.\" Raphaëlle Rey, Leader of People Development, Decathlon Switzerland",
-          "items": [
-            {
-              "title": "Decathlon",
-              "detail": "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development"
-            },
-            {
-              "title": "Harvard DSI",
-              "detail": "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\""
-            }
-          ],
-          "addresses": [
-            "credibility",
-            "roi_proof"
-          ],
-          "readSeconds": 20
-        },
-        {
-          "id": "press",
-          "type": "credibility",
-          "headline": "Backed by the best, featured in the press",
-          "body": "Scholé AI is already featured in the press. Recognized by UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. Launched #1 on Product Hunt.",
-          "addresses": [
-            "credibility"
-          ],
-          "readSeconds": 12
-        },
-        {
-          "id": "faq",
-          "type": "faq",
-          "headline": "Common questions",
-          "body": "How is Scholé different from Coursera or LinkedIn Learning? How is it different from ChatGPT? Is it compatible with our existing LMS or HRIS? What does EU AI Act compliance cover?",
-          "items": [
-            {
-              "title": "LMS/HRIS compatibility",
-              "detail": "Scholé integrates with existing LMS and HRIS systems."
-            },
-            {
-              "title": "EU AI Act",
-              "detail": "Scholé helps you prepare for EU AI Act literacy requirements."
-            }
-          ],
-          "addresses": [
-            "integration_friction",
-            "compliance_coverage"
-          ],
-          "readSeconds": 14
-        },
-        {
-          "id": "cta",
-          "type": "cta",
-          "headline": "The deadline isn't moving. Neither is your board.",
-          "body": "A 20 minute call: we map Article 4 requirements to your org and show you the audit trail live.",
-          "ctaLabel": "Book a compliance walkthrough",
-          "addresses": [
-            "compliance_coverage"
-          ],
-          "readSeconds": 8
-        }
-      ]
-    },
-    {
-      "id": "v1-roi",
-      "name": "HR & L&D buyer (dashboard-led)",
-      "strategy": "roi",
-      "generation": 0,
-      "parentIds": [],
-      "ctaGoal": "Book a demo",
-      "thesis": "Same schole.ai layout with hero and key sections retargeted to the HR dashboard and the adoption metrics an L&D leader needs to defend budget.",
-      "sections": [
-        {
-          "id": "hero",
-          "type": "hero",
-          "headline": "Stop reporting completion rates. Start proving AI adoption.",
-          "body": "Scholé's HR dashboard turns AI training into numbers your CFO respects: adoption rate, mastery level, and time to skill for every team and every tool, trackable in natural language from day one.",
-          "ctaLabel": "See the dashboard live",
-          "addresses": [
-            "roi_proof"
-          ],
-          "readSeconds": 10
-        },
-        {
-          "id": "how",
-          "type": "how_it_works",
-          "headline": "Learn the new way with Scholé",
-          "body": "Scholé is a multi-agent pedagogical engine for adaptive and personalized learning. No more one-size-fits-all courses.",
-          "addresses": [
-            "relevance_to_role",
-            "content_quality"
-          ],
-          "readSeconds": 12
-        },
-        {
-          "id": "problem",
-          "type": "problem",
-          "headline": "Completion certificates don't survive a budget meeting.",
-          "body": "Most L&D teams can show who finished a course. Almost none can show who changed how they work. That gap is why learning budgets get cut, and why L&D is not in the room when priorities get set.",
-          "addresses": [
-            "roi_proof"
-          ],
-          "readSeconds": 15
-        },
-        {
-          "id": "features",
-          "type": "features",
-          "headline": "Insights your LMS admin can't give you",
-          "body": "Ask questions in plain language and get answers about real adoption for every team and every tool, ready before your next QBR.",
-          "items": [
-            {
-              "title": "Adapts in real time",
-              "detail": "Lesson content adjusts as each learner progresses."
-            },
-            {
-              "title": "Content tied to daily work",
-              "detail": "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function."
-            },
-            {
-              "title": "Measurable outcomes",
-              "detail": "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one."
-            }
-          ],
-          "addresses": [
-            "roi_proof",
-            "employee_adoption"
-          ],
-          "readSeconds": 18
-        },
-        {
-          "id": "tour",
-          "type": "product_tour",
-          "headline": "What your employees get",
-          "body": "Ask Olé, an AI tutor team that adjusts to each learner — never too easy, never too hard. Skill scores updated after every lesson, XP and level-ups that reward consistency. 2-minute micro-lessons on mobile, desktop, text, audio, and video.",
-          "addresses": [
-            "time_cost",
-            "relevance_to_role"
-          ],
-          "readSeconds": 16
-        },
-        {
-          "id": "proof",
-          "type": "social_proof",
-          "headline": "One of the most business-oriented HR dashboards I have encountered",
-          "body": "\"A true asset for any L&D leader whose role is increasingly evolving to align more closely with business priorities.\" Raphaëlle Rey, Leader of People Development, Decathlon Switzerland",
-          "items": [
-            {
-              "title": "Decathlon",
-              "detail": "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development"
-            },
-            {
-              "title": "Harvard DSI",
-              "detail": "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\""
-            }
-          ],
-          "addresses": [
-            "credibility",
-            "roi_proof"
-          ],
-          "readSeconds": 20
-        },
-        {
-          "id": "press",
-          "type": "credibility",
-          "headline": "Backed by the best, featured in the press",
-          "body": "Scholé AI is already featured in the press. Recognized by UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. Launched #1 on Product Hunt.",
-          "addresses": [
-            "credibility"
-          ],
-          "readSeconds": 12
-        },
-        {
-          "id": "faq",
-          "type": "faq",
-          "headline": "Common questions",
-          "body": "How is Scholé different from Coursera or LinkedIn Learning? How is it different from ChatGPT? Is it compatible with our existing LMS or HRIS? What does EU AI Act compliance cover?",
-          "items": [
-            {
-              "title": "LMS/HRIS compatibility",
-              "detail": "Scholé integrates with existing LMS and HRIS systems."
-            },
-            {
-              "title": "EU AI Act",
-              "detail": "Scholé helps you prepare for EU AI Act literacy requirements."
-            }
-          ],
-          "addresses": [
-            "integration_friction",
-            "compliance_coverage"
-          ],
-          "readSeconds": 14
-        },
-        {
-          "id": "cta",
-          "type": "cta",
-          "headline": "Bring numbers to your next budget meeting",
-          "body": "20 minutes, live with a founder. We will show the dashboard on data like yours and leave you with a metric framework you can use either way.",
-          "ctaLabel": "Book a demo",
-          "addresses": [
-            "roi_proof"
-          ],
-          "readSeconds": 8
-        }
-      ]
-    },
-    {
-      "id": "v2-compliance",
-      "name": "EU compliance lead (AI Act-led)",
-      "strategy": "compliance",
-      "generation": 0,
-      "parentIds": [],
-      "ctaGoal": "Book a demo",
-      "thesis": "Same schole.ai layout; hero and problem sections retargeted to EU AI Act Article 4 compliance instead of burying it in the FAQ.",
-      "sections": [
-        {
-          "id": "hero",
-          "type": "hero",
-          "headline": "The EU AI Act made AI literacy mandatory. Scholé makes it auditable.",
-          "body": "Role-specific AI literacy for your entire workforce, live this quarter, with per-employee evidence that regulators and boards can read.",
-          "ctaLabel": "Get compliant this quarter",
-          "addresses": [
-            "compliance_coverage"
-          ],
-          "readSeconds": 10
-        },
-        {
-          "id": "how",
-          "type": "how_it_works",
-          "headline": "Learn the new way with Scholé",
-          "body": "Scholé is a multi-agent pedagogical engine for adaptive and personalized learning. No more one-size-fits-all courses.",
-          "addresses": [
-            "relevance_to_role",
-            "content_quality"
-          ],
-          "readSeconds": 12
-        },
-        {
-          "id": "problem",
-          "type": "problem",
-          "headline": "Article 4 requires AI literacy. Generic training won't pass audit.",
-          "body": "Providers and deployers must ensure sufficient AI literacy that accounts for technical knowledge, experience, and context of use. A one-size-fits-all webinar does not meet that bar.",
-          "addresses": [
-            "compliance_coverage",
-            "roi_proof"
-          ],
-          "readSeconds": 15
-        },
-        {
-          "id": "features",
-          "type": "features",
-          "headline": "Learning that adapts to each person",
-          "body": "Every employee follows a path built around their tools, skills, and pace. The lesson content adjusts in real time as they progress.",
-          "items": [
-            {
-              "title": "Adapts in real time",
-              "detail": "Lesson content adjusts as each learner progresses."
-            },
-            {
-              "title": "Content tied to daily work",
-              "detail": "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function."
-            },
-            {
-              "title": "Measurable outcomes",
-              "detail": "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one."
-            }
-          ],
-          "addresses": [
-            "relevance_to_role",
-            "roi_proof"
-          ],
-          "readSeconds": 18
-        },
-        {
-          "id": "tour",
-          "type": "product_tour",
-          "headline": "What your employees get",
-          "body": "Ask Olé, an AI tutor team that adjusts to each learner — never too easy, never too hard. Skill scores updated after every lesson, XP and level-ups that reward consistency. 2-minute micro-lessons on mobile, desktop, text, audio, and video.",
-          "addresses": [
-            "time_cost",
-            "relevance_to_role"
-          ],
-          "readSeconds": 16
-        },
-        {
-          "id": "proof",
-          "type": "social_proof",
-          "headline": "Teams at these organizations are already learning on Scholé",
-          "body": "Decathlon Switzerland and the Harvard Data Science Initiative use Scholé today.",
-          "items": [
-            {
-              "title": "Decathlon",
-              "detail": "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development"
-            },
-            {
-              "title": "Harvard DSI",
-              "detail": "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\""
-            }
-          ],
-          "addresses": [
-            "credibility",
-            "employee_adoption"
-          ],
-          "readSeconds": 20
-        },
-        {
-          "id": "press",
-          "type": "credibility",
-          "headline": "Backed by the best, featured in the press",
-          "body": "Scholé AI is already featured in the press. Recognized by UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. Launched #1 on Product Hunt.",
-          "addresses": [
-            "credibility"
-          ],
-          "readSeconds": 12
-        },
-        {
-          "id": "faq",
-          "type": "faq",
-          "headline": "What does EU AI Act compliance cover?",
-          "body": "Scholé maps role-specific learning paths to Article 4, with per-employee mastery records you can export for audit.",
-          "items": [
-            {
-              "title": "LMS/HRIS compatibility",
-              "detail": "Scholé integrates with existing LMS and HRIS systems."
-            },
-            {
-              "title": "EU AI Act",
-              "detail": "Scholé helps you prepare for EU AI Act literacy requirements."
-            }
-          ],
-          "addresses": [
-            "compliance_coverage",
-            "integration_friction"
-          ],
-          "readSeconds": 14
-        },
-        {
-          "id": "cta",
-          "type": "cta",
-          "headline": "The deadline isn't moving. Neither is your board.",
-          "body": "A 20 minute call: we map Article 4 requirements to your org and show you the audit trail live.",
-          "ctaLabel": "Book a compliance walkthrough",
-          "addresses": [
-            "compliance_coverage"
-          ],
-          "readSeconds": 8
-        }
-      ]
-    },
-    {
-      "id": "v3-problem",
-      "name": "Executive adoption gap (problem-first)",
-      "strategy": "problem_first",
-      "generation": 0,
-      "parentIds": [],
-      "ctaGoal": "Book a demo",
-      "thesis": "Same schole.ai layout; hero swaps to the live site's mid-page adoption-gap headline, with problem and how sections agitating on the gap.",
-      "sections": [
-        {
-          "id": "hero",
-          "type": "hero",
-          "headline": "Most companies have AI. Very few turn it into measurable impact.",
-          "body": "You bought ChatGPT, Copilot, Gemini, Claude. The subscriptions are active. Ask most employees what changed in their daily work, and the answer is: not much. Scholé closes that gap.",
-          "ctaLabel": "See how",
-          "addresses": [
-            "employee_adoption"
-          ],
-          "readSeconds": 10
-        },
-        {
-          "id": "how",
-          "type": "how_it_works",
-          "headline": "The fix: meet employees where they already are",
-          "body": "Scholé's multi-agent engine builds each employee's path around their actual role and daily tools like Notion, Excel, PowerPoint, and Slack. 2 minute micro-lessons that fit inside the workday.",
-          "addresses": [
-            "relevance_to_role",
-            "time_cost",
-            "employee_adoption"
-          ],
-          "readSeconds": 12
-        },
-        {
-          "id": "problem",
-          "type": "problem",
-          "headline": "The adoption gap, in your own numbers.",
-          "body": "83% of HR leaders believe their company supports AI learning. Only 64% of employees agree. Half of your workforce says workload leaves no room for training at all. Meanwhile the licenses renew, and the productivity gains stay theoretical.",
-          "addresses": [
-            "employee_adoption",
-            "time_cost"
-          ],
-          "readSeconds": 15
-        },
-        {
-          "id": "features",
-          "type": "features",
-          "headline": "Learning that adapts to each person",
-          "body": "Every employee follows a path built around their tools, skills, and pace. The lesson content adjusts in real time as they progress.",
-          "items": [
-            {
-              "title": "Adapts in real time",
-              "detail": "Lesson content adjusts as each learner progresses."
-            },
-            {
-              "title": "Content tied to daily work",
-              "detail": "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function."
-            },
-            {
-              "title": "Measurable outcomes",
-              "detail": "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one."
-            }
-          ],
-          "addresses": [
-            "relevance_to_role",
-            "roi_proof"
-          ],
-          "readSeconds": 18
-        },
-        {
-          "id": "tour",
-          "type": "product_tour",
-          "headline": "What your employees get",
-          "body": "Ask Olé, an AI tutor team that adjusts to each learner — never too easy, never too hard. Skill scores updated after every lesson, XP and level-ups that reward consistency. 2-minute micro-lessons on mobile, desktop, text, audio, and video.",
-          "addresses": [
-            "time_cost",
-            "relevance_to_role"
-          ],
-          "readSeconds": 16
-        },
-        {
-          "id": "proof",
-          "type": "social_proof",
-          "headline": "Teams at these organizations are already learning on Scholé",
-          "body": "Decathlon Switzerland and the Harvard Data Science Initiative use Scholé today.",
-          "items": [
-            {
-              "title": "Decathlon",
-              "detail": "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development"
-            },
-            {
-              "title": "Harvard DSI",
-              "detail": "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\""
-            }
-          ],
-          "addresses": [
-            "credibility",
-            "employee_adoption"
-          ],
-          "readSeconds": 20
-        },
-        {
-          "id": "press",
-          "type": "credibility",
-          "headline": "Backed by the best, featured in the press",
-          "body": "Scholé AI is already featured in the press. Recognized by UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. Launched #1 on Product Hunt.",
-          "addresses": [
-            "credibility"
-          ],
-          "readSeconds": 12
-        },
-        {
-          "id": "faq",
-          "type": "faq",
-          "headline": "Common questions",
-          "body": "How is Scholé different from Coursera or LinkedIn Learning? How is it different from ChatGPT? Is it compatible with our existing LMS or HRIS? What does EU AI Act compliance cover?",
-          "items": [
-            {
-              "title": "LMS/HRIS compatibility",
-              "detail": "Scholé integrates with existing LMS and HRIS systems."
-            },
-            {
-              "title": "EU AI Act",
-              "detail": "Scholé helps you prepare for EU AI Act literacy requirements."
-            }
-          ],
-          "addresses": [
-            "integration_friction",
-            "compliance_coverage"
-          ],
-          "readSeconds": 14
-        },
-        {
-          "id": "cta",
-          "type": "cta",
-          "headline": "Your licenses renew either way",
-          "body": "20 minutes with a founder. Bring your adoption numbers if you have them and we will show you what closing the gap looks like.",
-          "ctaLabel": "Book a demo",
-          "addresses": [],
-          "readSeconds": 8
-        }
-      ]
-    },
-    {
-      "id": "v4-credibility",
-      "name": "Technical evaluator (research + integration)",
-      "strategy": "credibility",
-      "generation": 0,
-      "parentIds": [],
-      "ctaGoal": "Book a demo",
-      "thesis": "Same schole.ai layout; hero and credibility sections retargeted to EPFL/Berkeley research pedigree and integration answers for the IT gatekeeper.",
-      "sections": [
-        {
-          "id": "hero",
-          "type": "hero",
-          "headline": "Ten years of learning science research. Now a product.",
-          "body": "Scholé was built inside EPFL's Machine Learning for Education Lab and UC Berkeley by researchers with 40+ papers on personalized learning, LLMs, and knowledge tracing. Not another AI wrapper. The actual research, productized.",
-          "ctaLabel": "Book a demo",
-          "addresses": [
-            "credibility",
-            "content_quality"
-          ],
-          "readSeconds": 10
-        },
-        {
-          "id": "how",
-          "type": "how_it_works",
-          "headline": "What a pedagogical engine actually does",
-          "body": "Scholé models each learner's knowledge state in real time, using the same knowledge tracing research the founders published for a decade, and only generates lesson content it can ground in validated knowledge.",
-          "addresses": [
-            "content_quality",
-            "relevance_to_role"
-          ],
-          "readSeconds": 12
-        },
-        {
-          "id": "problem",
-          "type": "problem",
-          "headline": "The adoption gap is real. Scholé closes it.",
-          "body": "You bought the tools — ChatGPT, Copilot, Gemini, Claude. But if employees don't know how to use them in their daily work, you're not getting the return. Scholé helps every employee understand why AI is relevant to their role.",
-          "addresses": [
-            "employee_adoption"
-          ],
-          "readSeconds": 15
-        },
-        {
-          "id": "features",
-          "type": "features",
-          "headline": "Learning that adapts to each person",
-          "body": "Every employee follows a path built around their tools, skills, and pace. The lesson content adjusts in real time as they progress.",
-          "items": [
-            {
-              "title": "Adapts in real time",
-              "detail": "Lesson content adjusts as each learner progresses."
-            },
-            {
-              "title": "Content tied to daily work",
-              "detail": "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function."
-            },
-            {
-              "title": "Measurable outcomes",
-              "detail": "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one."
-            }
-          ],
-          "addresses": [
-            "relevance_to_role",
-            "roi_proof"
-          ],
-          "readSeconds": 18
-        },
-        {
-          "id": "tour",
-          "type": "product_tour",
-          "headline": "What your employees get",
-          "body": "Ask Olé, an AI tutor team that adjusts to each learner — never too easy, never too hard. Skill scores updated after every lesson, XP and level-ups that reward consistency. 2-minute micro-lessons on mobile, desktop, text, audio, and video.",
-          "addresses": [
-            "time_cost",
-            "relevance_to_role"
-          ],
-          "readSeconds": 16
-        },
-        {
-          "id": "proof",
-          "type": "social_proof",
-          "headline": "Teams at these organizations are already learning on Scholé",
-          "body": "Decathlon Switzerland and the Harvard Data Science Initiative use Scholé today.",
-          "items": [
-            {
-              "title": "Decathlon",
-              "detail": "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development"
-            },
-            {
-              "title": "Harvard DSI",
-              "detail": "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\""
-            }
-          ],
-          "addresses": [
-            "credibility",
-            "employee_adoption"
-          ],
-          "readSeconds": 20
-        },
-        {
-          "id": "press",
-          "type": "credibility",
-          "headline": "Recognized by the institutions that set the bar",
-          "body": "UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. MultiModN, the peer-reviewed modular architecture featured at NeurIPS, inspired Scholé's agent-first approach.",
-          "addresses": [
-            "credibility",
-            "content_quality"
-          ],
-          "readSeconds": 12
-        },
-        {
-          "id": "faq",
-          "type": "faq",
-          "headline": "Common questions",
-          "body": "How is Scholé different from Coursera or LinkedIn Learning? How is it different from ChatGPT? Is it compatible with our existing LMS or HRIS? What does EU AI Act compliance cover?",
-          "items": [
-            {
-              "title": "LMS/HRIS compatibility",
-              "detail": "Scholé integrates with existing LMS and HRIS systems."
-            },
-            {
-              "title": "EU AI Act",
-              "detail": "Scholé helps you prepare for EU AI Act literacy requirements."
-            }
-          ],
-          "addresses": [
-            "integration_friction",
-            "compliance_coverage"
-          ],
-          "readSeconds": 14
-        },
-        {
-          "id": "cta",
-          "type": "cta",
-          "headline": "Talk to the researchers, not a sales team",
-          "body": "20 minutes, live with a founder. Ask the hard questions. They wrote the papers.",
-          "ctaLabel": "Book a demo",
-          "addresses": [
-            "credibility"
-          ],
-          "readSeconds": 8
-        }
-      ]
-    },
-    {
-      "id": "v5-learner",
-      "name": "Employee self-serve (learner-first)",
-      "strategy": "learner_first",
-      "generation": 0,
-      "parentIds": [],
-      "ctaGoal": "Start for free",
-      "thesis": "Same schole.ai layout; hero and learner sections retargeted to the Olé tutor experience with a self-serve CTA instead of book-a-demo.",
-      "sections": [
-        {
-          "id": "hero",
-          "type": "hero",
-          "headline": "Learning that fits your workday. Finally.",
-          "body": "2 minute lessons built around your actual job and the tools you already use. An AI tutor that meets you exactly where you are. No lecture halls, no 45 minute modules, no generic Intro to AI.",
-          "ctaLabel": "Start for free",
-          "addresses": [
-            "time_cost",
-            "relevance_to_role"
-          ],
-          "readSeconds": 10
-        },
-        {
-          "id": "how",
-          "type": "how_it_works",
-          "headline": "Learn the new way with Scholé",
-          "body": "Scholé is a multi-agent pedagogical engine for adaptive and personalized learning. No more one-size-fits-all courses.",
-          "addresses": [
-            "relevance_to_role",
-            "content_quality"
-          ],
-          "readSeconds": 12
-        },
-        {
-          "id": "problem",
-          "type": "problem",
-          "headline": "This is about making you faster. Not replacing you.",
-          "body": "AI is reshaping every role, including yours. The people who thrive are the ones who make AI do their boring work. Scholé teaches you to use ChatGPT, Copilot, and Claude on your real tasks.",
-          "addresses": [
-            "automation_anxiety",
-            "relevance_to_role"
-          ],
-          "readSeconds": 15
-        },
-        {
-          "id": "features",
-          "type": "features",
-          "headline": "Learning that adapts to each person",
-          "body": "Every employee follows a path built around their tools, skills, and pace. The lesson content adjusts in real time as they progress.",
-          "items": [
-            {
-              "title": "Adapts in real time",
-              "detail": "Lesson content adjusts as each learner progresses."
-            },
-            {
-              "title": "Content tied to daily work",
-              "detail": "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function."
-            },
-            {
-              "title": "Measurable outcomes",
-              "detail": "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one."
-            }
-          ],
-          "addresses": [
-            "relevance_to_role",
-            "roi_proof"
-          ],
-          "readSeconds": 18
-        },
-        {
-          "id": "tour",
-          "type": "product_tour",
-          "headline": "Meet your tutor team",
-          "body": "Not one AI but a team of pedagogical agents: Olé adjusts to your level, Atlas connects concepts to your work, and Zeteo makes practice interactive.",
-          "addresses": [
-            "relevance_to_role",
-            "content_quality",
-            "time_cost"
-          ],
-          "readSeconds": 16
-        },
-        {
-          "id": "proof",
-          "type": "social_proof",
-          "headline": "Teams at these organizations are already learning on Scholé",
-          "body": "Decathlon Switzerland and the Harvard Data Science Initiative use Scholé today.",
-          "items": [
-            {
-              "title": "Decathlon",
-              "detail": "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development"
-            },
-            {
-              "title": "Harvard DSI",
-              "detail": "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\""
-            }
-          ],
-          "addresses": [
-            "credibility",
-            "employee_adoption"
-          ],
-          "readSeconds": 20
-        },
-        {
-          "id": "press",
-          "type": "credibility",
-          "headline": "Backed by the best, featured in the press",
-          "body": "Scholé AI is already featured in the press. Recognized by UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. Launched #1 on Product Hunt.",
-          "addresses": [
-            "credibility"
-          ],
-          "readSeconds": 12
-        },
-        {
-          "id": "faq",
-          "type": "faq",
-          "headline": "Common questions",
-          "body": "How is Scholé different from Coursera or LinkedIn Learning? How is it different from ChatGPT? Is it compatible with our existing LMS or HRIS? What does EU AI Act compliance cover?",
-          "items": [
-            {
-              "title": "LMS/HRIS compatibility",
-              "detail": "Scholé integrates with existing LMS and HRIS systems."
-            },
-            {
-              "title": "EU AI Act",
-              "detail": "Scholé helps you prepare for EU AI Act literacy requirements."
-            }
-          ],
-          "addresses": [
-            "integration_friction",
-            "compliance_coverage"
-          ],
-          "readSeconds": 14
-        },
-        {
-          "id": "cta",
-          "type": "cta",
-          "headline": "Your first lesson takes 2 minutes",
-          "body": "Start free, no credit card required. Tell Olé your role and tools, and it builds your path.",
-          "ctaLabel": "Start for free",
-          "addresses": [
-            "time_cost",
-            "price_clarity"
-          ],
-          "readSeconds": 8
-        }
-      ]
-    }
-  ],
-  "currentVariants": [
     {
       "id": "v0-baseline",
       "name": "Baseline (exact schole.ai replica)",
@@ -1725,22 +863,907 @@
       ]
     }
   ],
+  "currentVariants": [
+    {
+      "id": "v0-baseline",
+      "name": "Baseline (exact schole.ai replica)",
+      "strategy": "baseline",
+      "generation": 0,
+      "parentIds": [],
+      "ctaGoal": "Book a demo",
+      "thesis": "Production baseline — merged from ROI-first for the L&D director (g1-mut0). Every variant bled out at the hero with roi_proof unresolved (402 lost on v3 alone, #1 or #2 in all six) because the content that answers it — features (v1 sentiment 1.17), tour (v5 sentiment 1.41), and proof — sat below heroes most visitors abandoned, and the CTA was functionally unreachable (single-digit views everywhere). This page makes one bet: pull quantified ROI and the strongest emotional peaks forward, anchor everything on the ld_director (the most reliable buyer: v4 10/238, v1 8/289, v0 5/187) rather than diffusing across six personas, and resolve roi_proof, employee_adoption, and time_cost in the top third where traffic actually exists. It keeps v3's winning problem (sentiment 0.63) and how (0.58) sections, hoists a v1-style features peak, and puts a low-friction demo ask in reach because satisfied LOST visitors repeatedly said 'addressed 2/2, I'd book a demo' but never reached the CTA.",
+      "sections": [
+        {
+          "id": "hero",
+          "type": "hero",
+          "headline": "Your AI licenses are active. Your ROI isn't — yet.",
+          "body": "You bought ChatGPT, Copilot, Gemini, Claude. The subscriptions renew every month. Ask most employees what changed in their daily work and the answer is: not much. Scholé turns those licenses into measurable adoption — role-specific paths, 2-minute lessons inside the workday, and an HR dashboard that shows completion, mastery, and adoption from day one. Built for the L&D leader who has to defend the spend.",
+          "items": [
+            {
+              "title": "Measurable from day one",
+              "detail": "Completion rates, mastery levels, and adoption metrics you can track in natural language and take to your CFO."
+            },
+            {
+              "title": "Fits the workday",
+              "detail": "2-minute micro-lessons mapped to the tools people already use — Notion, Excel, PowerPoint, Slack."
+            }
+          ],
+          "ctaLabel": "Book a 20-min demo",
+          "addresses": [
+            "roi_proof",
+            "employee_adoption",
+            "relevance_to_role"
+          ],
+          "readSeconds": 18
+        },
+        {
+          "id": "how",
+          "type": "how_it_works",
+          "headline": "The fix: meet employees where they already are",
+          "body": "Scholé's multi-agent engine builds each employee's path around their actual role and daily tools like Notion, Excel, PowerPoint, and Slack. 2-minute micro-lessons that fit inside the workday, so training happens instead of getting deferred to a quarter that never comes.",
+          "addresses": [
+            "relevance_to_role",
+            "time_cost",
+            "employee_adoption"
+          ],
+          "readSeconds": 13
+        },
+        {
+          "id": "problem",
+          "type": "problem",
+          "headline": "The adoption gap, in your own numbers.",
+          "body": "83% of HR leaders believe their company supports AI learning. Only 64% of employees agree. Half of your workforce says workload leaves no room for training at all. Meanwhile the licenses renew, and the productivity gains stay theoretical. That gap is the number you're accountable for.",
+          "addresses": [
+            "employee_adoption",
+            "time_cost"
+          ],
+          "readSeconds": 14
+        },
+        {
+          "id": "features",
+          "type": "features",
+          "headline": "Learning that adapts to each person — and reports back to you",
+          "body": "Every employee follows a path built around their tools, skills, and pace, while you get the adoption evidence you need to prove impact.",
+          "items": [
+            {
+              "title": "Adapts in real time",
+              "detail": "Lesson content adjusts as each learner progresses — never too easy, never too hard."
+            },
+            {
+              "title": "Content tied to daily work",
+              "detail": "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function."
+            },
+            {
+              "title": "Measurable outcomes",
+              "detail": "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one."
+            }
+          ],
+          "addresses": [
+            "relevance_to_role",
+            "roi_proof",
+            "employee_adoption"
+          ],
+          "readSeconds": 15
+        },
+        {
+          "id": "tour",
+          "type": "product_tour",
+          "headline": "What your employees get",
+          "body": "Ask Olé, an AI tutor team that adjusts to each learner — never too easy, never too hard. Skill scores updated after every lesson, XP and level-ups that reward consistency. 2-minute micro-lessons on mobile, desktop, text, audio, and video.",
+          "addresses": [
+            "time_cost",
+            "relevance_to_role"
+          ],
+          "readSeconds": 16
+        },
+        {
+          "id": "proof",
+          "type": "social_proof",
+          "headline": "Teams at these organizations are already learning on Scholé",
+          "body": "Decathlon Switzerland and the Harvard Data Science Initiative use Scholé today — and the feedback centers on exactly the business outcomes L&D leaders are measured on.",
+          "items": [
+            {
+              "title": "Decathlon Switzerland",
+              "detail": "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development"
+            },
+            {
+              "title": "Harvard Data Science Initiative",
+              "detail": "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\""
+            }
+          ],
+          "addresses": [
+            "credibility",
+            "roi_proof",
+            "employee_adoption"
+          ],
+          "readSeconds": 14
+        },
+        {
+          "id": "press",
+          "type": "credibility",
+          "headline": "Backed by the best, featured in the press",
+          "body": "Scholé AI is already featured in the press. Recognized by UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. Launched #1 on Product Hunt.",
+          "addresses": [
+            "credibility"
+          ],
+          "readSeconds": 12
+        },
+        {
+          "id": "faq",
+          "type": "faq",
+          "headline": "Common questions",
+          "body": "The things L&D directors ask before booking: how Scholé differs from Coursera, LinkedIn Learning, or raw ChatGPT, and whether it fits your existing stack.",
+          "items": [
+            {
+              "title": "LMS/HRIS compatibility",
+              "detail": "Scholé integrates with existing LMS and HRIS systems, so it slots into your current stack rather than replacing it."
+            },
+            {
+              "title": "EU AI Act",
+              "detail": "Scholé helps you prepare for EU AI Act literacy requirements as part of your rollout."
+            }
+          ],
+          "addresses": [
+            "integration_friction",
+            "compliance_coverage"
+          ],
+          "readSeconds": 11
+        },
+        {
+          "id": "cta",
+          "type": "cta",
+          "headline": "Bring your adoption numbers.",
+          "body": "20 minutes with a founder. Bring your current adoption numbers if you have them and we'll show you exactly what closing the gap looks like for your team — and what you'd measure to prove it.",
+          "ctaLabel": "Book a 20-min demo",
+          "addresses": [
+            "roi_proof"
+          ],
+          "readSeconds": 10
+        }
+      ]
+    },
+    {
+      "id": "v1-roi",
+      "name": "HR & L&D buyer (dashboard-led)",
+      "strategy": "roi",
+      "generation": 0,
+      "parentIds": [],
+      "ctaGoal": "Book a demo",
+      "thesis": "Same schole.ai layout with hero and key sections retargeted to the HR dashboard and the adoption metrics an L&D leader needs to defend budget.",
+      "sections": [
+        {
+          "id": "hero",
+          "type": "hero",
+          "headline": "Stop reporting completion rates. Start proving AI adoption.",
+          "body": "Scholé's HR dashboard turns AI training into numbers your CFO respects: adoption rate, mastery level, and time to skill for every team and every tool, trackable in natural language from day one.",
+          "ctaLabel": "See the dashboard live",
+          "addresses": [
+            "roi_proof"
+          ],
+          "readSeconds": 10
+        },
+        {
+          "id": "how",
+          "type": "how_it_works",
+          "headline": "Learn the new way with Scholé",
+          "body": "Scholé is a multi-agent pedagogical engine for adaptive and personalized learning. No more one-size-fits-all courses.",
+          "addresses": [
+            "relevance_to_role",
+            "content_quality"
+          ],
+          "readSeconds": 12
+        },
+        {
+          "id": "problem",
+          "type": "problem",
+          "headline": "Completion certificates don't survive a budget meeting.",
+          "body": "Most L&D teams can show who finished a course. Almost none can show who changed how they work. That gap is why learning budgets get cut, and why L&D is not in the room when priorities get set.",
+          "addresses": [
+            "roi_proof"
+          ],
+          "readSeconds": 15
+        },
+        {
+          "id": "features",
+          "type": "features",
+          "headline": "Insights your LMS admin can't give you",
+          "body": "Ask questions in plain language and get answers about real adoption for every team and every tool, ready before your next QBR.",
+          "items": [
+            {
+              "title": "Adapts in real time",
+              "detail": "Lesson content adjusts as each learner progresses."
+            },
+            {
+              "title": "Content tied to daily work",
+              "detail": "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function."
+            },
+            {
+              "title": "Measurable outcomes",
+              "detail": "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one."
+            }
+          ],
+          "addresses": [
+            "roi_proof",
+            "employee_adoption"
+          ],
+          "readSeconds": 18
+        },
+        {
+          "id": "tour",
+          "type": "product_tour",
+          "headline": "What your employees get",
+          "body": "Ask Olé, an AI tutor team that adjusts to each learner — never too easy, never too hard. Skill scores updated after every lesson, XP and level-ups that reward consistency. 2-minute micro-lessons on mobile, desktop, text, audio, and video.",
+          "addresses": [
+            "time_cost",
+            "relevance_to_role"
+          ],
+          "readSeconds": 16
+        },
+        {
+          "id": "proof",
+          "type": "social_proof",
+          "headline": "One of the most business-oriented HR dashboards I have encountered",
+          "body": "\"A true asset for any L&D leader whose role is increasingly evolving to align more closely with business priorities.\" Raphaëlle Rey, Leader of People Development, Decathlon Switzerland",
+          "items": [
+            {
+              "title": "Decathlon",
+              "detail": "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development"
+            },
+            {
+              "title": "Harvard DSI",
+              "detail": "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\""
+            }
+          ],
+          "addresses": [
+            "credibility",
+            "roi_proof"
+          ],
+          "readSeconds": 20
+        },
+        {
+          "id": "press",
+          "type": "credibility",
+          "headline": "Backed by the best, featured in the press",
+          "body": "Scholé AI is already featured in the press. Recognized by UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. Launched #1 on Product Hunt.",
+          "addresses": [
+            "credibility"
+          ],
+          "readSeconds": 12
+        },
+        {
+          "id": "faq",
+          "type": "faq",
+          "headline": "Common questions",
+          "body": "How is Scholé different from Coursera or LinkedIn Learning? How is it different from ChatGPT? Is it compatible with our existing LMS or HRIS? What does EU AI Act compliance cover?",
+          "items": [
+            {
+              "title": "LMS/HRIS compatibility",
+              "detail": "Scholé integrates with existing LMS and HRIS systems."
+            },
+            {
+              "title": "EU AI Act",
+              "detail": "Scholé helps you prepare for EU AI Act literacy requirements."
+            }
+          ],
+          "addresses": [
+            "integration_friction",
+            "compliance_coverage"
+          ],
+          "readSeconds": 14
+        },
+        {
+          "id": "cta",
+          "type": "cta",
+          "headline": "Bring numbers to your next budget meeting",
+          "body": "20 minutes, live with a founder. We will show the dashboard on data like yours and leave you with a metric framework you can use either way.",
+          "ctaLabel": "Book a demo",
+          "addresses": [
+            "roi_proof"
+          ],
+          "readSeconds": 8
+        }
+      ]
+    },
+    {
+      "id": "v2-compliance",
+      "name": "EU compliance lead (AI Act-led)",
+      "strategy": "compliance",
+      "generation": 0,
+      "parentIds": [],
+      "ctaGoal": "Book a demo",
+      "thesis": "Same schole.ai layout; hero and problem sections retargeted to EU AI Act Article 4 compliance instead of burying it in the FAQ.",
+      "sections": [
+        {
+          "id": "hero",
+          "type": "hero",
+          "headline": "The EU AI Act made AI literacy mandatory. Scholé makes it auditable.",
+          "body": "Role-specific AI literacy for your entire workforce, live this quarter, with per-employee evidence that regulators and boards can read.",
+          "ctaLabel": "Get compliant this quarter",
+          "addresses": [
+            "compliance_coverage"
+          ],
+          "readSeconds": 10
+        },
+        {
+          "id": "how",
+          "type": "how_it_works",
+          "headline": "Learn the new way with Scholé",
+          "body": "Scholé is a multi-agent pedagogical engine for adaptive and personalized learning. No more one-size-fits-all courses.",
+          "addresses": [
+            "relevance_to_role",
+            "content_quality"
+          ],
+          "readSeconds": 12
+        },
+        {
+          "id": "problem",
+          "type": "problem",
+          "headline": "Article 4 requires AI literacy. Generic training won't pass audit.",
+          "body": "Providers and deployers must ensure sufficient AI literacy that accounts for technical knowledge, experience, and context of use. A one-size-fits-all webinar does not meet that bar.",
+          "addresses": [
+            "compliance_coverage",
+            "roi_proof"
+          ],
+          "readSeconds": 15
+        },
+        {
+          "id": "features",
+          "type": "features",
+          "headline": "Learning that adapts to each person",
+          "body": "Every employee follows a path built around their tools, skills, and pace. The lesson content adjusts in real time as they progress.",
+          "items": [
+            {
+              "title": "Adapts in real time",
+              "detail": "Lesson content adjusts as each learner progresses."
+            },
+            {
+              "title": "Content tied to daily work",
+              "detail": "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function."
+            },
+            {
+              "title": "Measurable outcomes",
+              "detail": "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one."
+            }
+          ],
+          "addresses": [
+            "relevance_to_role",
+            "roi_proof"
+          ],
+          "readSeconds": 18
+        },
+        {
+          "id": "tour",
+          "type": "product_tour",
+          "headline": "What your employees get",
+          "body": "Ask Olé, an AI tutor team that adjusts to each learner — never too easy, never too hard. Skill scores updated after every lesson, XP and level-ups that reward consistency. 2-minute micro-lessons on mobile, desktop, text, audio, and video.",
+          "addresses": [
+            "time_cost",
+            "relevance_to_role"
+          ],
+          "readSeconds": 16
+        },
+        {
+          "id": "proof",
+          "type": "social_proof",
+          "headline": "Teams at these organizations are already learning on Scholé",
+          "body": "Decathlon Switzerland and the Harvard Data Science Initiative use Scholé today.",
+          "items": [
+            {
+              "title": "Decathlon",
+              "detail": "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development"
+            },
+            {
+              "title": "Harvard DSI",
+              "detail": "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\""
+            }
+          ],
+          "addresses": [
+            "credibility",
+            "employee_adoption"
+          ],
+          "readSeconds": 20
+        },
+        {
+          "id": "press",
+          "type": "credibility",
+          "headline": "Backed by the best, featured in the press",
+          "body": "Scholé AI is already featured in the press. Recognized by UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. Launched #1 on Product Hunt.",
+          "addresses": [
+            "credibility"
+          ],
+          "readSeconds": 12
+        },
+        {
+          "id": "faq",
+          "type": "faq",
+          "headline": "What does EU AI Act compliance cover?",
+          "body": "Scholé maps role-specific learning paths to Article 4, with per-employee mastery records you can export for audit.",
+          "items": [
+            {
+              "title": "LMS/HRIS compatibility",
+              "detail": "Scholé integrates with existing LMS and HRIS systems."
+            },
+            {
+              "title": "EU AI Act",
+              "detail": "Scholé helps you prepare for EU AI Act literacy requirements."
+            }
+          ],
+          "addresses": [
+            "compliance_coverage",
+            "integration_friction"
+          ],
+          "readSeconds": 14
+        },
+        {
+          "id": "cta",
+          "type": "cta",
+          "headline": "The deadline isn't moving. Neither is your board.",
+          "body": "A 20 minute call: we map Article 4 requirements to your org and show you the audit trail live.",
+          "ctaLabel": "Book a compliance walkthrough",
+          "addresses": [
+            "compliance_coverage"
+          ],
+          "readSeconds": 8
+        }
+      ]
+    },
+    {
+      "id": "v3-problem",
+      "name": "Executive adoption gap (problem-first)",
+      "strategy": "problem_first",
+      "generation": 0,
+      "parentIds": [],
+      "ctaGoal": "Book a demo",
+      "thesis": "Same schole.ai layout; hero swaps to the live site's mid-page adoption-gap headline, with problem and how sections agitating on the gap.",
+      "sections": [
+        {
+          "id": "hero",
+          "type": "hero",
+          "headline": "Most companies have AI. Very few turn it into measurable impact.",
+          "body": "You bought ChatGPT, Copilot, Gemini, Claude. The subscriptions are active. Ask most employees what changed in their daily work, and the answer is: not much. Scholé closes that gap.",
+          "ctaLabel": "See how",
+          "addresses": [
+            "employee_adoption"
+          ],
+          "readSeconds": 10
+        },
+        {
+          "id": "how",
+          "type": "how_it_works",
+          "headline": "The fix: meet employees where they already are",
+          "body": "Scholé's multi-agent engine builds each employee's path around their actual role and daily tools like Notion, Excel, PowerPoint, and Slack. 2 minute micro-lessons that fit inside the workday.",
+          "addresses": [
+            "relevance_to_role",
+            "time_cost",
+            "employee_adoption"
+          ],
+          "readSeconds": 12
+        },
+        {
+          "id": "problem",
+          "type": "problem",
+          "headline": "The adoption gap, in your own numbers.",
+          "body": "83% of HR leaders believe their company supports AI learning. Only 64% of employees agree. Half of your workforce says workload leaves no room for training at all. Meanwhile the licenses renew, and the productivity gains stay theoretical.",
+          "addresses": [
+            "employee_adoption",
+            "time_cost"
+          ],
+          "readSeconds": 15
+        },
+        {
+          "id": "features",
+          "type": "features",
+          "headline": "Learning that adapts to each person",
+          "body": "Every employee follows a path built around their tools, skills, and pace. The lesson content adjusts in real time as they progress.",
+          "items": [
+            {
+              "title": "Adapts in real time",
+              "detail": "Lesson content adjusts as each learner progresses."
+            },
+            {
+              "title": "Content tied to daily work",
+              "detail": "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function."
+            },
+            {
+              "title": "Measurable outcomes",
+              "detail": "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one."
+            }
+          ],
+          "addresses": [
+            "relevance_to_role",
+            "roi_proof"
+          ],
+          "readSeconds": 18
+        },
+        {
+          "id": "tour",
+          "type": "product_tour",
+          "headline": "What your employees get",
+          "body": "Ask Olé, an AI tutor team that adjusts to each learner — never too easy, never too hard. Skill scores updated after every lesson, XP and level-ups that reward consistency. 2-minute micro-lessons on mobile, desktop, text, audio, and video.",
+          "addresses": [
+            "time_cost",
+            "relevance_to_role"
+          ],
+          "readSeconds": 16
+        },
+        {
+          "id": "proof",
+          "type": "social_proof",
+          "headline": "Teams at these organizations are already learning on Scholé",
+          "body": "Decathlon Switzerland and the Harvard Data Science Initiative use Scholé today.",
+          "items": [
+            {
+              "title": "Decathlon",
+              "detail": "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development"
+            },
+            {
+              "title": "Harvard DSI",
+              "detail": "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\""
+            }
+          ],
+          "addresses": [
+            "credibility",
+            "employee_adoption"
+          ],
+          "readSeconds": 20
+        },
+        {
+          "id": "press",
+          "type": "credibility",
+          "headline": "Backed by the best, featured in the press",
+          "body": "Scholé AI is already featured in the press. Recognized by UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. Launched #1 on Product Hunt.",
+          "addresses": [
+            "credibility"
+          ],
+          "readSeconds": 12
+        },
+        {
+          "id": "faq",
+          "type": "faq",
+          "headline": "Common questions",
+          "body": "How is Scholé different from Coursera or LinkedIn Learning? How is it different from ChatGPT? Is it compatible with our existing LMS or HRIS? What does EU AI Act compliance cover?",
+          "items": [
+            {
+              "title": "LMS/HRIS compatibility",
+              "detail": "Scholé integrates with existing LMS and HRIS systems."
+            },
+            {
+              "title": "EU AI Act",
+              "detail": "Scholé helps you prepare for EU AI Act literacy requirements."
+            }
+          ],
+          "addresses": [
+            "integration_friction",
+            "compliance_coverage"
+          ],
+          "readSeconds": 14
+        },
+        {
+          "id": "cta",
+          "type": "cta",
+          "headline": "Your licenses renew either way",
+          "body": "20 minutes with a founder. Bring your adoption numbers if you have them and we will show you what closing the gap looks like.",
+          "ctaLabel": "Book a demo",
+          "addresses": [],
+          "readSeconds": 8
+        }
+      ]
+    },
+    {
+      "id": "v4-credibility",
+      "name": "Technical evaluator (research + integration)",
+      "strategy": "credibility",
+      "generation": 0,
+      "parentIds": [],
+      "ctaGoal": "Book a demo",
+      "thesis": "Same schole.ai layout; hero and credibility sections retargeted to EPFL/Berkeley research pedigree and integration answers for the IT gatekeeper.",
+      "sections": [
+        {
+          "id": "hero",
+          "type": "hero",
+          "headline": "Ten years of learning science research. Now a product.",
+          "body": "Scholé was built inside EPFL's Machine Learning for Education Lab and UC Berkeley by researchers with 40+ papers on personalized learning, LLMs, and knowledge tracing. Not another AI wrapper. The actual research, productized.",
+          "ctaLabel": "Book a demo",
+          "addresses": [
+            "credibility",
+            "content_quality"
+          ],
+          "readSeconds": 10
+        },
+        {
+          "id": "how",
+          "type": "how_it_works",
+          "headline": "What a pedagogical engine actually does",
+          "body": "Scholé models each learner's knowledge state in real time, using the same knowledge tracing research the founders published for a decade, and only generates lesson content it can ground in validated knowledge.",
+          "addresses": [
+            "content_quality",
+            "relevance_to_role"
+          ],
+          "readSeconds": 12
+        },
+        {
+          "id": "problem",
+          "type": "problem",
+          "headline": "The adoption gap is real. Scholé closes it.",
+          "body": "You bought the tools — ChatGPT, Copilot, Gemini, Claude. But if employees don't know how to use them in their daily work, you're not getting the return. Scholé helps every employee understand why AI is relevant to their role.",
+          "addresses": [
+            "employee_adoption"
+          ],
+          "readSeconds": 15
+        },
+        {
+          "id": "features",
+          "type": "features",
+          "headline": "Learning that adapts to each person",
+          "body": "Every employee follows a path built around their tools, skills, and pace. The lesson content adjusts in real time as they progress.",
+          "items": [
+            {
+              "title": "Adapts in real time",
+              "detail": "Lesson content adjusts as each learner progresses."
+            },
+            {
+              "title": "Content tied to daily work",
+              "detail": "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function."
+            },
+            {
+              "title": "Measurable outcomes",
+              "detail": "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one."
+            }
+          ],
+          "addresses": [
+            "relevance_to_role",
+            "roi_proof"
+          ],
+          "readSeconds": 18
+        },
+        {
+          "id": "tour",
+          "type": "product_tour",
+          "headline": "What your employees get",
+          "body": "Ask Olé, an AI tutor team that adjusts to each learner — never too easy, never too hard. Skill scores updated after every lesson, XP and level-ups that reward consistency. 2-minute micro-lessons on mobile, desktop, text, audio, and video.",
+          "addresses": [
+            "time_cost",
+            "relevance_to_role"
+          ],
+          "readSeconds": 16
+        },
+        {
+          "id": "proof",
+          "type": "social_proof",
+          "headline": "Teams at these organizations are already learning on Scholé",
+          "body": "Decathlon Switzerland and the Harvard Data Science Initiative use Scholé today.",
+          "items": [
+            {
+              "title": "Decathlon",
+              "detail": "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development"
+            },
+            {
+              "title": "Harvard DSI",
+              "detail": "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\""
+            }
+          ],
+          "addresses": [
+            "credibility",
+            "employee_adoption"
+          ],
+          "readSeconds": 20
+        },
+        {
+          "id": "press",
+          "type": "credibility",
+          "headline": "Recognized by the institutions that set the bar",
+          "body": "UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. MultiModN, the peer-reviewed modular architecture featured at NeurIPS, inspired Scholé's agent-first approach.",
+          "addresses": [
+            "credibility",
+            "content_quality"
+          ],
+          "readSeconds": 12
+        },
+        {
+          "id": "faq",
+          "type": "faq",
+          "headline": "Common questions",
+          "body": "How is Scholé different from Coursera or LinkedIn Learning? How is it different from ChatGPT? Is it compatible with our existing LMS or HRIS? What does EU AI Act compliance cover?",
+          "items": [
+            {
+              "title": "LMS/HRIS compatibility",
+              "detail": "Scholé integrates with existing LMS and HRIS systems."
+            },
+            {
+              "title": "EU AI Act",
+              "detail": "Scholé helps you prepare for EU AI Act literacy requirements."
+            }
+          ],
+          "addresses": [
+            "integration_friction",
+            "compliance_coverage"
+          ],
+          "readSeconds": 14
+        },
+        {
+          "id": "cta",
+          "type": "cta",
+          "headline": "Talk to the researchers, not a sales team",
+          "body": "20 minutes, live with a founder. Ask the hard questions. They wrote the papers.",
+          "ctaLabel": "Book a demo",
+          "addresses": [
+            "credibility"
+          ],
+          "readSeconds": 8
+        }
+      ]
+    },
+    {
+      "id": "v5-learner",
+      "name": "Employee self-serve (learner-first)",
+      "strategy": "learner_first",
+      "generation": 0,
+      "parentIds": [],
+      "ctaGoal": "Start for free",
+      "thesis": "Same schole.ai layout; hero and learner sections retargeted to the Olé tutor experience with a self-serve CTA instead of book-a-demo.",
+      "sections": [
+        {
+          "id": "hero",
+          "type": "hero",
+          "headline": "Learning that fits your workday. Finally.",
+          "body": "2 minute lessons built around your actual job and the tools you already use. An AI tutor that meets you exactly where you are. No lecture halls, no 45 minute modules, no generic Intro to AI.",
+          "ctaLabel": "Start for free",
+          "addresses": [
+            "time_cost",
+            "relevance_to_role"
+          ],
+          "readSeconds": 10
+        },
+        {
+          "id": "how",
+          "type": "how_it_works",
+          "headline": "Learn the new way with Scholé",
+          "body": "Scholé is a multi-agent pedagogical engine for adaptive and personalized learning. No more one-size-fits-all courses.",
+          "addresses": [
+            "relevance_to_role",
+            "content_quality"
+          ],
+          "readSeconds": 12
+        },
+        {
+          "id": "problem",
+          "type": "problem",
+          "headline": "This is about making you faster. Not replacing you.",
+          "body": "AI is reshaping every role, including yours. The people who thrive are the ones who make AI do their boring work. Scholé teaches you to use ChatGPT, Copilot, and Claude on your real tasks.",
+          "addresses": [
+            "automation_anxiety",
+            "relevance_to_role"
+          ],
+          "readSeconds": 15
+        },
+        {
+          "id": "features",
+          "type": "features",
+          "headline": "Learning that adapts to each person",
+          "body": "Every employee follows a path built around their tools, skills, and pace. The lesson content adjusts in real time as they progress.",
+          "items": [
+            {
+              "title": "Adapts in real time",
+              "detail": "Lesson content adjusts as each learner progresses."
+            },
+            {
+              "title": "Content tied to daily work",
+              "detail": "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function."
+            },
+            {
+              "title": "Measurable outcomes",
+              "detail": "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one."
+            }
+          ],
+          "addresses": [
+            "relevance_to_role",
+            "roi_proof"
+          ],
+          "readSeconds": 18
+        },
+        {
+          "id": "tour",
+          "type": "product_tour",
+          "headline": "Meet your tutor team",
+          "body": "Not one AI but a team of pedagogical agents: Olé adjusts to your level, Atlas connects concepts to your work, and Zeteo makes practice interactive.",
+          "addresses": [
+            "relevance_to_role",
+            "content_quality",
+            "time_cost"
+          ],
+          "readSeconds": 16
+        },
+        {
+          "id": "proof",
+          "type": "social_proof",
+          "headline": "Teams at these organizations are already learning on Scholé",
+          "body": "Decathlon Switzerland and the Harvard Data Science Initiative use Scholé today.",
+          "items": [
+            {
+              "title": "Decathlon",
+              "detail": "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development"
+            },
+            {
+              "title": "Harvard DSI",
+              "detail": "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\""
+            }
+          ],
+          "addresses": [
+            "credibility",
+            "employee_adoption"
+          ],
+          "readSeconds": 20
+        },
+        {
+          "id": "press",
+          "type": "credibility",
+          "headline": "Backed by the best, featured in the press",
+          "body": "Scholé AI is already featured in the press. Recognized by UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. Launched #1 on Product Hunt.",
+          "addresses": [
+            "credibility"
+          ],
+          "readSeconds": 12
+        },
+        {
+          "id": "faq",
+          "type": "faq",
+          "headline": "Common questions",
+          "body": "How is Scholé different from Coursera or LinkedIn Learning? How is it different from ChatGPT? Is it compatible with our existing LMS or HRIS? What does EU AI Act compliance cover?",
+          "items": [
+            {
+              "title": "LMS/HRIS compatibility",
+              "detail": "Scholé integrates with existing LMS and HRIS systems."
+            },
+            {
+              "title": "EU AI Act",
+              "detail": "Scholé helps you prepare for EU AI Act literacy requirements."
+            }
+          ],
+          "addresses": [
+            "integration_friction",
+            "compliance_coverage"
+          ],
+          "readSeconds": 14
+        },
+        {
+          "id": "cta",
+          "type": "cta",
+          "headline": "Your first lesson takes 2 minutes",
+          "body": "Start free, no credit card required. Tell Olé your role and tools, and it builds your path.",
+          "ctaLabel": "Start for free",
+          "addresses": [
+            "time_cost",
+            "price_clarity"
+          ],
+          "readSeconds": 8
+        }
+      ]
+    }
+  ],
   "htmlVariantIds": [
     "v1-roi",
     "v2-compliance",
     "v3-problem",
     "v4-credibility",
     "v5-learner",
-    "g1-demo0",
-    "g1-demo1",
-    "g1-demo2",
-    "g1-demo3",
-    "g1-demo4",
-    "g1-demo5",
+    "g1-mut0",
+    "g1-x1",
+    "g1-mut2",
+    "g1-x3",
+    "g1-mut4",
+    "g1-x5",
     "production",
     "v0-baseline"
   ],
   "history": [
+    {
+      "at": "2026-07-02T20:20:17.348Z",
+      "variantId": "g1-mut0",
+      "runId": "run-23338337",
+      "runVersion": 20,
+      "reason": "Best lift candidate (+12.5pp, P(best) 75%)",
+      "patchCount": 16
+    },
     {
       "at": "2026-07-02T18:46:34.477Z",
       "variantId": "g1-demo5",

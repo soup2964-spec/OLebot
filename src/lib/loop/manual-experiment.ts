@@ -9,13 +9,19 @@ import {
   ExperimentProgressReporter,
   clearExperimentProgress,
 } from "./experiment-progress";
-import { loadLoopState, saveLoopState } from "./state";
+import {
+  loadLoopState,
+  nextExperimentNumber,
+  normalizeExperimentHistory,
+  saveLoopState,
+} from "./state";
 
 export type { ExperimentMode };
 
 export interface ManualExperimentResult {
   runId: string;
   runVersion: number;
+  experimentNumber: number;
   totalVisits: number;
   offspringCount: number;
   offspringIds: string[];
@@ -54,7 +60,7 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
     progress.saving("Saving results and writing page previews…");
     saveRun(run);
     invalidateRunCache();
-    writeAllVariantHtml(run.variants);
+    writeAllVariantHtml(run.variants, { includeLabBaseline: true });
 
     const offspringIds =
       [...run.generations].reverse().find((g) => g.offspringIds?.length)?.offspringIds ?? [];
@@ -64,14 +70,14 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
     );
 
     const loopState = loadLoopState();
-    const nextRunVersion = loopState.runVersion + 1;
+    const history = normalizeExperimentHistory(loopState.experimentHistory);
+    const experimentNumber = nextExperimentNumber(history);
     const previousVariants =
-      nextRunVersion === 1
+      experimentNumber === 1
         ? [...GENERATION_0]
         : [
-            ...(loopState.experimentHistory.find(
-              (e) => e.experimentNumber === nextRunVersion - 1
-            )?.currentVariants ?? GENERATION_0),
+            ...(history.find((e) => e.experimentNumber === experimentNumber - 1)
+              ?.currentVariants ?? GENERATION_0),
           ];
     const currentVariants = offspringIds
       .map((id) => run.variants.find((v) => v.id === id))
@@ -79,7 +85,6 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
 
     const next = {
       ...loopState,
-      runVersion: nextRunVersion,
       lastSyncAt: new Date().toISOString(),
       lastRunId: run.id,
       syncHistory: [
@@ -91,28 +96,32 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
         ...loopState.syncHistory.slice(0, 19),
       ],
       experimentHistory: [
-        ...loopState.experimentHistory.filter(
-          (e) => e.experimentNumber !== nextRunVersion
-        ),
+        ...history,
         {
-          experimentNumber: nextRunVersion,
+          experimentNumber,
           runId: run.id,
           previousVariants,
           currentVariants,
         },
-      ].sort((a, b) => a.experimentNumber - b.experimentNumber),
+      ],
     };
     saveLoopState(next);
 
-    const deploy = promoteAndDeploy(run, {
-      forceBest: process.env.AUTO_DEPLOY_BEST !== "0",
-    });
+    const deploy =
+      process.env.AUTO_DEPLOY_BEST === "1"
+        ? promoteAndDeploy(run, { forceBest: true })
+        : {
+            promoted: false,
+            reason: "Lab mode — baseline preserved (set AUTO_DEPLOY_BEST=1 to auto-promote)",
+            htmlWritten: run.variants.length,
+          };
 
     progress.complete();
 
     return {
       runId: run.id,
-      runVersion: next.runVersion,
+      runVersion: loopState.runVersion,
+      experimentNumber,
       totalVisits,
       offspringCount: offspringIds.length,
       offspringIds,

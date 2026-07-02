@@ -30,12 +30,16 @@ export function ExperimentDetailPanel({
   variants,
   visitIndex,
   selectedVariantId,
+  experimentNumber,
+  bredVariants = [],
 }: {
   activeView: WorkbenchView;
   run: ExperimentRun | null;
   variants: PageVariant[];
   visitIndex: VisitIndex | null;
   selectedVariantId?: string | null;
+  experimentNumber?: number;
+  bredVariants?: PageVariant[];
 }) {
   const meta = CRITERIA.find((c) => c.id === VIEW_CRITERION[activeView]);
 
@@ -50,7 +54,9 @@ export function ExperimentDetailPanel({
         )}
 
         {activeView === "versions" && <VersionsDetail variants={variants} />}
-        {activeView === "method" && <MethodDetail run={run} />}
+        {activeView === "method" && (
+          <MethodDetail run={run} experimentNumber={experimentNumber} />
+        )}
         {activeView === "behavior" && (
           <BehaviorReport
             run={run}
@@ -60,8 +66,12 @@ export function ExperimentDetailPanel({
           />
         )}
         {activeView === "winners" && <WinnersDetail run={run} variants={variants} />}
-        {activeView === "new" && <NewVariantsDetail run={run} variants={variants} />}
-        {activeView === "changelog" && <ChangelogDetail variants={variants} />}
+        {activeView === "new" && (
+          <NewVariantsDetail run={run} variants={variants} bredVariants={bredVariants} />
+        )}
+        {activeView === "changelog" && (
+          <ChangelogDetail variants={variants} bredVariants={bredVariants} />
+        )}
       </div>
     </div>
   );

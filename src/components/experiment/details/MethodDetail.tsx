@@ -3,12 +3,32 @@ import type { ExperimentRun } from "@/lib/schema/experiment";
 import { JUDGMENT_CRITERIA } from "@/lib/judgment/criteria";
 import { DECISION_THRESHOLDS, EVIDENCE_VISITS_PER_READING } from "@/lib/stats/bayes";
 
-export function MethodDetail({ run }: { run: ExperimentRun | null }) {
+export function MethodDetail({
+  run,
+  experimentNumber,
+}: {
+  run: ExperimentRun | null;
+  experimentNumber?: number;
+}) {
   const totalVisits =
     run?.generations.reduce((s, g) => s + (g.totalVisits ?? g.visits.length), 0) ?? 0;
+  const generationCount = run?.generations.length ?? 0;
+  const offspringCount =
+    run?.generations.reduce((s, g) => s + (g.offspringIds?.length ?? 0), 0) ?? 0;
 
   return (
     <div className="space-y-5">
+      {experimentNumber != null && run && (
+        <div className="rounded-xl border border-schole-primary/20 bg-schole-primary/5 px-4 py-3 text-sm text-slate-700">
+          Showing results for <strong>Experiment {experimentNumber}</strong>
+          {run.id && (
+            <span className="text-slate-500">
+              {" "}
+              · run <code className="text-xs">{run.id}</code>
+            </span>
+          )}
+        </div>
+      )}
       <p className="text-sm text-slate-600">
         Six objection-gated LLM personas visit landing pages. Thompson sampling allocates traffic.
         Bayesian analysis promotes winners using the judgment criteria below, then the optimizer
@@ -31,8 +51,14 @@ export function MethodDetail({ run }: { run: ExperimentRun | null }) {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatChip label="Simulated visits" value={totalVisits.toLocaleString()} />
+        <StatChip label="Generations" value={String(generationCount)} />
+        <StatChip label="Bred pages" value={String(offspringCount)} />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
         <StatChip label="Personas" value="6" />
         <StatChip label="Allocation" value="Thompson sampling" />
+        <StatChip label="Evidence cap" value={`${EVIDENCE_VISITS_PER_READING} visits/reading`} />
       </div>
 
       <div>

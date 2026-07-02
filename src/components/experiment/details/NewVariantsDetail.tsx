@@ -34,13 +34,18 @@ function latestBredVariants(
 export function NewVariantsDetail({
   run,
   variants,
+  bredVariants = [],
 }: {
   run: ExperimentRun | null;
   variants: PageVariant[];
+  bredVariants?: PageVariant[];
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const bred = useMemo(() => latestBredVariants(run, variants), [run, variants]);
+  const bred = useMemo(() => {
+    if (bredVariants.length) return bredVariants.slice(0, NEW_VARIANT_GRID_SIZE);
+    return latestBredVariants(run, variants);
+  }, [bredVariants, run, variants]);
   const selected = bred.find((v) => v.id === selectedId) ?? bred[0] ?? null;
 
   if (bred.length === 0) {

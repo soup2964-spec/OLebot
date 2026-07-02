@@ -44,9 +44,31 @@ const DEFAULT_STATE: LoopState = {
   experimentHistory: [],
 };
 
+/** Manual experiments use 1…N — independent of auto-sync runVersion. */
+export function normalizeExperimentHistory(
+  history: ExperimentHistoryEntry[] = []
+): ExperimentHistoryEntry[] {
+  if (!history.length) return [];
+  const sorted = [...history].sort(
+    (a, b) => a.experimentNumber - b.experimentNumber || a.runId.localeCompare(b.runId)
+  );
+  return sorted.map((entry, index) => ({
+    ...entry,
+    experimentNumber: index + 1,
+  }));
+}
+
+export function nextExperimentNumber(history: ExperimentHistoryEntry[] = []): number {
+  return normalizeExperimentHistory(history).length + 1;
+}
+
 export function loadLoopState(): LoopState {
   try {
-    return { ...DEFAULT_STATE, ...JSON.parse(fs.readFileSync(STATE_PATH, "utf8")) };
+    const raw = { ...DEFAULT_STATE, ...JSON.parse(fs.readFileSync(STATE_PATH, "utf8")) };
+    return {
+      ...raw,
+      experimentHistory: normalizeExperimentHistory(raw.experimentHistory ?? []),
+    };
   } catch {
     return { ...DEFAULT_STATE };
   }

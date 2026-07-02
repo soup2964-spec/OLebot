@@ -15,6 +15,7 @@ import type { PageVariant } from "../src/lib/schema/page";
 
 const ROOT = path.join(__dirname, "..");
 const BASELINE_HTML = path.join(ROOT, "public", "baseline", "index.html");
+const LAB_SOURCE_HTML = path.join(ROOT, "public", "baseline", "lab-source.html");
 const OUT_DIR = path.join(ROOT, "public", "baseline", "variants");
 const RUN_JSON = path.join(ROOT, "data", "run.json");
 
@@ -58,7 +59,10 @@ function main() {
 
   for (const variant of GENERATION_0) {
     if (variant.id === "v0-baseline") {
-      console.log(`  v0-baseline: control (baseline/index.html)`);
+      const source = fs.existsSync(LAB_SOURCE_HTML) ? LAB_SOURCE_HTML : BASELINE_HTML;
+      const outPath = path.join(OUT_DIR, "v0-baseline.html");
+      fs.copyFileSync(source, outPath);
+      console.log(`  v0-baseline: pristine lab preview → ${path.relative(ROOT, outPath)}`);
       continue;
     }
 
@@ -71,7 +75,7 @@ function main() {
   }
 
   console.log(
-    `\nWrote ${GENERATION_0.length - 1 + bred.length} variant replicas to ${OUT_DIR}`
+    `\nWrote ${GENERATION_0.length + bred.length} variant replicas to ${OUT_DIR}`
   );
 }
 

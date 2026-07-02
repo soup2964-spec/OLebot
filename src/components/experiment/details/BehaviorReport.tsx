@@ -31,7 +31,7 @@ export function BehaviorReport({
   variants: PageVariant[];
   selectedVariantId?: string | null;
 }) {
-  const [genIdx, setGenIdx] = useState(Math.max(0, (index?.length ?? 1) - 1));
+  const [genIdx, setGenIdx] = useState(0);
   const [live, setLive] = useState<LiveBehaviorSnapshot | null>(null);
   const [liveConfigured, setLiveConfigured] = useState<boolean | null>(null);
   const [loadingLive, setLoadingLive] = useState(true);
@@ -65,9 +65,15 @@ export function BehaviorReport({
     return () => clearInterval(t);
   }, [refreshLive]);
 
+  useEffect(() => {
+    if (!index?.length) return;
+    setGenIdx(index.length - 1);
+  }, [index?.length, run?.id]);
+
+  const hasLiveData = Boolean(live?.totalSessions);
   const mode: DataMode = loadingLive
     ? "loading"
-    : liveConfigured && live
+    : hasLiveData
       ? "live"
       : "simulated";
 
@@ -132,11 +138,7 @@ export function BehaviorReport({
   const winnerId = rankedMetrics[0]?.variantId;
 
   const hasSimData = Boolean(index?.length && gen);
-  const hasLiveData = Boolean(live?.totalSessions);
-  const showEmpty =
-    mode !== "loading" &&
-    !hasLiveData &&
-    (mode === "live" || !hasSimData);
+  const showEmpty = mode !== "loading" && !hasLiveData && !hasSimData;
 
   if (mode === "loading") {
     return <p className="text-sm text-slate-500">Loading behavior data…</p>;

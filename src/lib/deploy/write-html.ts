@@ -85,14 +85,35 @@ export function writeProductionBaseline(
   };
 }
 
+/** Unpatched lab baseline copy for previews — separate from production index.html. */
+export function writeLabBaselineVariantHtml(): HtmlWriteResult {
+  fs.mkdirSync(VARIANTS_DIR, { recursive: true });
+  const baselineHtml = loadSourceBaselineHtml();
+  const outPath = path.join(VARIANTS_DIR, `${GENERATION_0[0].id}.html`);
+  fs.writeFileSync(outPath, baselineHtml, "utf8");
+  return {
+    variantId: GENERATION_0[0].id,
+    relativePath: path.relative(ROOT, outPath),
+    patchCount: 0,
+  };
+}
+
 /** Regenerate static HTML for every variant in the run plus gen-0 challengers. */
-export function writeAllVariantHtml(variants: PageVariant[]): HtmlWriteResult[] {
+export function writeAllVariantHtml(
+  variants: PageVariant[],
+  opts?: { includeLabBaseline?: boolean }
+): HtmlWriteResult[] {
   const baselineHtml = loadSourceBaselineHtml();
   const baselineVariant = GENERATION_0[0];
   const ids = new Set<string>();
   const toWrite = [...GENERATION_0, ...variants.filter((v) => v.generation > 0)];
 
   const results: HtmlWriteResult[] = [];
+  if (opts?.includeLabBaseline) {
+    results.push(writeLabBaselineVariantHtml());
+    ids.add(baselineVariant.id);
+  }
+
   for (const variant of toWrite) {
     if (ids.has(variant.id) || variant.id === baselineVariant.id) continue;
     ids.add(variant.id);

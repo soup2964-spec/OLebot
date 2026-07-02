@@ -1,3 +1,4 @@
+import { GENERATION_0 } from "@/config/variants";
 import type { ExperimentRun } from "@/lib/schema/experiment";
 import type { PageVariant } from "@/lib/schema/page";
 import type { ExperimentProgress } from "@/lib/schema/experiment-progress";
@@ -19,6 +20,11 @@ export function sortBredVariants(variants: PageVariant[]): PageVariant[] {
     .slice(0, BRED_GRID_SIZE);
 }
 
+/** Frozen original challengers — never use deploy-merged baseline for comparison. */
+export function originalGen0Variants(): PageVariant[] {
+  return sortGen0Variants(GENERATION_0);
+}
+
 export function bredVariantsFromRun(run: ExperimentRun | null): PageVariant[] {
   if (!run) return [];
   const byId = new Map(run.variants.map((v) => [v.id, v]));
@@ -33,33 +39,49 @@ export function bredVariantsFromRun(run: ExperimentRun | null): PageVariant[] {
   return sortBredVariants(run.variants);
 }
 
+export function maxExperimentIteration(
+  experimentHistory: ExperimentHistoryEntry[],
+  isRunning: boolean
+): number {
+  const completed = experimentHistory.reduce(
+    (max, e) => Math.max(max, e.experimentNumber),
+    0
+  );
+  return Math.max(1, completed + (isRunning ? 1 : 0));
+}
+
 export function comparisonSnapshotsForIteration(
   iteration: number,
   opts: {
-    gen0Variants: PageVariant[];
     run: ExperimentRun | null;
-    runVersion: number;
     experimentHistory: ExperimentHistoryEntry[];
     progress: ExperimentProgress | null;
   }
 ): { previous: PageVariant[]; current: PageVariant[] } {
-  const { gen0Variants, run, runVersion, experimentHistory, progress } = opts;
+  const { run, experimentHistory, progress } = opts;
+  const isRunning = progress?.status === "running";
   const historyEntry = experimentHistory.find((e) => e.experimentNumber === iteration);
+
   if (historyEntry) {
     return {
-      previous: sortGen0Variants(historyEntry.previousVariants),
+      previous:
+        iteration === 1
+          ? originalGen0Variants()
+          : sortBredVariants(
+              experimentHistory.find((e) => e.experimentNumber === iteration - 1)
+                ?.currentVariants ?? []
+            ),
       current: sortBredVariants(historyEntry.currentVariants),
     };
   }
 
-  const isRunning = progress?.status === "running";
-  const activeExperiment = runVersion + (isRunning ? 1 : 0);
+  const activeExperiment = maxExperimentIteration(experimentHistory, isRunning);
 
   if (iteration === activeExperiment && isRunning) {
     return {
       previous:
         iteration === 1
-          ? sortGen0Variants(gen0Variants)
+          ? originalGen0Variants()
           : sortBredVariants(
               experimentHistory.find((e) => e.experimentNumber === iteration - 1)
                 ?.currentVariants ?? []
@@ -68,20 +90,9 @@ export function comparisonSnapshotsForIteration(
     };
   }
 
-  if (iteration === runVersion && runVersion > 0) {
-    const previous =
-      iteration === 1
-        ? sortGen0Variants(gen0Variants)
-        : sortBredVariants(
-            experimentHistory.find((e) => e.experimentNumber === iteration - 1)
-              ?.currentVariants ?? []
-          );
-    return { previous, current: bredVariantsFromRun(run) };
-  }
-
   if (iteration === 1) {
-    return { previous: sortGen0Variants(gen0Variants), current: [] };
+    return { previous: originalGen0Variants(), current: [] };
   }
 
-  return { previous: sortGen0Variants(gen0Variants), current: [] };
+  return { previous: originalGen0Variants(), current: [] };
 }

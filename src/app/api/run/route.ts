@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { allVariants, loadRun, visitIndex } from "@/lib/registry";
 import { getComparisonVariants } from "@/lib/deploy/promote";
