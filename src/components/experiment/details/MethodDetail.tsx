@@ -1,20 +1,27 @@
 import { PERSONA_SET_V1 } from "@/config/personas";
 import type { ExperimentRun } from "@/lib/schema/experiment";
-import { JUDGMENT_CRITERIA } from "@/lib/judgment/criteria";
+import type { PageVariant } from "@/lib/schema/page";
+import { JUDGMENT_CRITERIA, type VariantJudgment } from "@/lib/judgment/criteria";
 import { DECISION_THRESHOLDS, EVIDENCE_VISITS_PER_READING } from "@/lib/stats/bayes";
+import { JudgmentPanel } from "@/components/experiment/JudgmentPanel";
 
 export function MethodDetail({
   run,
   experimentNumber,
+  bredVariants = [],
+  judgmentsByVariant = {},
 }: {
   run: ExperimentRun | null;
   experimentNumber?: number;
+  bredVariants?: PageVariant[];
+  judgmentsByVariant?: Record<string, VariantJudgment>;
 }) {
   const totalVisits =
     run?.generations.reduce((s, g) => s + (g.totalVisits ?? g.visits.length), 0) ?? 0;
   const generationCount = run?.generations.length ?? 0;
   const offspringCount =
     run?.generations.reduce((s, g) => s + (g.offspringIds?.length ?? 0), 0) ?? 0;
+  const judgedBred = bredVariants.filter((v) => judgmentsByVariant[v.id]);
 
   return (
     <div className="space-y-5">
@@ -112,6 +119,26 @@ export function MethodDetail({
           <ThresholdChip label="Prior" value="Beta(3, 97) — ~3% B2B demo-booking benchmark" />
         </div>
       </div>
+
+      {judgedBred.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Judgment results
+          </h3>
+          <p className="mt-1 text-sm text-slate-600">
+            Simulated conversion stats and promote/kill decisions for bred pages in this experiment.
+          </p>
+          <div className="mt-4 space-y-4">
+            {judgedBred.map((variant) => (
+              <JudgmentPanel
+                key={variant.id}
+                variant={variant}
+                judgment={judgmentsByVariant[variant.id]!}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <MethodCard

@@ -15,6 +15,75 @@ import { evaluateGeneration } from "./evaluator";
 import { breedVariant, pageSimilarity } from "./optimizer";
 import type { ExperimentProgressReporter } from "@/lib/loop/experiment-progress";
 import { loadSourceBaselineHtml, writeVariantHtml } from "@/lib/deploy/write-html";
+import type { GenerationReport } from "@/lib/schema/experiment";
+import type { VariantMetrics } from "@/lib/schema/events";
+
+function heroHeadline(variant: PageVariant): string {
+  return variant.sections.find((s) => s.type === "hero" || s.id === "hero")?.headline ?? "";
+}
+
+function crossoverParents(top: PageVariant[], index: number): PageVariant[] {
+  if (top.length < 2) return top;
+  const pairs: [number, number][] = [
+    [0, 1],
+    [1, 2],
+    [0, 2],
+    [2, 1],
+    [1, 0],
+    [2, 0],
+  ];
+  const [a, b] = pairs[index % pairs.length];
+  return [top[a] ?? top[0], top[b] ?? top[1]].filter(
+    (p, i, arr) => p && arr.indexOf(p) === i
+  );
+}
+
+function isDuplicateOffspring(candidate: PageVariant, existing: PageVariant[]): boolean {
+  const hero = heroHeadline(candidate);
+  if (
+    existing.some((v) => {
+      if (pageSimilarity(candidate, v) > 0.58) return true;
+      return hero && heroHeadline(v) === hero;
+    })
+  ) {
+    return true;
+  }
+  return false;
+}
+
+async function breedDistinctOffspring(
+  childIndex: number,
+  top: PageVariant[],
+  metrics: VariantMetrics[],
+  report: GenerationReport,
+  generation: number,
+  existing: PageVariant[],
+  log: (msg: string) => void
+): Promise<PageVariant> {
+  const attempts: { mode: "mutation" | "crossover"; parents: PageVariant[] }[] = [
+    {
+      mode: childIndex % 2 === 0 ? "mutation" : "crossover",
+      parents:
+        childIndex % 2 === 0
+          ? [top[childIndex % top.length] ?? top[0]]
+          : crossoverParents(top, childIndex),
+    },
+    { mode: "mutation", parents: [top[(childIndex + 1) % top.length] ?? top[0]] },
+    { mode: "crossover", parents: crossoverParents(top, childIndex + 2) },
+    { mode: "mutation", parents: [top[(childIndex + 2) % top.length] ?? top[0]] },
+  ];
+
+  let last: PageVariant | null = null;
+  for (let attempt = 0; attempt < attempts.length; attempt++) {
+    const { mode, parents } = attempts[attempt];
+    log(`  breeding ${mode} child ${childIndex}${attempt ? ` (retry ${attempt})` : ""}...`);
+    const child = await breedVariant(mode, parents, metrics, report, generation, childIndex);
+    last = child;
+    if (!isDuplicateOffspring(child, existing)) return child;
+    log(`    child ${childIndex} too similar to a sibling; retrying...`);
+  }
+  return last!;
+}
 
 interface ReadingTask {
   variant: PageVariant;
@@ -24,10 +93,6 @@ interface ReadingTask {
 
 function readConcurrency(): number {
   return Number(process.env.LLM_READ_CONCURRENCY ?? 6);
-}
-
-function breedConcurrency(): number {
-  return Number(process.env.LLM_BREED_CONCURRENCY ?? 3);
 }
 
 export type PersonaReadingMode = "llm" | "heuristic";
@@ -201,36 +266,24 @@ export async function runExperiment(cfg: RunConfig = DEFAULT_CONFIG): Promise<Ex
         .filter(Boolean);
       const top = ranked.slice(0, Math.min(3, ranked.length));
 
-      const breedParallel = breedConcurrency();
-      log(`  breeding ${cfg.offspringPerGeneration} offspring (${breedParallel} parallel)...`);
+      log(`  breeding ${cfg.offspringPerGeneration} offspring (sequential for diversity)...`);
       progress?.breedingStart(cfg.offspringPerGeneration);
 
-      let bredDone = 0;
-      const bred = await mapPool(
-        Array.from({ length: cfg.offspringPerGeneration }, (_, c) => c),
-        breedParallel,
-        async (c) => {
-          const mode = c % 2 === 0 ? "mutation" : "crossover";
-          const parents =
-            mode === "mutation" ? [top[c % top.length] ?? top[0]] : top;
-          log(`  breeding ${mode} child ${c}...`);
-          let child = await breedVariant(mode, parents, metrics, report, gen, c);
-
-          const tooSimilar = [...allVariants, ...offspring].some(
-            (v) => pageSimilarity(child, v) > 0.72
-          );
-          if (tooSimilar) {
-            log(`    child ${c} too similar; retrying with crossover...`);
-            child = await breedVariant("crossover", top, metrics, report, gen, c);
-          }
-          bredDone++;
-          progress?.breedingProgress(bredDone, cfg.offspringPerGeneration);
-          progress?.addBredVariant(child);
-          writeVariantHtml(child, baselineHtml, baselineVariant);
-          return child;
-        }
-      );
-      offspring.push(...bred);
+      for (let c = 0; c < cfg.offspringPerGeneration; c++) {
+        const child = await breedDistinctOffspring(
+          c,
+          top,
+          metrics,
+          report,
+          gen,
+          [...allVariants, ...offspring],
+          log
+        );
+        offspring.push(child);
+        progress?.breedingProgress(c + 1, cfg.offspringPerGeneration);
+        progress?.addBredVariant(child);
+        writeVariantHtml(child, baselineHtml, baselineVariant);
+      }
       allVariants.push(...offspring);
     }
 

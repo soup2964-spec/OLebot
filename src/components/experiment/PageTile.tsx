@@ -155,10 +155,15 @@ export function NineVariantGrid({
   uniformSize?: boolean;
   slotCount?: number;
 }) {
-  const slots = Array.from({ length: 9 }, (_, i) => variants[i] ?? null);
+  const cols = 3;
+  const rows = Math.ceil(slotCount / cols);
+  const slots = Array.from({ length: slotCount }, (_, i) => variants[i] ?? null);
 
   return (
-    <div className="grid grid-cols-3 grid-rows-3 gap-3">
+    <div
+      className="grid gap-3"
+      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}
+    >
       {slots.map((variant, i) =>
         variant ? (
           <PageTile

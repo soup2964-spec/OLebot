@@ -22,7 +22,7 @@ export function sortBredVariants(variants: PageVariant[]): PageVariant[] {
 
 /** Frozen original challengers — never use deploy-merged baseline for comparison. */
 export function originalGen0Variants(): PageVariant[] {
-  return sortGen0Variants(GENERATION_0);
+  return sortGen0Variants(GENERATION_0.map((v) => structuredClone(v)));
 }
 
 export function bredVariantsFromRun(run: ExperimentRun | null): PageVariant[] {

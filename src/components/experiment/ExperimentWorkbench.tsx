@@ -90,7 +90,6 @@ export function ExperimentWorkbench({
   const [visitIndex, setVisitIndex] = useState(initialIndex);
   const [activeView, setActiveView] = useState<WorkbenchView>("control");
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
-  const [comparisonVariantId, setComparisonVariantId] = useState<string | null>(null);
   const [deployVersion, setDeployVersion] = useState(initialDeployVersion);
   const [runVersion, setRunVersion] = useState(0);
   const [experimentHistory, setExperimentHistory] = useState<ExperimentHistoryEntry[]>([]);
@@ -159,11 +158,6 @@ export function ExperimentWorkbench({
     void refresh();
   }, [activeView, iteration, refresh]);
 
-  const handleSelectVariant = (variantId: string) => {
-    setSelectedVariantId(variantId);
-    setActiveView("behavior");
-  };
-
   const judgmentsByVariant = useMemo(() => {
     const lastGen = run?.generations[run.generations.length - 1];
     if (!lastGen?.metrics) return {};
@@ -216,10 +210,6 @@ export function ExperimentWorkbench({
               experimentNumber={iteration}
               previousVariants={previousVariants}
               currentVariants={currentVariants}
-              judgmentsByVariant={judgmentsByVariant}
-              selectedVariantId={comparisonVariantId}
-              onSelectVariant={setComparisonVariantId}
-              onViewBehavior={handleSelectVariant}
               isRunning={isRunning && iteration === maxIteration}
             />
           </div>
@@ -234,6 +224,7 @@ export function ExperimentWorkbench({
               selectedVariantId={selectedVariantId}
               experimentNumber={iteration}
               bredVariants={currentVariants}
+              judgmentsByVariant={judgmentsByVariant}
             />
           </div>
         )}

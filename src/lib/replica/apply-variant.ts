@@ -4,6 +4,8 @@ import {
   REPLICA_SECTION_IDS,
   type ReplicaSectionId,
 } from "./baseline-copy";
+import { fitHeroBodyToBaseline, splitHeroHeadlineForBaseline } from "./hero-headline";
+import { normalizeVariantForReplica } from "@/lib/deploy/normalize-variant";
 
 export interface HtmlReplacement {
   sectionId: ReplicaSectionId;
@@ -104,7 +106,11 @@ export function buildReplacementsForSection(
 
   if (variant.headline !== baseline.headline) {
     const htmlHeadlines = BASELINE_HTML_COPY[sectionId]?.headline;
-    if (htmlHeadlines && htmlHeadlines.length >= 2) {
+    if (sectionId === "hero" && htmlHeadlines && htmlHeadlines.length >= 2) {
+      const { line1, line2 } = splitHeroHeadlineForBaseline(variant.headline);
+      pushIfChanged(out, sectionId, htmlHeadlines[0], line1);
+      pushIfChanged(out, sectionId, htmlHeadlines[1], line2);
+    } else if (htmlHeadlines && htmlHeadlines.length >= 2) {
       const [v1, v2] = splitHeadline(variant.headline);
       if (v2) {
         pushIfChanged(out, sectionId, htmlHeadlines[0], v1);
@@ -121,7 +127,9 @@ export function buildReplacementsForSection(
   }
 
   if (variant.body !== baseline.body) {
-    pushIfChanged(out, sectionId, baseline.body.slice(0, 40), variant.body);
+    const body =
+      sectionId === "hero" ? fitHeroBodyToBaseline(variant.body) : variant.body;
+    pushIfChanged(out, sectionId, baseline.body.slice(0, 40), body);
   }
 
   if (variant.ctaLabel && variant.ctaLabel !== baseline.ctaLabel) {
@@ -141,10 +149,11 @@ export function buildVariantHtmlReplacements(
 ): HtmlReplacement[] {
   if (variant.id === baselineVariant.id) return [];
 
+  const normalized = normalizeVariantForReplica(variant);
   const baselineById = new Map(baselineVariant.sections.map((s) => [s.id, s]));
-  const replacements: HtmlReplacement[] = [...extraReplacementsForVariant(variant)];
+  const replacements: HtmlReplacement[] = [...extraReplacementsForVariant(normalized)];
 
-  for (const section of variant.sections) {
+  for (const section of normalized.sections) {
     if (!REPLICA_SECTION_IDS.includes(section.id as ReplicaSectionId)) continue;
     const base = baselineById.get(section.id);
     if (!base) continue;

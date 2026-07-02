@@ -35,6 +35,7 @@ export function LandingPagePreview({
     >
       {scale > 0 && (
         <iframe
+          key={src}
           src={src}
           title={title}
           className="pointer-events-none absolute left-0 top-0 border-0"

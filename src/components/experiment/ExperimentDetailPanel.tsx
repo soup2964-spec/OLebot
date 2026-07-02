@@ -4,6 +4,7 @@ import { CRITERIA } from "@/config/criteria";
 import type { ExperimentRun } from "@/lib/schema/experiment";
 import type { VisitIndex } from "@/lib/registry";
 import type { PageVariant } from "@/lib/schema/page";
+import type { VariantJudgment } from "@/lib/judgment/criteria";
 import { BehaviorReport } from "./details/BehaviorReport";
 import { ChangelogDetail } from "./details/ChangelogDetail";
 import { MethodDetail } from "./details/MethodDetail";
@@ -32,6 +33,7 @@ export function ExperimentDetailPanel({
   selectedVariantId,
   experimentNumber,
   bredVariants = [],
+  judgmentsByVariant = {},
 }: {
   activeView: WorkbenchView;
   run: ExperimentRun | null;
@@ -40,6 +42,7 @@ export function ExperimentDetailPanel({
   selectedVariantId?: string | null;
   experimentNumber?: number;
   bredVariants?: PageVariant[];
+  judgmentsByVariant?: Record<string, VariantJudgment>;
 }) {
   const meta = CRITERIA.find((c) => c.id === VIEW_CRITERION[activeView]);
 
@@ -55,7 +58,12 @@ export function ExperimentDetailPanel({
 
         {activeView === "versions" && <VersionsDetail variants={variants} />}
         {activeView === "method" && (
-          <MethodDetail run={run} experimentNumber={experimentNumber} />
+          <MethodDetail
+            run={run}
+            experimentNumber={experimentNumber}
+            bredVariants={bredVariants}
+            judgmentsByVariant={judgmentsByVariant}
+          />
         )}
         {activeView === "behavior" && (
           <BehaviorReport
