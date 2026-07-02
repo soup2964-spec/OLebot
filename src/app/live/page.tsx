@@ -1,10 +1,10 @@
 import { LiveDashboardShell } from "@/components/Nav";
+import { LandingPagesSidebar } from "@/components/LandingPagesSidebar";
 import { LiveDashboard } from "@/components/live/LiveDashboard";
-import { allVariants, loadRun } from "@/lib/registry";
+import { loadRun } from "@/lib/registry";
 
 export default function LivePage() {
   const run = loadRun();
-  const variants = allVariants();
   const lastGen = run?.generations[run.generations.length - 1];
 
   const simulated = lastGen
@@ -20,8 +20,11 @@ export default function LivePage() {
     : undefined;
 
   return (
-    <LiveDashboardShell>
-      <LiveDashboard variants={variants} simulated={simulated} />
+    <LiveDashboardShell
+      sidebar={<LandingPagesSidebar />}
+      mobileSidebar={<LandingPagesSidebar compact />}
+    >
+      <LiveDashboard simulated={simulated} />
     </LiveDashboardShell>
   );
 }

@@ -5,7 +5,6 @@ import { ChallengeSection, schole, StatCard } from "@/components/schole-ui";
 import { ChallengeBehaviorPreview } from "@/components/challenge/ChallengeBehaviorPreview";
 import { ChallengeResultsBlock } from "@/components/challenge/ChallengeResultsBlock";
 import { allVariants, loadRun, visitIndex } from "@/lib/registry";
-import { staticReplicaPath } from "@/lib/replica/paths";
 
 export function ChallengeDashboard() {
   const run = loadRun();
@@ -60,39 +59,27 @@ export function ChallengeDashboard() {
       <ChallengeSection
         n="1"
         title={CRITERIA[0].title}
-        subtitle="Six Generation-0 pages on the exact schole.ai Framer layout — same structure, different strategic copy per ICP."
+        subtitle="Six Generation-0 pages on the exact schole.ai Framer layout. All pages are listed on the left — click any preview to open the live page."
       >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="space-y-2">
           {gen0.map((v) => {
-            const src = staticReplicaPath(v.id);
             const m = latestMetrics.get(v.id);
             return (
-              <div key={v.id} className={`${schole.cardMuted} overflow-hidden p-0`}>
-                {src && (
-                  <div className="relative h-40 overflow-hidden border-b border-slate-200 bg-white">
-                    <iframe
-                      src={src}
-                      title={v.name}
-                      className="pointer-events-none h-[800px] w-[400%] origin-top-left scale-[0.25] border-0"
-                      tabIndex={-1}
-                    />
-                  </div>
-                )}
-                <div className="p-4">
-                  <h3 className="font-semibold text-slate-900">{v.name}</h3>
-                  <p className="mt-1 font-mono text-[10px] text-slate-500">
-                    {v.id} · {v.strategy}
+              <div
+                key={v.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900">{v.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {v.id} · {v.strategy} · {v.thesis.slice(0, 80)}…
                   </p>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-600">{v.thesis}</p>
-                  {m && (
-                    <p className="mt-2 text-xs font-medium text-schole-primary">
-                      {(m.conversionRate * 100).toFixed(1)}% conv · fitness {m.fitness.toFixed(1)}
-                    </p>
-                  )}
-                  <Link href={`/v/${v.id}`} target="_blank" className={`${schole.btnPrimary} mt-3`}>
-                    Open page ↗
-                  </Link>
                 </div>
+                {m && (
+                  <p className="text-xs font-medium text-schole-primary">
+                    {(m.conversionRate * 100).toFixed(1)}% conv · {m.fitness.toFixed(1)} fitness
+                  </p>
+                )}
               </div>
             );
           })}
