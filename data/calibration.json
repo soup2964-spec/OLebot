@@ -1,28 +1,28 @@
 {
-  "version": 2,
-  "createdAt": "2026-07-02T03:14:36.165Z",
-  "changelog": "Calibrated from posthog (2 visitors, 30d window). CTA propensity ×0.96, patience +2s, skim -0.03.",
+  "version": 10,
+  "createdAt": "2026-07-02T05:11:13.672Z",
+  "changelog": "Calibrated from posthog (15 visitors, 30d window). CTA propensity ×1.03, patience +1s, skim -0.03.",
   "real": {
-    "fetchedAt": "2026-07-02T03:14:36.164Z",
+    "fetchedAt": "2026-07-02T05:11:13.671Z",
     "source": "posthog",
     "windowDays": 30,
     "byVariant": [],
     "aggregate": {
-      "visitors": 2,
+      "visitors": 15,
       "conversionRate": 0.03,
       "avgScrollDepth": 0.45,
       "bounceRate": 0.55
     }
   },
   "simulated": {
-    "conversionRate": 0.0375,
-    "bounceRate": 0.9166666666666666,
-    "avgScrollDepth": 0.36334325396825323
+    "conversionRate": 0.025625,
+    "bounceRate": 0.900625,
+    "avgScrollDepth": 0.41356018518518417
   },
   "adjustments": {
-    "ctaPropensityMultiplier": 0.96,
-    "patienceSecondsDelta": 2,
-    "skimPropensityDelta": -0.02933333333333333,
+    "ctaPropensityMultiplier": 1.0341463414634147,
+    "patienceSecondsDelta": 1,
+    "skimPropensityDelta": -0.02805,
     "variantConversionBias": {}
   }
 }

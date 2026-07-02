@@ -23,7 +23,7 @@ export default function VariantsPage() {
         .sort((a, b) => a[0] - b[0])
         .map(([gen, vs]) => (
           <section key={gen} className="mb-10">
-            <h2 className="mb-4 flex items-center gap-3 text-lg font-semibold text-white">
+            <h2 className="mb-4 flex items-center gap-3 text-lg font-semibold text-slate-900">
               Generation {gen}
               {gen > 0 && (
                 <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
@@ -37,16 +37,16 @@ export default function VariantsPage() {
                 return (
                   <div
                     key={v.id}
-                    className="flex flex-col rounded-2xl border border-slate-800 bg-slate-900/60 p-5"
+                    className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h3 className="font-semibold text-white">{v.name}</h3>
+                        <h3 className="font-semibold text-slate-900">{v.name}</h3>
                         <div className="mt-0.5 font-mono text-xs text-slate-500">
                           {v.id} · {v.sections.length} sections · CTA: {v.ctaGoal}
                         </div>
                       </div>
-                      <span className="flex-none rounded-full bg-slate-800 px-2.5 py-0.5 text-xs text-slate-400">
+                      <span className="flex-none rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-400">
                         {v.strategy}
                       </span>
                     </div>
@@ -55,13 +55,13 @@ export default function VariantsPage() {
                       <div className="mt-3 flex gap-4 text-xs text-slate-500">
                         <span>
                           conv{" "}
-                          <b className="text-slate-300">{(m.conversionRate * 100).toFixed(1)}%</b>
+                          <b className="text-slate-700">{(m.conversionRate * 100).toFixed(1)}%</b>
                         </span>
                         <span>
-                          fitness <b className="text-slate-300">{m.fitness.toFixed(1)}</b>
+                          fitness <b className="text-slate-700">{m.fitness.toFixed(1)}</b>
                         </span>
                         <span>
-                          visits <b className="text-slate-300">{m.visits}</b>
+                          visits <b className="text-slate-700">{m.visits}</b>
                         </span>
                       </div>
                     )}
@@ -69,7 +69,7 @@ export default function VariantsPage() {
                       <div className="mt-2 text-xs text-slate-500">
                         parents:{" "}
                         {v.parentIds.map((p) => (
-                          <code key={p} className="mr-1 rounded bg-slate-800 px-1">
+                          <code key={p} className="mr-1 rounded bg-slate-100 px-1">
                             {p}
                           </code>
                         ))}
@@ -79,14 +79,14 @@ export default function VariantsPage() {
                       <Link
                         href={`/v/${v.id}`}
                         target="_blank"
-                        className="rounded-full bg-indigo-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500"
+                        className="rounded-full bg-schole-primary px-4 py-1.5 text-xs font-semibold text-white hover:bg-schole-primary-hover"
                       >
                         View live page
                       </Link>
                       {v.changelog && (
                         <Link
                           href={`/evolution#${v.id}`}
-                          className="rounded-full border border-slate-700 px-4 py-1.5 text-xs font-semibold text-slate-300 hover:border-slate-500"
+                          className="rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-400"
                         >
                           What changed & why
                         </Link>

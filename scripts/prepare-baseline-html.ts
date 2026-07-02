@@ -1,27 +1,15 @@
 /**
- * Extracts the Framer HTML snapshot from the transcript (or uses the saved file),
- * fixes encoding, injects data-section-id markers for simulation/replay, and writes
- * public/baseline/index.html — the exact schole.ai landing page served statically.
+ * Prepares baseline schole.ai replica for Landing Lab — exact Framer page,
+ * analytics stripped, section markers + in-page guard for simulation/replay.
  */
 import fs from "fs";
 import path from "path";
+import { injectLabGuard, prepareLabHtml } from "../src/lib/replica/prepare-lab-html";
+import { SECTION_MARKERS } from "../src/lib/replica/section-markers";
 
 const ROOT = path.join(__dirname, "..");
 const OUT = path.join(ROOT, "public", "baseline", "index.html");
 const SRC = path.join(ROOT, "public", "baseline", "schole-original.html");
-
-/** Unique anchor text → section id (must match variants.ts baseline sections). */
-const SECTION_MARKERS: { anchor: string; id: string }[] = [
-  { anchor: "Faster competency. Higher engagement.", id: "hero" },
-  { anchor: "Learn the new way with", id: "how" },
-  { anchor: "The adoption gap is real.", id: "problem" },
-  { anchor: "adapts to each person", id: "features" },
-  { anchor: "What your", id: "tour" },
-  { anchor: "Teams at these organizations are already learning on", id: "proof" },
-  { anchor: "Backed by the best.", id: "press" },
-  { anchor: "How is Scholé different from platforms like Coursera", id: "faq" },
-  { anchor: "Ready to turn AI tools", id: "cta" },
-];
 
 function loadHtml(): string {
   if (fs.existsSync(SRC)) {
@@ -41,15 +29,10 @@ function injectSectionMarker(html: string, anchor: string, sectionId: string): s
     return html;
   }
 
-  // Walk backward to the nearest block-level opening tag (section/div/header)
-  const before = html.slice(0, idx);
-  const tagMatch = before.match(/<(section|div|header)([^>]*)>(?![\s\S]*<(section|div|header)[^>]*>[\s\S]{0,800}$)/);
-  // Simpler: find last opening tag within 2000 chars
   const windowStart = Math.max(0, idx - 2500);
   const window = html.slice(windowStart, idx);
   const tags = [...window.matchAll(/<(section|div|header)(\s[^>]*)?>/g)];
   if (tags.length === 0) {
-    // Fallback: insert invisible anchor div
     const marker = `<div data-section-id="${sectionId}" id="section-${sectionId}" aria-hidden="true" style="scroll-margin-top:80px"></div>`;
     return html.slice(0, idx) + marker + html.slice(idx);
   }
@@ -58,38 +41,36 @@ function injectSectionMarker(html: string, anchor: string, sectionId: string): s
   const fullTag = lastTag[0];
   if (fullTag.includes("data-section-id")) return html;
 
-  const injected = fullTag.replace(/^<(section|div|header)/, `<$1 data-section-id="${sectionId}" id="section-${sectionId}"`);
+  const injected = fullTag.replace(
+    /^<(section|div|header)/,
+    `<$1 data-section-id="${sectionId}" id="section-${sectionId}"`
+  );
   return html.slice(0, tagStart) + injected + html.slice(tagStart + fullTag.length);
 }
 
-function injectHighlightStyles(html: string): string {
-  const style = `
-<style id="landing-lab-overrides">
-  [data-section-id].ll-highlight {
-    outline: 4px solid rgb(251, 191, 36) !important;
-    outline-offset: 4px !important;
-  }
-</style>`;
-  return html.replace("</head>", `${style}\n</head>`);
-}
-
 function main() {
-  console.log("Preparing baseline HTML...");
+  console.log("Preparing baseline HTML (Framer runtime kept)...");
   let html = loadHtml();
 
   for (const { anchor, id } of SECTION_MARKERS) {
     html = injectSectionMarker(html, anchor, id);
   }
 
-  html = injectHighlightStyles(html);
+  html = prepareLabHtml(html);
+  // No text patches on baseline, but the guard re-marks sections after
+  // Framer hydration rebuilds the DOM (replay/highlight need the markers).
+  html = injectLabGuard(html, []);
 
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, html, "utf8");
-  console.log(`Wrote ${OUT} (${(html.length / 1024).toFixed(0)} KB)`);
 
-  for (const { anchor, id } of SECTION_MARKERS) {
-    const ok = html.includes(`data-section-id="${id}"`);
-    console.log(`  ${ok ? "✓" : "✗"} ${id}`);
+  const framerScripts = (html.match(/framerusercontent\.com\/sites/gi) ?? []).length;
+  const totalScripts = (html.match(/<script/gi) ?? []).length;
+  console.log(`Wrote ${OUT} (${(html.length / 1024).toFixed(0)} KB)`);
+  console.log(`  scripts: ${totalScripts} (${framerScripts} Framer module refs)`);
+
+  for (const { id } of SECTION_MARKERS) {
+    console.log(`  ${html.includes(`data-section-id="${id}"`) ? "✓" : "✗"} ${id}`);
   }
 }
 

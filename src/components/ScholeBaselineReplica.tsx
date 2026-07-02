@@ -1,50 +1,92 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { PageVariant } from "@/lib/schema/page";
+import { replicaHtmlWithGuard, staticReplicaPath } from "@/lib/replica/paths";
 import { ClarityVariantTag, trackCtaClick } from "./Clarity";
 import { useVariantAnalytics } from "./useVariantAnalytics";
 
 /**
- * Exact replica of schole.ai's Framer landing page, served from /baseline/index.html.
- * Section markers (data-section-id) are injected at build time for replay + simulation.
+ * Exact schole.ai Framer replica. Framer runtime handles layout; variant copy is
+ * swapped in HTML plus an in-page guard so text survives hydration.
  */
 export function ScholeBaselineReplica({
-  variantId,
-  generation,
+  variant,
   highlightSectionId,
   iframeClassName = "h-screen w-full border-0",
   showLabChrome = true,
 }: {
-  variantId: string;
-  generation: number;
+  variant: PageVariant;
   highlightSectionId?: string;
   iframeClassName?: string;
   showLabChrome?: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const variantRef = useRef(variant);
+  variantRef.current = variant;
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null);
-  const ctx = { variantId, generation, strategy: "baseline" as const };
+  const staticSrc = staticReplicaPath(variant.id);
+  const [srcdoc, setSrcdoc] = useState<string | undefined>(undefined);
+  const ctx = {
+    variantId: variant.id,
+    generation: variant.generation,
+    strategy: variant.strategy,
+  };
 
   useVariantAnalytics(ctx, scrollRoot);
+
+  useEffect(() => {
+    if (staticSrc) {
+      setSrcdoc(undefined);
+      return;
+    }
+    let cancelled = false;
+    fetch("/baseline/index.html")
+      .then((r) => r.text())
+      .then((html) => {
+        if (cancelled) return;
+        setSrcdoc(replicaHtmlWithGuard(html, variant));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [staticSrc, variant.id, variant.generation]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
-    const onLoad = () => {
+    const wireDoc = () => {
       const doc = iframe.contentDocument;
       if (!doc) return;
 
       setScrollRoot(doc.documentElement);
 
+      if (doc.documentElement.dataset.llWired) return;
+      doc.documentElement.dataset.llWired = "1";
+
       doc.querySelectorAll('a[href*="cal.com"], a[href*="demo"]').forEach((el) => {
-        el.addEventListener("click", () => trackCtaClick(ctx, "cta"));
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          const v = variantRef.current;
+          trackCtaClick(
+            {
+              variantId: v.id,
+              generation: v.generation,
+              strategy: v.strategy,
+            },
+            "cta"
+          );
+        });
       });
     };
 
+    const onLoad = () => wireDoc();
     iframe.addEventListener("load", onLoad);
+    if (iframe.contentDocument?.readyState === "complete") wireDoc();
+
     return () => iframe.removeEventListener("load", onLoad);
-  }, [variantId, generation]);
+  }, [staticSrc, srcdoc]);
 
   useEffect(() => {
     const doc = iframeRef.current?.contentDocument;
@@ -61,28 +103,37 @@ export function ScholeBaselineReplica({
       target.classList.add("ll-highlight");
       target.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [highlightSectionId]);
+  }, [highlightSectionId, variant.id, staticSrc, srcdoc]);
+
+  const chromeLabel =
+    variant.id === "v0-baseline" ? "Baseline replica" : variant.name;
 
   return (
     <div className="relative min-h-screen bg-white">
-      <ClarityVariantTag variantId={variantId} generation={generation} strategy="baseline" />
+      <ClarityVariantTag
+        variantId={variant.id}
+        generation={variant.generation}
+        strategy={variant.strategy}
+      />
       {showLabChrome && (
         <div className="pointer-events-none absolute left-4 top-4 z-50 flex items-center gap-2">
           <span className="pointer-events-auto rounded-full border border-slate-200 bg-white/95 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm backdrop-blur">
-            Landing Lab · Baseline replica
+            Landing Lab · {chromeLabel}
           </span>
           <a
             href="/variants"
-            className="pointer-events-auto rounded-full bg-indigo-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-indigo-500"
+            className="pointer-events-auto rounded-full bg-schole-primary px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-schole-primary-hover"
           >
             All variants
           </a>
         </div>
       )}
       <iframe
+        key={staticSrc ?? srcdoc?.slice(0, 80) ?? variant.id}
         ref={iframeRef}
-        src="/baseline/index.html"
-        title="Scholé AI — baseline landing page"
+        src={staticSrc ?? undefined}
+        srcDoc={srcdoc}
+        title={`Scholé AI — ${variant.name}`}
         className={iframeClassName}
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
       />

@@ -61,15 +61,15 @@ export function CalibrationPanel({
   const configured = data?.configured;
 
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+    <section className="rounded-2xl border border-slate-200 bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="font-semibold text-white">Simulated vs. live calibration</h2>
+          <h2 className="font-semibold text-slate-900">Simulated vs. live calibration</h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-400">
             Every variant page fires the same events to{" "}
-            <strong className="text-slate-300">PostHog</strong> (product analytics),{" "}
-            <strong className="text-slate-300">Google Tag Manager</strong> (GA4 / Ads), and optional{" "}
-            <strong className="text-slate-300">Clarity</strong>. Real traffic closes the loop:
+            <strong className="text-slate-700">PostHog</strong> (product analytics),{" "}
+            <strong className="text-slate-700">Google Tag Manager</strong> (GA4 / Ads), and optional{" "}
+            <strong className="text-slate-700">Clarity</strong>. Real traffic closes the loop:
             when live conversion, bounce, and scroll diverge from simulation, persona parameters
             are adjusted for the next prediction run.
           </p>
@@ -77,7 +77,7 @@ export function CalibrationPanel({
         <button
           onClick={runCalibration}
           disabled={running || !configured?.posthogApi}
-          className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-full bg-schole-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-schole-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
           {running ? "Calibrating…" : "Run calibration"}
         </button>
@@ -98,14 +98,14 @@ export function CalibrationPanel({
       <div className="mt-6 overflow-x-auto">
         <table className="w-full min-w-[520px] text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
               <th className="pb-2 pr-4">Metric</th>
               <th className="pb-2 pr-4">Simulated</th>
               <th className="pb-2 pr-4">Live (PostHog)</th>
               <th className="pb-2">Benchmark</th>
             </tr>
           </thead>
-          <tbody className="text-slate-300">
+          <tbody className="text-slate-700">
             <MetricRow
               label="Conversion rate"
               sim={simulated ? pct(simulated.conversionRate) : "—"}
@@ -136,9 +136,9 @@ export function CalibrationPanel({
           </h3>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {real.byVariant.map((v) => (
-              <div key={v.variantId} className="rounded-xl border border-slate-800 px-3 py-2 text-xs">
+              <div key={v.variantId} className="rounded-xl border border-slate-200 px-3 py-2 text-xs">
                 <span className="font-mono text-slate-400">{v.variantId}</span>
-                <span className="ml-2 text-white">{pct(v.conversionRate)} conv</span>
+                <span className="ml-2 text-slate-900">{pct(v.conversionRate)} conv</span>
                 <span className="ml-2 text-slate-500">{v.visitors} visitors</span>
               </div>
             ))}
@@ -151,7 +151,7 @@ export function CalibrationPanel({
           <div className="text-xs font-semibold uppercase tracking-wide text-emerald-400">
             Persona calibration v{calibration.version}
           </div>
-          <p className="mt-1 text-slate-300">{calibration.changelog}</p>
+          <p className="mt-1 text-slate-700">{calibration.changelog}</p>
           <ul className="mt-2 space-y-1 font-mono text-xs text-slate-400">
             <li>ctaPropensity × {calibration.adjustments.ctaPropensityMultiplier.toFixed(3)}</li>
             <li>patienceSeconds {calibration.adjustments.patienceSecondsDelta >= 0 ? "+" : ""}{calibration.adjustments.patienceSecondsDelta}s</li>
@@ -160,16 +160,16 @@ export function CalibrationPanel({
         </div>
       )}
 
-      <div className="mt-4 rounded-xl bg-slate-950/60 p-4 text-xs text-slate-500">
-        Events pushed to GTM <code className="rounded bg-slate-800 px-1">dataLayer</code>:{" "}
-        <code className="rounded bg-slate-800 px-1">variant_page_view</code>,{" "}
-        <code className="rounded bg-slate-800 px-1">cta_click</code>,{" "}
-        <code className="rounded bg-slate-800 px-1">scroll_depth</code>,{" "}
-        <code className="rounded bg-slate-800 px-1">page_exit</code>. PostHog receives the same
+      <div className="mt-4 rounded-xl bg-slate-100 p-4 text-xs text-slate-500">
+        Events pushed to GTM <code className="rounded bg-slate-100 px-1">dataLayer</code>:{" "}
+        <code className="rounded bg-slate-100 px-1">variant_page_view</code>,{" "}
+        <code className="rounded bg-slate-100 px-1">cta_click</code>,{" "}
+        <code className="rounded bg-slate-100 px-1">scroll_depth</code>,{" "}
+        <code className="rounded bg-slate-100 px-1">page_exit</code>. PostHog receives the same
         properties for HogQL aggregation. Set{" "}
-        <code className="rounded bg-slate-800 px-1">POSTHOG_API_KEY</code> +{" "}
-        <code className="rounded bg-slate-800 px-1">POSTHOG_PROJECT_ID</code> to pull live
-        metrics and write <code className="rounded bg-slate-800 px-1">data/calibration.json</code>.
+        <code className="rounded bg-slate-100 px-1">POSTHOG_API_KEY</code> +{" "}
+        <code className="rounded bg-slate-100 px-1">POSTHOG_PROJECT_ID</code> to pull live
+        metrics and write <code className="rounded bg-slate-100 px-1">data/calibration.json</code>.
       </div>
     </section>
   );
@@ -191,7 +191,7 @@ function StatusPill({
   return (
     <span
       className={`rounded-full px-2.5 py-1 ${
-        ok ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-800 text-slate-500"
+        ok ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-100 text-slate-500"
       }`}
     >
       {label}
@@ -215,10 +215,10 @@ function MetricRow({
   liveVisitors?: number;
 }) {
   return (
-    <tr className="border-b border-slate-800/60">
+    <tr className="border-b border-slate-200/60">
       <td className="py-3 pr-4 text-slate-400">{label}</td>
-      <td className="py-3 pr-4 font-medium text-white">{sim}</td>
-      <td className="py-3 pr-4 font-medium text-indigo-300">
+      <td className="py-3 pr-4 font-medium text-slate-900">{sim}</td>
+      <td className="py-3 pr-4 font-medium text-schole-primary">
         {live}
         {liveVisitors != null && liveVisitors > 0 && (
           <span className="ml-1 text-xs font-normal text-slate-500">({liveVisitors} visitors)</span>

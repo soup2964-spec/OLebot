@@ -33,32 +33,32 @@ export default function EvolutionPage() {
           <article
             key={v.id}
             id={v.id}
-            className="mb-10 scroll-mt-24 rounded-2xl border border-slate-800 bg-slate-900/60 p-6"
+            className="mb-10 scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6"
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <div className="text-xs uppercase tracking-wide text-emerald-400">
                   Generation {v.generation} · bred variant
                 </div>
-                <h2 className="mt-1 text-xl font-bold text-white">{v.name}</h2>
+                <h2 className="mt-1 text-xl font-bold text-slate-900">{v.name}</h2>
                 <div className="mt-1 font-mono text-xs text-slate-500">{v.id}</div>
               </div>
               <Link
                 href={`/v/${v.id}`}
                 target="_blank"
-                className="rounded-full bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500"
+                className="rounded-full bg-schole-primary px-4 py-2 text-xs font-semibold text-white hover:bg-schole-primary-hover"
               >
                 View live page
               </Link>
             </div>
 
-            <p className="mt-4 text-sm leading-relaxed text-slate-300">{v.thesis}</p>
+            <p className="mt-4 text-sm leading-relaxed text-slate-700">{v.thesis}</p>
 
             {v.parentIds.length > 0 && (
               <div className="mt-3 text-xs text-slate-500">
                 Lineage:{" "}
                 {v.parentIds.map((p) => (
-                  <code key={p} className="mr-2 rounded bg-slate-800 px-1.5 py-0.5">
+                  <code key={p} className="mr-2 rounded bg-slate-100 px-1.5 py-0.5">
                     {p}
                   </code>
                 ))}
@@ -72,10 +72,10 @@ export default function EvolutionPage() {
                 </h3>
                 <ol className="mt-3 space-y-4">
                   {v.changelog.map((c, i) => (
-                    <li key={i} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                      <div className="font-medium text-white">{c.what}</div>
+                    <li key={i} className="rounded-xl border border-slate-200 bg-slate-100 p-4">
+                      <div className="font-medium text-slate-900">{c.what}</div>
                       <p className="mt-1 text-sm text-slate-400">{c.why}</p>
-                      <p className="mt-2 text-xs text-indigo-400/90">
+                      <p className="mt-2 text-xs text-schole-primary/90">
                         Evidence: {c.evidence}
                         {c.sourceVariantId && (
                           <span className="ml-2 text-slate-600">
@@ -102,15 +102,15 @@ function LineageTree({ variants }: { variants: ReturnType<typeof allVariants> })
   const bred = variants.filter((v) => v.generation > 0);
 
   return (
-    <section className="mt-12 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-      <h2 className="font-semibold text-white">Evolution tree</h2>
+    <section className="mt-12 rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 className="font-semibold text-slate-900">Evolution tree</h2>
       <div className="mt-6 grid gap-8 md:grid-cols-2">
         <div>
           <div className="mb-2 text-xs uppercase text-slate-500">Generation 0 (seed)</div>
           <ul className="space-y-1 text-sm text-slate-400">
             {gen0.map((v) => (
               <li key={v.id}>
-                <code className="text-slate-300">{v.id}</code> · {v.strategy}
+                <code className="text-slate-700">{v.id}</code> · {v.strategy}
               </li>
             ))}
           </ul>

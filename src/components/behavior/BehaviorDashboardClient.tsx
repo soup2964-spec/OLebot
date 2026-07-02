@@ -51,7 +51,7 @@ export function BehaviorDashboardClient({
     <div className="space-y-8">
       <LiveLoopPanel onUpdate={() => refreshRun()} />
       {loading && (
-        <p className="text-center text-xs text-indigo-400/80">Refreshing simulation data…</p>
+        <p className="text-center text-xs text-schole-primary/80">Refreshing simulation data…</p>
       )}
       <BehaviorDashboard key={runVersion} index={index} variants={variants} />
     </div>

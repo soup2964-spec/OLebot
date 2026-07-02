@@ -74,25 +74,25 @@ export function LiveLoopPanel({ onUpdate }: { onUpdate?: (runVersion: number) =>
   if (!s) return null;
 
   return (
-    <section className="rounded-2xl border border-indigo-500/30 bg-indigo-500/5 p-5">
+    <section className="rounded-2xl border border-schole-primary/30 bg-schole-primary/5 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span
               className={`h-2 w-2 rounded-full ${s.liveVisitors > 0 ? "animate-pulse bg-emerald-400" : "bg-slate-600"}`}
             />
-            <h2 className="font-semibold text-white">Live learning loop</h2>
+            <h2 className="font-semibold text-slate-900">Live learning loop</h2>
           </div>
           <p className="mt-1 max-w-xl text-sm text-slate-400">
             Real visitors on variant pages feed PostHog/GTM. After{" "}
-            <strong className="text-slate-300">5 new sessions</strong>, the system recalibrates
+            <strong className="text-slate-700">5 new sessions</strong>, the system recalibrates
             persona priors and re-runs the simulation — predictions update automatically.
           </p>
         </div>
         <button
           onClick={forceSync}
           disabled={syncing || s.liveVisitors === 0}
-          className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-40"
+          className="rounded-full bg-schole-primary px-4 py-2 text-sm font-medium text-white hover:bg-schole-primary-hover disabled:opacity-40"
         >
           {syncing ? "Syncing…" : "Force sync now"}
         </button>
@@ -116,7 +116,7 @@ export function LiveLoopPanel({ onUpdate }: { onUpdate?: (runVersion: number) =>
           className={`rounded-full px-3 py-1 ${
             s.readyToSync
               ? "bg-amber-500/15 text-amber-300"
-              : "bg-slate-800 text-slate-500"
+              : "bg-slate-100 text-slate-500"
           }`}
         >
           {s.nextSyncReason}
@@ -127,7 +127,7 @@ export function LiveLoopPanel({ onUpdate }: { onUpdate?: (runVersion: number) =>
         <p className="mt-3 text-xs text-emerald-400">{lastEvent} — refresh behavior/results to see updates</p>
       )}
 
-      <div className="mt-4 rounded-xl bg-slate-950/50 p-3 font-mono text-[10px] leading-relaxed text-slate-600">
+      <div className="mt-4 rounded-xl bg-slate-100 p-3 font-mono text-[10px] leading-relaxed text-slate-600">
         live traffic → calibrate personas → re-simulate → dashboard updates (polls every 30s)
       </div>
     </section>
@@ -146,11 +146,11 @@ function LiveStat({
   return (
     <div
       className={`rounded-xl border p-3 ${
-        highlight ? "border-indigo-500/40 bg-indigo-500/10" : "border-slate-800 bg-slate-900/60"
+        highlight ? "border-schole-primary/40 bg-schole-primary/10" : "border-slate-200 bg-white"
       }`}
     >
       <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-0.5 text-lg font-bold text-white">{value}</div>
+      <div className="mt-0.5 text-lg font-bold text-slate-900">{value}</div>
     </div>
   );
 }
@@ -159,7 +159,7 @@ function StatusChip({ ok, label }: { ok: boolean; label: string }) {
   return (
     <span
       className={`rounded-full px-2.5 py-1 ${
-        ok ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-800 text-slate-500"
+        ok ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-100 text-slate-500"
       }`}
     >
       {label}

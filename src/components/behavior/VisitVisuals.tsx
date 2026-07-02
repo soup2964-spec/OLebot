@@ -4,7 +4,7 @@ import type { VisitSummary, VisitIndex } from "@/lib/registry";
 import type { PageVariant } from "@/lib/schema/page";
 
 const ACTION_COLORS = {
-  read: "bg-indigo-500",
+  read: "bg-schole-primary",
   skim: "bg-amber-400",
   bounce: "bg-rose-500",
 } as const;
@@ -61,31 +61,31 @@ export function VariantSectionHeatmap({
         const intensity = Math.round(readRate * 100);
         const bg =
           intensity >= 70
-            ? "from-indigo-600/80 to-indigo-500/40"
+            ? "from-schole-primary/20 to-schole-primary/5"
             : intensity >= 40
-              ? "from-indigo-500/50 to-slate-800"
-              : "from-slate-800 to-slate-900";
+              ? "from-schole-primary/10 to-slate-50"
+              : "from-slate-50 to-white";
 
         return (
           <div
             key={s.id}
-            className={`rounded-xl border border-slate-800 bg-gradient-to-r ${bg} p-3`}
+            className={`rounded-xl border border-slate-200 bg-gradient-to-r ${bg} p-3`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[10px] uppercase tracking-wide text-slate-500">{s.type}</div>
-                <div className="truncate text-sm font-medium text-white">{s.headline}</div>
+                <div className="truncate text-sm font-medium text-slate-900">{s.headline}</div>
               </div>
               <div className="flex-none text-right text-xs">
-                <div className="font-semibold text-indigo-300">{intensity}% read</div>
+                <div className="font-semibold text-schole-primary">{intensity}% read</div>
                 {exitRate > 0.05 && (
                   <div className="text-rose-400/90">{(exitRate * 100).toFixed(0)}% exit</div>
                 )}
               </div>
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-950/50">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
               <div
-                className="h-full rounded-full bg-indigo-400"
+                className="h-full rounded-full bg-schole-primary"
                 style={{ width: `${intensity}%` }}
               />
             </div>
@@ -99,9 +99,9 @@ export function VariantSectionHeatmap({
 export function ScrollDepthBar({ depth }: { depth: number }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-indigo-400"
+          className="h-full rounded-full bg-gradient-to-r from-schole-primary to-schole-primary/70"
           style={{ width: `${Math.min(100, depth * 100)}%` }}
         />
       </div>

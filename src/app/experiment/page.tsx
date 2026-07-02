@@ -23,36 +23,36 @@ export default function ExperimentPage() {
         />
       </section>
 
-      <section className="mb-10 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-        <h2 className="font-semibold text-white">The behavioral model, honestly stated</h2>
+      <section className="mb-10 rounded-2xl border border-slate-200 bg-white p-6">
+        <h2 className="font-semibold text-slate-900">The behavioral model, honestly stated</h2>
         <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate-400">
           <li>
-            <b className="text-slate-300">LLM readings × Monte Carlo visits.</b> Each persona
+            <b className="text-slate-700">LLM readings × Monte Carlo visits.</b> Each persona
             LLM-reads each page a few times, producing per-section appeal, sentiment, objection
             effects, and verbalized thoughts. Hundreds of stochastic visits are then sampled from
             those readings - patience budgets, fatigue, skim probability, and skepticism noise make
             every visit different while LLM cost stays bounded.
           </li>
           <li>
-            <b className="text-slate-300">Position bias falls out naturally.</b> Agents read top to
+            <b className="text-slate-700">Position bias falls out naturally.</b> Agents read top to
             bottom with a finite attention budget, so later sections are seen less - consistent
             with Nielsen Norman Group scroll research (~57% of viewing time above the fold).
           </li>
           <li>
-            <b className="text-slate-300">Calibration anchors.</b> Persona parameters are tuned so
+            <b className="text-slate-700">Calibration anchors.</b> Persona parameters are tuned so
             aggregate conversion lands in the 2-5% B2B SaaS benchmark range and bounce behavior
             matches published norms - and they live in a versioned config designed to be
             recalibrated from real PostHog / GTM traffic via the calibration API.
           </li>
           <li>
-            <b className="text-slate-300">Fitness score.</b> 60% conversion rate + 20% scroll depth
+            <b className="text-slate-700">Fitness score.</b> 60% conversion rate + 20% scroll depth
             + 10% inverse bounce + 10% sentiment. Conversion dominates on purpose: engagement that
             doesn&apos;t convert is decoration.
           </li>
         </ul>
       </section>
 
-      <h2 className="mb-4 text-lg font-semibold text-white">
+      <h2 className="mb-4 text-lg font-semibold text-slate-900">
         The simulated visitors ({PERSONA_SET_V1.personas.length} personas, v{PERSONA_SET_V1.version})
       </h2>
       <p className="mb-6 max-w-3xl text-sm text-slate-400">
@@ -62,30 +62,30 @@ export default function ExperimentPage() {
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         {PERSONA_SET_V1.personas.map((p) => (
-          <div key={p.id} className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+          <div key={p.id} className="rounded-2xl border border-slate-200 bg-white p-5">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-semibold text-white">
+                <h3 className="font-semibold text-slate-900">
                   {p.name} <span className="font-normal text-slate-500">· {p.role}</span>
                 </h3>
               </div>
-              <span className="flex-none rounded-full bg-slate-800 px-2 py-0.5 font-mono text-xs text-slate-400">
+              <span className="flex-none rounded-full bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-400">
                 {(p.trafficWeight * 100).toFixed(0)}% traffic
               </span>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-slate-400">{p.profile}</p>
             <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
               <span>
-                patience <b className="text-slate-300">{p.patienceSeconds.mean}s</b>
+                patience <b className="text-slate-700">{p.patienceSeconds.mean}s</b>
               </span>
               <span>
-                skepticism <b className="text-slate-300">{p.skepticism}</b>
+                skepticism <b className="text-slate-700">{p.skepticism}</b>
               </span>
               <span>
-                skim <b className="text-slate-300">{p.skimPropensity}</b>
+                skim <b className="text-slate-700">{p.skimPropensity}</b>
               </span>
               <span>
-                CTA propensity <b className="text-slate-300">{p.ctaPropensity}</b>
+                CTA propensity <b className="text-slate-700">{p.ctaPropensity}</b>
               </span>
             </div>
             <div className="mt-4">
@@ -94,16 +94,16 @@ export default function ExperimentPage() {
               </div>
               <ul className="mt-2 space-y-2">
                 {p.objections.map((o) => (
-                  <li key={o.id} className="rounded-lg bg-slate-950/60 p-3 text-xs">
+                  <li key={o.id} className="rounded-lg bg-slate-100 p-3 text-xs">
                     <div className="flex items-center gap-2">
-                      <code className="text-indigo-400">{o.id}</code>
+                      <code className="text-schole-primary">{o.id}</code>
                       {o.critical && (
                         <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">
                           CRITICAL
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 italic text-slate-300">&quot;{o.text}&quot;</p>
+                    <p className="mt-1 italic text-slate-700">&quot;{o.text}&quot;</p>
                     <p className="mt-1 text-slate-600">{o.groundedIn}</p>
                   </li>
                 ))}
@@ -118,8 +118,8 @@ export default function ExperimentPage() {
 
 function MethodCard({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-      <h3 className="font-semibold text-white">{title}</h3>
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <h3 className="font-semibold text-slate-900">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-400">{body}</p>
     </div>
   );

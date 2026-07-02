@@ -11,8 +11,10 @@
     "demo": "tsx scripts/generate-demo-run.ts",
     "aa-test": "tsx scripts/aa-test.ts",
     "prepare:baseline": "tsx scripts/prepare-baseline-html.ts",
-    "predev": "npm run prepare:baseline",
-    "prebuild": "npm run prepare:baseline"
+    "prepare:variants": "tsx scripts/prepare-variant-html.ts",
+    "prepare:pages": "npm run prepare:baseline && npm run prepare:variants",
+    "predev": "npm run prepare:pages",
+    "prebuild": "npm run prepare:pages"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

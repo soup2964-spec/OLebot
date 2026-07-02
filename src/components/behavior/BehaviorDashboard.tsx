@@ -92,7 +92,7 @@ export function BehaviorDashboard({
       </div>
 
       {/* Filters */}
-      <div className="sticky top-[57px] z-30 -mx-1 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/95 p-3 backdrop-blur">
+      <div className="sticky top-[57px] z-30 -mx-1 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
         <FilterSelect
           label="Generation"
           value={String(genIdx)}
@@ -135,8 +135,8 @@ export function BehaviorDashboard({
               onClick={() => setOutcomeFilter(f)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize transition ${
                 outcomeFilter === f
-                  ? "bg-indigo-600 text-white"
-                  : "bg-slate-800 text-slate-400 hover:text-white"
+                  ? "bg-schole-primary text-white"
+                  : "bg-slate-100 text-slate-600 hover:text-slate-900"
               }`}
             >
               {f}
@@ -149,7 +149,7 @@ export function BehaviorDashboard({
       {/* Main split */}
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         {/* Visit preview list */}
-        <aside className="max-h-[720px] space-y-2 overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900/40 p-2">
+        <aside className="max-h-[720px] space-y-2 overflow-y-auto rounded-2xl border border-slate-200 bg-schole-surface p-2">
           <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
             Visit previews
           </div>
@@ -180,7 +180,7 @@ export function BehaviorDashboard({
           )}
 
           {loading && (
-            <div className="flex h-64 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/40">
+            <div className="flex h-64 items-center justify-center rounded-2xl border border-slate-200 bg-schole-surface">
               <p className="text-sm text-slate-500">Loading full visit trace…</p>
             </div>
           )}
@@ -190,7 +190,7 @@ export function BehaviorDashboard({
           )}
 
           {variant && metrics && (
-            <section className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5">
+            <section className="rounded-2xl border border-slate-200 bg-schole-surface p-5">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
                 Section engagement · {variant.name}
               </h2>
@@ -231,8 +231,8 @@ function VisitPreviewCard({
       onClick={onSelect}
       className={`w-full rounded-xl border p-3 text-left transition ${
         selected
-          ? "border-indigo-500/60 bg-indigo-500/10"
-          : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+          ? "border-schole-primary/60 bg-schole-primary/10"
+          : "border-slate-200 bg-slate-100 hover:border-slate-300"
       }`}
     >
       <div className="flex items-start gap-3">
@@ -242,14 +242,14 @@ function VisitPreviewCard({
               ? "bg-emerald-500/20 text-emerald-400"
               : summary.bounced
                 ? "bg-rose-500/20 text-rose-400"
-                : "bg-slate-800 text-slate-400"
+                : "bg-slate-100 text-slate-400"
           }`}
         >
           {persona?.name?.[0] ?? "?"}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-medium text-white">
+            <span className="truncate text-sm font-medium text-slate-900">
               {persona?.name ?? summary.personaId}
             </span>
             <OutcomeBadge summary={summary} />
@@ -284,11 +284,11 @@ function SelectedVisitHeader({
 }) {
   const persona = PERSONA_SET_V1.personas.find((p) => p.id === summary.personaId);
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-wide text-slate-500">Selected visit</div>
-          <h2 className="mt-1 text-lg font-semibold text-white">
+          <h2 className="mt-1 text-lg font-semibold text-slate-900">
             {persona?.name} on {variant.name}
           </h2>
           <p className="text-sm text-slate-400">{persona?.role}</p>
@@ -297,17 +297,17 @@ function SelectedVisitHeader({
       </div>
       <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500">
         <span>
-          Scroll <strong className="text-slate-300">{(summary.scrollDepth * 100).toFixed(0)}%</strong>
+          Scroll <strong className="text-slate-700">{(summary.scrollDepth * 100).toFixed(0)}%</strong>
         </span>
         <span>
-          Dwell <strong className="text-slate-300">{(summary.totalDwellMs / 1000).toFixed(0)}s</strong>
+          Dwell <strong className="text-slate-700">{(summary.totalDwellMs / 1000).toFixed(0)}s</strong>
         </span>
         <span>
-          Sections touched <strong className="text-slate-300">{summary.path.length}</strong>
+          Sections touched <strong className="text-slate-700">{summary.path.length}</strong>
         </span>
       </div>
       <div className="mt-3 flex items-center gap-3 text-[10px] text-slate-600">
-        <LegendDot color="bg-indigo-500" label="Read" />
+        <LegendDot color="bg-schole-primary" label="Read" />
         <LegendDot color="bg-amber-400" label="Skim" />
         <LegendDot color="bg-rose-500" label="Bounce" />
       </div>
@@ -323,7 +323,7 @@ function PersonaBreakdown({
   };
 }) {
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5">
+    <section className="rounded-2xl border border-slate-200 bg-schole-surface p-5">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
         Conversion by persona
       </h2>
@@ -334,14 +334,14 @@ function PersonaBreakdown({
           return (
             <div
               key={p.id}
-              className="flex items-center justify-between rounded-xl border border-slate-800 px-3 py-2"
+              className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2"
             >
               <div>
-                <div className="text-sm font-medium text-white">{p.name}</div>
+                <div className="text-sm font-medium text-slate-900">{p.name}</div>
                 <div className="text-[10px] text-slate-500">{row.visits} visits</div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-semibold text-indigo-300">
+                <div className="text-sm font-semibold text-schole-primary">
                   {(rate * 100).toFixed(0)}%
                 </div>
                 <div className="text-[10px] text-slate-600">{row.conversions} conv</div>
@@ -360,7 +360,7 @@ function OutcomeBadge({ summary, large }: { summary: VisitSummary; large?: boole
     ? "bg-emerald-500/15 text-emerald-400"
     : summary.bounced
       ? "bg-rose-500/15 text-rose-400"
-      : "bg-slate-700/50 text-slate-400";
+      : "bg-slate-200 text-slate-400";
   return (
     <span
       className={`rounded-full font-medium ${cls} ${large ? "px-3 py-1 text-xs" : "px-2 py-0.5 text-[10px]"}`}
@@ -382,11 +382,11 @@ function Kpi({
   return (
     <div
       className={`rounded-xl border p-4 ${
-        accent ? "border-indigo-500/40 bg-indigo-500/10" : "border-slate-800 bg-slate-900/60"
+        accent ? "border-schole-primary/40 bg-schole-primary/10" : "border-slate-200 bg-white"
       }`}
     >
       <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 text-2xl font-bold text-white">{value}</div>
+      <div className="mt-1 text-2xl font-bold text-slate-900">{value}</div>
     </div>
   );
 }
@@ -408,7 +408,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-white"
+        className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

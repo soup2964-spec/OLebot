@@ -54,7 +54,7 @@ export function BehaviorExplorer({
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-white">Pick a visit to replay</h2>
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">Pick a visit to replay</h2>
         <div className="flex flex-wrap gap-3">
           <select
             value={genIdx}
@@ -64,7 +64,7 @@ export function BehaviorExplorer({
               setVariantId(index[idx].variantIds[0]);
               setVisitId("");
             }}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           >
             {index.map((g, i) => (
               <option key={g.generation} value={i}>
@@ -78,7 +78,7 @@ export function BehaviorExplorer({
               setVariantId(e.target.value);
               setVisitId("");
             }}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           >
             {gen.variantIds.map((id) => (
               <option key={id} value={id}>
@@ -89,7 +89,7 @@ export function BehaviorExplorer({
           <select
             value={selectedMeta?.id ?? ""}
             onChange={(e) => setVisitId(e.target.value)}
-            className="min-w-[240px] rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
+            className="min-w-[240px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           >
             {filtered.slice(0, 80).map((v) => {
               const p = PERSONA_SET_V1.personas.find((x) => x.id === v.personaId);
@@ -127,7 +127,7 @@ function HeatmapGrid({
   const top = gen.metrics.slice(0, 3);
   return (
     <section>
-      <h2 className="mb-4 text-lg font-semibold text-white">Section engagement heatmap</h2>
+      <h2 className="mb-4 text-lg font-semibold text-slate-900">Section engagement heatmap</h2>
       <p className="mb-4 text-sm text-slate-400">
         Per-section read rate, average dwell, sentiment, and exit rate across the top variants
         in this generation.
@@ -136,9 +136,9 @@ function HeatmapGrid({
         {top.map((m) => {
           const v = variants.find((x) => x.id === m.variantId)!;
           return (
-            <div key={m.variantId} className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+            <div key={m.variantId} className="rounded-2xl border border-slate-200 bg-white p-5">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-semibold text-white">{v?.name ?? m.variantId}</h3>
+                <h3 className="font-semibold text-slate-900">{v?.name ?? m.variantId}</h3>
                 <span className="text-xs text-slate-500">
                   fitness {m.fitness.toFixed(1)} · {(m.conversionRate * 100).toFixed(1)}% conv
                 </span>
@@ -159,12 +159,12 @@ function HeatmapGrid({
                       const sec = v?.sections.find((s) => s.id === ps.sectionId);
                       const readRate = ps.views ? ps.reads / ps.views : 0;
                       return (
-                        <tr key={ps.sectionId} className="border-t border-slate-800">
-                          <td className="py-2 pr-4 text-slate-300">
+                        <tr key={ps.sectionId} className="border-t border-slate-200">
+                          <td className="py-2 pr-4 text-slate-700">
                             {sec?.headline.slice(0, 36) ?? ps.sectionId}
                           </td>
                           <td className="py-2 pr-4">
-                            <Bar value={readRate} color="bg-indigo-500" />
+                            <Bar value={readRate} color="bg-schole-primary" />
                           </td>
                           <td className="py-2 pr-4 text-slate-400">
                             {(ps.avgDwellMs / 1000).toFixed(1)}s
@@ -192,7 +192,7 @@ function HeatmapGrid({
 function Bar({ value, color }: { value: number; color: string }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-800">
+      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-100">
         <div className={`h-full ${color}`} style={{ width: `${Math.min(100, value * 100)}%` }} />
       </div>
       <span className="text-slate-500">{(value * 100).toFixed(0)}%</span>

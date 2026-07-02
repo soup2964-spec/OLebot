@@ -47,14 +47,14 @@ export function ReplayTheater({
     <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
       <div
         ref={containerRef}
-        className="max-h-[520px] overflow-y-auto rounded-2xl border border-slate-800 bg-white shadow-2xl"
+        className="max-h-[520px] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl"
       >
         <LandingPage variant={variant} highlightSectionId={current.sectionId} />
       </div>
 
-      <div className="flex flex-col rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+      <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-4">
         <div className="text-xs uppercase tracking-wide text-slate-500">Replay theater</div>
-        <div className="mt-1 font-semibold text-white">
+        <div className="mt-1 font-semibold text-slate-900">
           {persona?.name ?? visit.personaId}
           <span className="ml-2 text-xs font-normal text-slate-500">{persona?.role}</span>
         </div>
@@ -62,11 +62,11 @@ export function ReplayTheater({
           {variant.id} · {visit.converted ? "converted" : "lost"} · step {step + 1}/{timeline.length}
         </div>
 
-        <div className="mt-4 flex-1 rounded-xl bg-slate-950 p-4">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-400">
+        <div className="mt-4 flex-1 rounded-xl bg-slate-50 p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-schole-primary">
             {current.label}
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-slate-200">{current.thought}</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-800">{current.thought}</p>
           {current.objectionNote && (
             <p className="mt-2 text-xs text-amber-400/90">{current.objectionNote}</p>
           )}
@@ -78,7 +78,7 @@ export function ReplayTheater({
               setStep(0);
               setPlaying(true);
             }}
-            className="flex-1 rounded-full bg-indigo-600 py-2 text-xs font-semibold text-white hover:bg-indigo-500"
+            className="flex-1 rounded-full bg-schole-primary py-2 text-xs font-semibold text-white hover:bg-schole-primary-hover"
           >
             {playing ? "Playing…" : "Play"}
           </button>
@@ -87,7 +87,7 @@ export function ReplayTheater({
               setPlaying(false);
               setStep((s) => Math.min(timeline.length - 1, s + 1));
             }}
-            className="rounded-full border border-slate-700 px-4 py-2 text-xs text-slate-300"
+            className="rounded-full border border-slate-300 px-4 py-2 text-xs text-slate-700"
           >
             Step
           </button>
@@ -96,7 +96,7 @@ export function ReplayTheater({
               setPlaying(false);
               setStep(0);
             }}
-            className="rounded-full border border-slate-700 px-4 py-2 text-xs text-slate-300"
+            className="rounded-full border border-slate-300 px-4 py-2 text-xs text-slate-700"
           >
             Reset
           </button>
