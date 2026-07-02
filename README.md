@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Scholé Landing Lab
 
-## Getting Started
+Autonomous landing page evolution for [Scholé AI](https://schole.ai/).
 
-First, run the development server:
+LLM-powered persona agents simulate user behavior on landing page variants. A Thompson-sampling bandit allocates traffic, an evaluator agent scores results, and an optimizer agent breeds improved pages — generation after generation — with evidence-backed changelogs.
+
+**Live repo:** https://github.com/soup2964-spec/schole-landing-lab
+
+## What you'll see
+
+| Tab | Requirement covered |
+|-----|---------------------|
+| **Variants** | The initial landing page versions (6 Generation-0 strategic bets + bred offspring) |
+| **Method** | How the pages are compared (personas, objection ledger, bandit, rubric) |
+| **Behavior** | Simulated user behavior (heatmaps + replay theater) |
+| **Results** | Which versions performed better (leaderboard, allocation, scorecards) |
+| **Evolution** | New generated variations + what changed and why (changelogs) |
+
+## Quick start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run demo        # generate deterministic demo data (no API key)
+npm run dev         # open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Full LLM experiment (optional)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env.local
+# set OPENAI_API_KEY and optionally NEXT_PUBLIC_CLARITY_ID
+npm run experiment  # ~30-60 min, writes data/run.json with LLM readings
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Architecture
 
-## Learn More
+```
+Generation 0 variants (JSON schema)
+        ↓
+Persona agents (objection-gated conversion)
+        ↓
+Monte Carlo visits + Thompson bandit
+        ↓
+Evaluator agent (rubric scorecards)
+        ↓
+Optimizer agent (mutation + crossover + changelog)
+        ↓
+Generation N+1 …
+```
 
-To learn more about Next.js, take a look at the following resources:
+- **Pages are structured JSON**, rendered by a fixed component library — agents read them cheaply, the optimizer can only emit valid pages, and diffs are precise.
+- **Personas carry objection ledgers** grounded in published 2025–26 buyer research (TalentLMS, G2, Rise Up, eLearning Industry, Docebo).
+- **Microsoft Clarity** tags every variant page (`variant_id`, `generation`, `cta_click`) for sim-to-real calibration.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Next.js dev server |
+| `npm run demo` | Generate offline demo run → `data/run.json` |
+| `npm run experiment` | Full LLM-powered 3-generation run |
+| `npm run build` | Production build |
 
-## Deploy on Vercel
+## Deploy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Deploy to Vercel. Set `NEXT_PUBLIC_CLARITY_ID` to instrument real reviewer traffic against simulated predictions.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Built for the Scholé AI GTM challenge.
