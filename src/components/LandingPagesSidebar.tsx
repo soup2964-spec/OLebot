@@ -36,11 +36,11 @@ function PageTile({ variant }: { variant: ReturnType<typeof allVariants>[number]
   );
 }
 
-/** Full-page grid of all landing page runs. */
+/** Full-page grid of Generation-0 landing page runs only. */
 export function LandingPagesGrid() {
-  const variants = [...allVariants()].sort(
-    (a, b) => a.generation - b.generation || a.id.localeCompare(b.id)
-  );
+  const variants = [...allVariants()]
+    .filter((v) => v.generation === 0)
+    .sort((a, b) => a.id.localeCompare(b.id));
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6">
