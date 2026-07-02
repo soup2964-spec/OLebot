@@ -153,12 +153,16 @@ function runGeneration(
   const baselineId = pool.some((v) => v.id === "v0-baseline")
     ? "v0-baseline"
     : metrics[metrics.length - 1].variantId;
+  // One heuristic reading per persona backs each variant — same overconfidence
+  // risk as the LLM path, just with a formula instead of an LLM opinion.
+  const independentReadings = personas.length;
   const decisions = analyzeGeneration(
     metrics.map((m) => ({
       id: m.variantId,
       conversions: m.conversions,
       visits: m.visits,
       bounceRate: m.bounceRate,
+      independentReadings,
     })),
     baselineId,
     seed + gen * 7919

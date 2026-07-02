@@ -1,7 +1,7 @@
 import type { PageVariant } from "@/lib/schema/page";
 import type { Persona } from "@/lib/schema/persona";
 import type { ObjectionId } from "@/lib/schema/page";
-import { chatJSONRetry } from "@/lib/llm";
+import { chatJSONRetry, readerProvider } from "@/lib/llm";
 
 /**
  * A PersonaReading is one LLM pass of a persona over a page: per-section
@@ -80,7 +80,9 @@ Walk this page top to bottom as ${persona.name} and return the JSON. Reading var
   const out = await chatJSONRetry<Omit<PersonaReading, "personaId" | "variantId" | "seed">>(
     SYSTEM,
     user,
-    { temperature: 0.9 }
+    // Reader can be a different provider than the breeder (LLM_READER_PROVIDER)
+    // so the model judging copy isn't the same one that wrote it.
+    { temperature: 0.9, provider: readerProvider() }
   );
 
   // Clamp + sanitize LLM output; keep only known section/objection ids.

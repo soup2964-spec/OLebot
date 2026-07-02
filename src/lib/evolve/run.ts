@@ -1,15 +1,34 @@
 import type { PageVariant } from "@/lib/schema/page";
 import type { Visit } from "@/lib/schema/events";
 import type { ExperimentRun, GenerationRun, AllocationSnapshot } from "@/lib/schema/experiment";
+import type { Persona } from "@/lib/schema/persona";
 import { getCalibratedPersonaSet } from "@/lib/calibration/store";
 import { readPage, type PersonaReading } from "@/lib/sim/reading";
+import { heuristicReadPage } from "@/lib/sim/heuristic-reading";
 import { sampleVisit } from "@/lib/sim/visit";
 import { ThompsonBandit } from "@/lib/sim/bandit";
 import { computeMetrics } from "@/lib/sim/metrics";
 import { makeRng, pickWeighted } from "@/lib/sim/rng";
 import { analyzeGeneration } from "@/lib/stats/bayes";
+import { mapPool } from "@/lib/async/pool";
 import { evaluateGeneration } from "./evaluator";
 import { breedVariant, pageSimilarity } from "./optimizer";
+
+interface ReadingTask {
+  variant: PageVariant;
+  persona: Persona;
+  readIndex: number;
+}
+
+function readConcurrency(): number {
+  return Number(process.env.LLM_READ_CONCURRENCY ?? 6);
+}
+
+function breedConcurrency(): number {
+  return Number(process.env.LLM_BREED_CONCURRENCY ?? 3);
+}
+
+export type PersonaReadingMode = "llm" | "heuristic";
 
 export interface RunConfig {
   seed: number;
@@ -17,6 +36,8 @@ export interface RunConfig {
   readingsPerPair: number; // LLM readings per (persona, variant) pair
   generations: number;
   offspringPerGeneration: number;
+  /** llm = LLM reads each page as each persona; heuristic = rule-based readings, still uses LLM eval/breed. */
+  personaReadingMode?: PersonaReadingMode;
   log?: (msg: string) => void;
 }
 
@@ -43,12 +64,13 @@ export function llmExperimentConfig(seed: number, log?: RunConfig["log"]): RunCo
 }
 
 /**
- * Full experiment: for each generation, LLM-read every (persona, variant)
- * pair a few times, then Monte-Carlo sample visits with Thompson-sampling
- * traffic allocation, evaluate, and breed offspring for the next generation.
+ * Full experiment: persona readings → Monte Carlo visits → LLM evaluate → LLM breed.
+ * Set personaReadingMode=heuristic to skip LLM readings (fast) while keeping eval/breed.
  */
 export async function runExperiment(cfg: RunConfig = DEFAULT_CONFIG): Promise<ExperimentRun> {
   const log = cfg.log ?? (() => {});
+  const readingMode = cfg.personaReadingMode ?? "llm";
+  const readingsPerPair = readingMode === "heuristic" ? 1 : cfg.readingsPerPair;
   const rng = makeRng(cfg.seed);
   const personaSet = getCalibratedPersonaSet();
   const personas = personaSet.personas;
@@ -61,17 +83,53 @@ export async function runExperiment(cfg: RunConfig = DEFAULT_CONFIG): Promise<Ex
   for (let gen = 0; gen < cfg.generations; gen++) {
     log(`=== Generation ${gen}: ${pool.length} variants in pool ===`);
 
-    // 1. LLM readings for every (persona, variant) pair.
+    // 1. Persona readings for every (persona, variant) pair.
     const readings = new Map<string, PersonaReading[]>();
-    for (const variant of pool) {
-      for (const persona of personas) {
-        const key = `${variant.id}|${persona.id}`;
-        const rs: PersonaReading[] = [];
-        for (let i = 0; i < cfg.readingsPerPair; i++) {
-          log(`  reading ${persona.id} x ${variant.id} (${i + 1}/${cfg.readingsPerPair})`);
-          rs.push(await readPage(persona, variant, cfg.seed + gen * 1000 + i));
+
+    if (readingMode === "heuristic") {
+      const total = pool.length * personas.length;
+      log(`  ${total} heuristic persona readings...`);
+      for (const variant of pool) {
+        for (const persona of personas) {
+          const key = `${variant.id}|${persona.id}`;
+          readings.set(key, [
+            heuristicReadPage(persona, variant, cfg.seed + gen * 100 + persona.id.length),
+          ]);
         }
-        readings.set(key, rs);
+      }
+    } else {
+      const readingTasks: ReadingTask[] = [];
+      for (const variant of pool) {
+        for (const persona of personas) {
+          for (let i = 0; i < readingsPerPair; i++) {
+            readingTasks.push({ variant, persona, readIndex: i });
+          }
+        }
+      }
+
+      const parallel = readConcurrency();
+      log(
+        `  ${readingTasks.length} LLM persona readings (${parallel} parallel, ${readingsPerPair} per pair)...`
+      );
+
+      let readingsDone = 0;
+      const completed = await mapPool(readingTasks, parallel, async (task) => {
+        const reading = await readPage(
+          task.persona,
+          task.variant,
+          cfg.seed + gen * 1000 + task.readIndex
+        );
+        readingsDone++;
+        if (readingsDone % parallel === 0 || readingsDone === readingTasks.length) {
+          log(`  readings ${readingsDone}/${readingTasks.length}`);
+        }
+        return { ...task, reading };
+      });
+
+      for (const { variant, persona, readIndex, reading } of completed) {
+        const key = `${variant.id}|${persona.id}`;
+        if (!readings.has(key)) readings.set(key, []);
+        readings.get(key)![readIndex] = reading;
       }
     }
 
@@ -101,12 +159,17 @@ export async function runExperiment(cfg: RunConfig = DEFAULT_CONFIG): Promise<Ex
     const baselineId = pool.some((v) => v.id === "v0-baseline")
       ? "v0-baseline"
       : metrics[metrics.length - 1].variantId;
+    const independentReadings =
+      readingMode === "heuristic"
+        ? personas.length
+        : personas.length * readingsPerPair;
     const decisions = analyzeGeneration(
       metrics.map((m) => ({
         id: m.variantId,
         conversions: m.conversions,
         visits: m.visits,
         bounceRate: m.bounceRate,
+        independentReadings,
       })),
       baselineId,
       cfg.seed + gen * 7919
@@ -122,23 +185,30 @@ export async function runExperiment(cfg: RunConfig = DEFAULT_CONFIG): Promise<Ex
         .filter(Boolean);
       const top = ranked.slice(0, Math.min(3, ranked.length));
 
-      for (let c = 0; c < cfg.offspringPerGeneration; c++) {
-        const mode = c % 2 === 0 ? "mutation" : "crossover";
-        const parents =
-          mode === "mutation" ? [top[c % top.length] ?? top[0]] : top;
-        log(`  breeding ${mode} child ${c}...`);
-        let child = await breedVariant(mode, parents, metrics, report, gen, c);
+      const breedParallel = breedConcurrency();
+      log(`  breeding ${cfg.offspringPerGeneration} offspring (${breedParallel} parallel)...`);
 
-        // Diversity guard: if too similar to an existing page, retry once.
-        const tooSimilar = [...allVariants, ...offspring].some(
-          (v) => pageSimilarity(child, v) > 0.72
-        );
-        if (tooSimilar) {
-          log(`    child too similar to an existing variant; retrying with crossover...`);
-          child = await breedVariant("crossover", top, metrics, report, gen, c);
+      const bred = await mapPool(
+        Array.from({ length: cfg.offspringPerGeneration }, (_, c) => c),
+        breedParallel,
+        async (c) => {
+          const mode = c % 2 === 0 ? "mutation" : "crossover";
+          const parents =
+            mode === "mutation" ? [top[c % top.length] ?? top[0]] : top;
+          log(`  breeding ${mode} child ${c}...`);
+          let child = await breedVariant(mode, parents, metrics, report, gen, c);
+
+          const tooSimilar = [...allVariants, ...offspring].some(
+            (v) => pageSimilarity(child, v) > 0.72
+          );
+          if (tooSimilar) {
+            log(`    child ${c} too similar; retrying with crossover...`);
+            child = await breedVariant("crossover", top, metrics, report, gen, c);
+          }
+          return child;
         }
-        offspring.push(child);
-      }
+      );
+      offspring.push(...bred);
       allVariants.push(...offspring);
     }
 

@@ -5,10 +5,44 @@ import { CRITERIA } from "@/config/criteria";
 
 interface ControlState {
   autonomous: boolean;
+  llmPersonas: boolean;
   runVersion: number;
   lastRunId: string | null;
-  llmConfigured?: boolean;
+  experimentMode?: "hybrid" | "full";
+  llmExperimentAvailable?: boolean;
   llmProvider?: string | null;
+}
+
+function Toggle({
+  checked,
+  disabled,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-50 ${
+        checked ? "bg-schole-primary" : "bg-slate-200"
+      }`}
+    >
+      <span
+        className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
+          checked ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
+    </button>
+  );
 }
 
 export function ControlCenterView({
@@ -39,36 +73,50 @@ export function ControlCenterView({
     refresh();
   }, [refresh]);
 
-  const setAutonomous = async (autonomous: boolean) => {
+  const patchControl = async (patch: Partial<Pick<ControlState, "autonomous" | "llmPersonas">>) => {
     setError(null);
     setMessage(null);
-    const prev = state?.autonomous ?? false;
-    setState((s) =>
-      s ? { ...s, autonomous } : { autonomous, runVersion: 0, lastRunId: null }
-    );
+
+    const prev = state;
+    setState((s) => (s ? { ...s, ...patch } : s));
 
     try {
       const res = await fetch("/api/control", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ autonomous }),
+        body: JSON.stringify(patch),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? "Failed to update mode");
+        throw new Error(body.error ?? "Failed to update settings");
       }
       const body = await res.json();
-      setState((s) => (s ? { ...s, autonomous: body.autonomous } : s));
+      setState((s) =>
+        s
+          ? {
+              ...s,
+              autonomous: body.autonomous ?? s.autonomous,
+              llmPersonas: body.llmPersonas ?? s.llmPersonas,
+              experimentMode: body.experimentMode ?? s.experimentMode,
+            }
+          : s
+      );
     } catch (e) {
-      setState((s) => (s ? { ...s, autonomous: prev } : s));
-      setError(e instanceof Error ? e.message : "Failed to update mode");
+      if (prev) setState(prev);
+      setError(e instanceof Error ? e.message : "Failed to update settings");
     }
   };
 
   const runExperiment = async () => {
     setRunning(true);
     setError(null);
-    setMessage("LLM agents are reading pages, evaluating results, and breeding new copy. This can take several minutes — keep this tab open.");
+
+    const llmMode = state?.llmPersonas ?? false;
+    setMessage(
+      llmMode
+        ? "LLM personas are reading pages, evaluating results, and breeding new copy. This can take several minutes — keep this tab open."
+        : "Heuristic persona readings and traffic simulation, then LLM evaluator and copywriter — usually a few minutes."
+    );
 
     try {
       const res = await fetch("/api/control", { method: "POST" });
@@ -77,8 +125,13 @@ export function ControlCenterView({
         throw new Error(body.error ?? "Experiment failed");
       }
 
+      const modeLabel =
+        body.experimentMode === "full"
+          ? `full LLM (${body.llmProvider ?? "api"})`
+          : `hybrid (${body.llmProvider ?? "api"})`;
+
       setMessage(
-        `LLM experiment complete (${body.llmProvider ?? "llm"}): ${body.totalVisits?.toLocaleString?.() ?? body.totalVisits} simulated visits, ${body.offspringCount} new page${body.offspringCount === 1 ? "" : "s"} bred.`
+        `Experiment complete (${modeLabel}): ${body.totalVisits?.toLocaleString?.() ?? body.totalVisits} simulated visits, ${body.offspringCount} new page${body.offspringCount === 1 ? "" : "s"} bred.`
       );
       await refresh();
       onExperimentComplete?.();
@@ -90,7 +143,9 @@ export function ControlCenterView({
   };
 
   const autonomous = state?.autonomous ?? false;
-  const llmReady = state?.llmConfigured ?? false;
+  const llmPersonas = state?.llmPersonas ?? false;
+  const llmAvailable = state?.llmExperimentAvailable ?? false;
+  const runBlocked = running || !llmAvailable;
 
   return (
     <div className="flex min-h-[calc(100vh-65px)] items-start justify-center p-6">
@@ -102,51 +157,64 @@ export function ControlCenterView({
           </div>
         )}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-slate-900">Autonomous</p>
               <p className="mt-1 text-xs leading-relaxed text-slate-500">
                 {autonomous
                   ? "Live traffic automatically recalibrates personas and re-runs the loop."
-                  : "Manual mode — you trigger each LLM experiment run."}
+                  : "Manual mode — you trigger each experiment run."}
               </p>
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={autonomous}
+            <Toggle
+              checked={autonomous}
               disabled={loading}
-              onClick={() => setAutonomous(!autonomous)}
-              className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-50 ${
-                autonomous ? "bg-schole-primary" : "bg-slate-200"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
-                  autonomous ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
+              label="Autonomous mode"
+              onChange={(autonomous) => patchControl({ autonomous })}
+            />
+          </div>
+
+          <div className="border-t border-slate-100 pt-6 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">LLM personas</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                {llmPersonas
+                  ? "Each persona reads pages via LLM — richest signal, slowest (~20 min)."
+                  : "Heuristic persona readings + simulated traffic, then LLM evaluator and copywriter (~2–5 min)."}
+              </p>
+            </div>
+            <Toggle
+              checked={llmPersonas}
+              disabled={loading}
+              label="LLM personas"
+              onChange={(llmPersonas) => patchControl({ llmPersonas })}
+            />
           </div>
 
           {!autonomous && (
-            <div className="mt-6 border-t border-slate-100 pt-6">
+            <div className="border-t border-slate-100 pt-6">
               <button
                 type="button"
                 onClick={runExperiment}
-                disabled={running || !llmReady}
+                disabled={runBlocked}
                 className="w-full rounded-xl bg-schole-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-schole-primary-hover disabled:opacity-50"
               >
-                {running ? "Running LLM experiment…" : "Run experiment"}
+                {running
+                  ? llmPersonas
+                    ? "Running LLM experiment…"
+                    : "Running experiment…"
+                  : "Run experiment"}
               </button>
               <p className="mt-3 text-center text-xs text-slate-500">
-                Personas read each page via LLM, traffic is simulated, winners are ranked, and
-                the optimizer breeds six new landing pages with evidence-backed copy.
+                {llmPersonas
+                  ? "LLM personas read each page, traffic is simulated, the LLM evaluator reports, and the optimizer breeds six new landing pages."
+                  : "Rule-based persona readings and Monte Carlo visits, then the LLM evaluator diagnoses results and the optimizer writes six new pages."}
               </p>
-              {!llmReady && !loading && (
+              {!llmAvailable && !loading && (
                 <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                  Add <code className="font-mono">KIE_API_KEY</code> or{" "}
+                  Evaluator and optimizer need an API key — add{" "}
+                  <code className="font-mono">KIE_API_KEY</code> or{" "}
                   <code className="font-mono">OPENAI_API_KEY</code> to{" "}
                   <code className="font-mono">.env.local</code> and restart the dev server.
                 </p>

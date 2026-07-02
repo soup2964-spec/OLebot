@@ -6,6 +6,7 @@
  */
 
 import { kieChatJSON, kieChatJSONRetry, KIE_MODEL } from "./kie-claude";
+import { fetchWithTimeout } from "./fetch-timeout";
 
 export type LLMProvider = "kie" | "openai";
 
@@ -14,6 +15,14 @@ export type ChatJSONOptions = {
   model?: string;
   maxTokens?: number;
   thinkingFlag?: boolean;
+  /**
+   * Override which provider handles this call. Falls back to the default
+   * provider (llmProvider()) if the requested one isn't configured (e.g. no
+   * OPENAI_API_KEY set). Use readerProvider()/breederProvider() to keep the
+   * agent that judges copy separate from the one that writes it — otherwise
+   * a model can end up rating its own stylistic preferences as persuasive.
+   */
+  provider?: LLMProvider;
 };
 
 const OPENAI_API_URL = process.env.OPENAI_BASE_URL
@@ -29,11 +38,40 @@ export function llmProvider(): LLMProvider {
   return "openai";
 }
 
-export function isLlmConfigured(): boolean {
-  if (llmProvider() === "kie") {
-    return Boolean(process.env.KIE_API_KEY);
-  }
+export function isProviderConfigured(provider: LLMProvider): boolean {
+  if (provider === "kie") return Boolean(process.env.KIE_API_KEY);
   return Boolean(process.env.OPENAI_API_KEY);
+}
+
+export function isLlmConfigured(): boolean {
+  return isProviderConfigured(llmProvider());
+}
+
+/** When KIE_API_KEY is set, all agents route through KIE regardless of per-agent overrides. */
+function activeProvider(explicit?: LLMProvider): LLMProvider {
+  if (process.env.KIE_API_KEY) return "kie";
+  if (explicit && isProviderConfigured(explicit)) return explicit;
+  return llmProvider();
+}
+
+/** Provider used to LLM-read pages as a persona. */
+export function readerProvider(): LLMProvider {
+  return activeProvider(envProvider("LLM_READER_PROVIDER"));
+}
+
+/** Provider used to breed new page copy. */
+export function breederProvider(): LLMProvider {
+  return activeProvider(envProvider("LLM_BREEDER_PROVIDER"));
+}
+
+/** Provider used to write the generation analyst report. */
+export function evaluatorProvider(): LLMProvider {
+  return activeProvider(envProvider("LLM_EVALUATOR_PROVIDER"));
+}
+
+function envProvider(name: string): LLMProvider | undefined {
+  const v = process.env[name]?.toLowerCase();
+  return v === "kie" || v === "openai" ? v : undefined;
 }
 
 async function openaiChatJSON<T>(
@@ -44,7 +82,7 @@ async function openaiChatJSON<T>(
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error("OPENAI_API_KEY is not set");
 
-  const res = await fetch(OPENAI_API_URL, {
+  const res = await fetchWithTimeout(OPENAI_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -80,7 +118,7 @@ export async function chatJSON<T>(
   user: string,
   opts: ChatJSONOptions = {}
 ): Promise<T> {
-  if (llmProvider() === "kie") {
+  if (activeProvider(opts.provider) === "kie") {
     return kieChatJSON<T>(system, user, {
       model: opts.model ?? KIE_MODEL,
       maxTokens: opts.maxTokens,
@@ -98,7 +136,7 @@ export async function chatJSONRetry<T>(
   opts: ChatJSONOptions = {},
   attempts = 3
 ): Promise<T> {
-  if (llmProvider() === "kie") {
+  if (activeProvider(opts.provider) === "kie") {
     return kieChatJSONRetry<T>(
       system,
       user,

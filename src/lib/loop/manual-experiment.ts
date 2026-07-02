@@ -5,28 +5,40 @@ import { isLlmConfigured, llmProvider } from "@/lib/llm";
 import { invalidateRunCache, saveRun } from "@/lib/registry";
 import { loadLoopState, saveLoopState } from "./state";
 
+export type ExperimentMode = "hybrid" | "full";
+
 export interface ManualExperimentResult {
   runId: string;
   runVersion: number;
   totalVisits: number;
   offspringCount: number;
   offspringIds: string[];
-  llmProvider: string;
+  experimentMode: ExperimentMode;
+  llmProvider: string | null;
   deploy: PromoteResult;
 }
 
-/** LLM personas read pages, evaluator reports, optimizer breeds new copy. */
+/** full = LLM persona readings; hybrid = heuristic readings + LLM eval/breed (toggle off). */
+export function manualExperimentMode(state = loadLoopState()): ExperimentMode {
+  return state.llmPersonas ? "full" : "hybrid";
+}
+
 export async function runManualExperiment(): Promise<ManualExperimentResult> {
+  const state = loadLoopState();
+  const mode = manualExperimentMode(state);
+
   if (!isLlmConfigured()) {
     throw new Error(
-      "LLM API key not configured — set KIE_API_KEY (or OPENAI_API_KEY) in .env.local"
+      "LLM API key required — add KIE_API_KEY or OPENAI_API_KEY to .env.local (evaluator and optimizer always use LLM)"
     );
   }
 
   const seed = Date.now() % 1_000_000_000;
-  const run = await runExperiment(
-    llmExperimentConfig(seed, (msg) => console.log(`[experiment] ${msg}`))
-  );
+
+  const run = await runExperiment({
+    ...llmExperimentConfig(seed, (msg) => console.log(`[experiment] ${msg}`)),
+    personaReadingMode: mode === "full" ? "llm" : "heuristic",
+  });
 
   saveRun(run);
   invalidateRunCache();
@@ -39,19 +51,19 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
     0
   );
 
-  const state = loadLoopState();
+  const loopState = loadLoopState();
   const next = {
-    ...state,
-    runVersion: state.runVersion + 1,
+    ...loopState,
+    runVersion: loopState.runVersion + 1,
     lastSyncAt: new Date().toISOString(),
     lastRunId: run.id,
     syncHistory: [
       {
         at: new Date().toISOString(),
         visitors: 0,
-        reason: "manual-llm-experiment",
+        reason: mode === "full" ? "manual-llm-experiment" : "manual-hybrid-experiment",
       },
-      ...state.syncHistory.slice(0, 19),
+      ...loopState.syncHistory.slice(0, 19),
     ],
   };
   saveLoopState(next);
@@ -66,7 +78,17 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
     totalVisits,
     offspringCount: offspringIds.length,
     offspringIds,
+    experimentMode: mode,
     llmProvider: llmProvider(),
     deploy,
   };
+}
+
+/** Whether manual runs can use the optional LLM path. */
+export function isLlmExperimentAvailable(): boolean {
+  return isLlmConfigured();
+}
+
+export function llmExperimentProviderLabel(): string | null {
+  return isLlmConfigured() ? llmProvider() : null;
 }

@@ -1,7 +1,7 @@
 import type { PageVariant, Section, ChangelogEntry } from "@/lib/schema/page";
 import type { VariantMetrics } from "@/lib/schema/events";
 import type { GenerationReport } from "@/lib/schema/experiment";
-import { chatJSONRetry } from "@/lib/llm";
+import { chatJSONRetry, breederProvider } from "@/lib/llm";
 
 /**
  * Optimizer agent: breeds the next generation from the evaluator's report.
@@ -101,6 +101,8 @@ Produce the JSON for the new variant.`;
   const out = await chatJSONRetry<OptimizerOutput>(SYSTEM, user, {
     temperature: 0.7,
     maxTokens: 6000,
+    // Override with LLM_BREEDER_PROVIDER to decouple from the reader model.
+    provider: breederProvider(),
   });
 
   const id = `g${generation + 1}-${mode === "mutation" ? "mut" : "x"}${childIndex}`;

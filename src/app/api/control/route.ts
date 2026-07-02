@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
-import { runManualExperiment } from "@/lib/loop/manual-experiment";
+import {
+  isLlmExperimentAvailable,
+  llmExperimentProviderLabel,
+  manualExperimentMode,
+  runManualExperiment,
+} from "@/lib/loop/manual-experiment";
 import { isAutonomousMode, loadLoopState, saveLoopState } from "@/lib/loop/state";
-import { isLlmConfigured, llmProvider } from "@/lib/llm";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -10,24 +14,42 @@ export async function GET() {
   const state = loadLoopState();
   return NextResponse.json({
     autonomous: isAutonomousMode(state),
+    llmPersonas: Boolean(state.llmPersonas),
     runVersion: state.runVersion,
     lastRunId: state.lastRunId,
     lastSyncAt: state.lastSyncAt,
-    llmConfigured: isLlmConfigured(),
-    llmProvider: isLlmConfigured() ? llmProvider() : null,
+    experimentMode: manualExperimentMode(state),
+    llmExperimentAvailable: isLlmExperimentAvailable(),
+    llmProvider: llmExperimentProviderLabel(),
   });
 }
 
 export async function PATCH(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { autonomous?: boolean };
-  if (typeof body.autonomous !== "boolean") {
-    return NextResponse.json({ error: "autonomous (boolean) is required" }, { status: 400 });
+  const body = (await request.json().catch(() => ({}))) as {
+    autonomous?: boolean;
+    llmPersonas?: boolean;
+  };
+
+  if (typeof body.autonomous !== "boolean" && typeof body.llmPersonas !== "boolean") {
+    return NextResponse.json(
+      { error: "Provide autonomous and/or llmPersonas (boolean)" },
+      { status: 400 }
+    );
   }
 
   const state = loadLoopState();
-  saveLoopState({ ...state, autonomous: body.autonomous });
+  const next = {
+    ...state,
+    ...(typeof body.autonomous === "boolean" ? { autonomous: body.autonomous } : {}),
+    ...(typeof body.llmPersonas === "boolean" ? { llmPersonas: body.llmPersonas } : {}),
+  };
+  saveLoopState(next);
 
-  return NextResponse.json({ autonomous: body.autonomous });
+  return NextResponse.json({
+    autonomous: next.autonomous,
+    llmPersonas: next.llmPersonas,
+    experimentMode: manualExperimentMode(next),
+  });
 }
 
 export async function POST() {
@@ -35,16 +57,6 @@ export async function POST() {
     return NextResponse.json(
       { error: "Turn off Autonomous mode to run an experiment manually" },
       { status: 400 }
-    );
-  }
-
-  if (!isLlmConfigured()) {
-    return NextResponse.json(
-      {
-        error:
-          "LLM API key not configured — add KIE_API_KEY or OPENAI_API_KEY to .env.local and restart the dev server",
-      },
-      { status: 503 }
     );
   }
 

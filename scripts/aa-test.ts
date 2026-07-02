@@ -74,6 +74,9 @@ function runReplication(seed: number): ReplicationResult {
     if (visit.events.some((e) => e.type === "bounce")) c.bounce++;
   }
 
+  // Match demo-run.ts: one heuristic reading per persona backs each arm, so
+  // the posterior below is capped the same way real generations are.
+  const independentReadings = personas.length;
   const decisions = analyzeGeneration(
     pool.map((v) => {
       const c = counts.get(v.id)!;
@@ -82,6 +85,7 @@ function runReplication(seed: number): ReplicationResult {
         conversions: c.conv,
         visits: c.n,
         bounceRate: c.n ? c.bounce / c.n : 0,
+        independentReadings,
       };
     }),
     "v0-baseline",

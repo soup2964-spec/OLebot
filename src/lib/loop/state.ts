@@ -4,6 +4,8 @@ import path from "path";
 export interface LoopState {
   /** When true, live traffic triggers auto calibrate + re-simulate. */
   autonomous: boolean;
+  /** When true, manual runs use LLM persona readings (slow). When false, heuristic personas (fast). */
+  llmPersonas: boolean;
   /** Monotonic version — bumps on each full sync (calibrate + re-simulate). */
   runVersion: number;
   lastSyncAt: string | null;
@@ -20,6 +22,7 @@ const STATE_PATH = path.join(process.cwd(), "data", "loop-state.json");
 
 const DEFAULT_STATE: LoopState = {
   autonomous: false,
+  llmPersonas: false,
   runVersion: 0,
   lastSyncAt: null,
   lastVisitorCount: 0,

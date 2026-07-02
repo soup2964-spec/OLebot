@@ -147,16 +147,29 @@ export function CalibrationPanel({
       )}
 
       {calibration && (
-        <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm text-emerald-100/90">
-          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-400">
-            Persona calibration v{calibration.version}
+        <div
+          className={`mt-6 rounded-xl border p-4 text-sm ${
+            calibration.belowMinimumSample
+              ? "border-amber-300 bg-amber-50 text-amber-900"
+              : "border-emerald-500/30 bg-emerald-500/5 text-emerald-100/90"
+          }`}
+        >
+          <div
+            className={`flex items-center justify-between text-xs font-semibold uppercase tracking-wide ${
+              calibration.belowMinimumSample ? "text-amber-700" : "text-emerald-400"
+            }`}
+          >
+            <span>Persona calibration v{calibration.version}</span>
+            <span>{calibration.belowMinimumSample ? "Insufficient sample" : `Confidence ${(calibration.confidence * 100).toFixed(0)}%`}</span>
           </div>
           <p className="mt-1 text-slate-700">{calibration.changelog}</p>
-          <ul className="mt-2 space-y-1 font-mono text-xs text-slate-400">
-            <li>ctaPropensity × {calibration.adjustments.ctaPropensityMultiplier.toFixed(3)}</li>
-            <li>patienceSeconds {calibration.adjustments.patienceSecondsDelta >= 0 ? "+" : ""}{calibration.adjustments.patienceSecondsDelta}s</li>
-            <li>skimPropensity {calibration.adjustments.skimPropensityDelta >= 0 ? "+" : ""}{calibration.adjustments.skimPropensityDelta.toFixed(3)}</li>
-          </ul>
+          {!calibration.belowMinimumSample && (
+            <ul className="mt-2 space-y-1 font-mono text-xs text-slate-400">
+              <li>ctaPropensity × {calibration.adjustments.ctaPropensityMultiplier.toFixed(3)}</li>
+              <li>patienceSeconds {calibration.adjustments.patienceSecondsDelta >= 0 ? "+" : ""}{calibration.adjustments.patienceSecondsDelta}s</li>
+              <li>skimPropensity {calibration.adjustments.skimPropensityDelta >= 0 ? "+" : ""}{calibration.adjustments.skimPropensityDelta.toFixed(3)}</li>
+            </ul>
+          )}
         </div>
       )}
 

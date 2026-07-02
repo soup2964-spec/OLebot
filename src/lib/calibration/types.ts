@@ -43,6 +43,10 @@ export interface CalibrationRecord {
   version: number;
   createdAt: string;
   changelog: string;
+  /** 0-1: how much weight was given to real traffic vs. leaving priors alone. */
+  confidence: number;
+  /** True when real.aggregate.visitors was below the minimum trustworthy sample. */
+  belowMinimumSample: boolean;
   real: RealMetricsSnapshot;
   simulated: SimulatedMetricsSnapshot;
   adjustments: PersonaCalibrationAdjustments;

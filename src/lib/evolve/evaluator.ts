@@ -1,7 +1,7 @@
 import type { PageVariant } from "@/lib/schema/page";
 import type { Visit, VariantMetrics } from "@/lib/schema/events";
 import type { GenerationReport, Scorecard } from "@/lib/schema/experiment";
-import { chatJSONRetry } from "@/lib/llm";
+import { chatJSONRetry, evaluatorProvider } from "@/lib/llm";
 
 /**
  * Evaluator agent: reads the quantitative rollup plus sampled qualitative
@@ -83,7 +83,12 @@ Produce the JSON report.`;
     insights: string;
     findings: { finding: string; evidence: string }[];
     scorecards: Scorecard[];
-  }>(SYSTEM, user, { temperature: 0.4, maxTokens: 6000 });
+  }>(SYSTEM, user, {
+    temperature: 0.4,
+    maxTokens: 6000,
+    thinkingFlag: false,
+    provider: evaluatorProvider(),
+  });
 
   return { generation, ...out };
 }

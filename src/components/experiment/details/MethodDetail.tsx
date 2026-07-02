@@ -1,7 +1,7 @@
 import { PERSONA_SET_V1 } from "@/config/personas";
 import type { ExperimentRun } from "@/lib/schema/experiment";
 import { JUDGMENT_CRITERIA } from "@/lib/judgment/criteria";
-import { DECISION_THRESHOLDS } from "@/lib/stats/bayes";
+import { DECISION_THRESHOLDS, EVIDENCE_VISITS_PER_READING } from "@/lib/stats/bayes";
 
 export function MethodDetail({ run }: { run: ExperimentRun | null }) {
   const totalVisits =
@@ -99,6 +99,10 @@ export function MethodDetail({ run }: { run: ExperimentRun | null }) {
         <MethodCard
           title="Why not t-tests"
           body="Adaptive allocation violates fixed-split assumptions. Posterior P(best) is an always-valid stopping rule that supports continuous evaluation."
+        />
+        <MethodCard
+          title="Confidence is capped by evidence"
+          body={`Thousands of simulated visits are resampled from a handful of independent persona readings — that reading count, not the visit count, bounds statistical confidence. Each reading is worth at most ${EVIDENCE_VISITS_PER_READING} effective visits in the posterior, so promote/kill decisions can't overstate certainty from resampling alone.`}
         />
       </div>
 
