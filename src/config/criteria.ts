@@ -15,7 +15,7 @@ export const CRITERIA = [
     id: "2",
     short: "Comparison method",
     title: "How we compare page performance",
-    question: "How does each page get scored, and how do we pick winners?",
+    question: "What criteria determine how each page is scored and compared?",
   },
   {
     id: "3",

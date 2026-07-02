@@ -108,16 +108,19 @@ export interface PostHogDiagnosticEventDefinition {
 }
 
 /**
- * Fitness score weights — same four behaviors a founding growth engineer charts.
- * Sum to 1.0. Phase 2 diagnostics do NOT add weight.
+ * Fitness score weights — conversion-first for a demo-booking landing page.
+ * Sum to 1.0. Engagement metrics are bounded tiebreakers / leading indicators,
+ * deliberately unable to override a real conversion gap. Phase 2 diagnostics
+ * do NOT add weight.
  */
 export const POSTHOG_BEHAVIOR_WEIGHTS = {
   /** Weight key — maps to book_demo_click event */
-  cta_click: 0.6,
-  scroll_depth: 0.2,
-  page_exit: 0.1,
-  section_viewed: 0.1,
-  conversionCeiling: 0.08,
+  cta_click: 0.8,
+  scroll_depth: 0.1,
+  page_exit: 0.05,
+  section_viewed: 0.05,
+  /** Demo-rate ceiling (B2B benchmark). Conversion term saturates here. */
+  conversionCeiling: 0.05,
 } as const;
 
 export const POSTHOG_BEHAVIOR_EVENTS: PostHogEventDefinition[] = [
@@ -145,9 +148,9 @@ export const POSTHOG_BEHAVIOR_EVENTS: PostHogEventDefinition[] = [
     id: "scroll_depth",
     event: POSTHOG_EVENTS.SCROLL_DEPTH,
     label: "Scroll depth",
-    role: "Engagement depth",
+    role: "Engagement (leading indicator)",
     weight: POSTHOG_BEHAVIOR_WEIGHTS.scroll_depth,
-    why: "Sessions that scroll past the fold are paying attention. Milestones at 25/50/75/100%.",
+    why: "Leading indicator — sessions that scroll past the fold are paying attention. Bounded tiebreaker, cannot override a conversion gap.",
     hogqlMeasure:
       "max(properties.percent_scrolled) per session, averaged — or max_scroll_depth on $pageleave",
     properties: [
@@ -164,9 +167,9 @@ export const POSTHOG_BEHAVIOR_EVENTS: PostHogEventDefinition[] = [
     id: "page_exit",
     event: POSTHOG_EVENTS.PAGE_LEAVE,
     label: "Page leave (non-bounce)",
-    role: "Retention signal",
+    role: "Retention (guardrail signal)",
     weight: POSTHOG_BEHAVIOR_WEIGHTS.page_exit,
-    why: "Inverse bounce on PostHog $pageleave: left after engaging (scroll ≥15%). Matches production exit tracking.",
+    why: "Inverse bounce on PostHog $pageleave: left after engaging (scroll ≥15%). Low weight — bounce is enforced separately as a hard guardrail.",
     hogqlMeasure:
       "1 − countIf(event = '$pageleave' AND properties.bounced = true) / countIf(event = '$pageleave')",
     properties: [
@@ -186,9 +189,9 @@ export const POSTHOG_BEHAVIOR_EVENTS: PostHogEventDefinition[] = [
     id: "section_viewed",
     event: POSTHOG_EVENTS.SECTION_VIEWED,
     label: "Section reach",
-    role: "Content exposure",
+    role: "Content exposure (leading indicator)",
     weight: POSTHOG_BEHAVIOR_WEIGHTS.section_viewed,
-    why: "How much of the page story visitors saw — unique sections per session. Critical for copy A/B tests.",
+    why: "Leading indicator — how much of the page story visitors saw. Bounded tiebreaker for copy A/B tests, not a co-equal outcome.",
     hogqlMeasure:
       "count(DISTINCT properties.section_id) per session ÷ total sections on variant",
     properties: ["challenge", "experiment_number", "variant_id", "section_id"],

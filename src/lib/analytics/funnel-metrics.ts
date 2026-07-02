@@ -51,7 +51,7 @@ export const FUNNEL_METRIC_DEFINITIONS: FunnelMetricDefinition[] = [
     label: "Demo booking rate",
     formula: "book_demo_click ÷ sessions",
     role: "Bottom of funnel",
-    why: "Overall conversion — composes exposure × CTR. This is the primary outcome in fitness scoring (60% weight).",
+    why: "Overall conversion — composes exposure × CTR. This is the primary outcome in fitness scoring (80% weight).",
     copyLever: "Full-page narrative: problem → proof → ask",
   },
 ];

@@ -94,7 +94,7 @@ export function ChallengeDashboard() {
         <div className="grid gap-4 md:grid-cols-3">
           <MethodCard title="Personas + objections" body="6 buyers from 2025–26 research, each with a ledger of critical objections that must be resolved to convert." />
           <MethodCard title="Traffic allocation" body="Thompson sampling routes each simulated visit using Beta posteriors — winners earn traffic over time." />
-          <MethodCard title="Winner selection" body="Promote at P(best) ≥ 95%. Kill at P(beat baseline) < 5%. Fitness = 60% book_demo_click + 20% scroll_depth + 10% $pageleave + 10% section_viewed." />
+          <MethodCard title="Winner selection" body="Promote at P(best) ≥ 95%. Kill at P(beat baseline) < 5%. Conversion-first fitness = 80% book_demo_click + 10% scroll_depth + 5% $pageleave + 5% section_viewed." />
         </div>
         <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {PERSONA_SET_V1.personas.map((p) => (

@@ -61,6 +61,34 @@ export const JUDGMENT_CRITERIA = {
   ],
 } as const;
 
+/** LLM evaluator scorecard — qualitative diagnosis, does not override fitness. */
+export const EVALUATOR_SCORECARD_DIMENSIONS = [
+  {
+    id: "valueClarity",
+    label: "Value clarity",
+    role: "Qualitative (0–10)",
+    description: "How quickly and clearly the page communicates its value proposition.",
+  },
+  {
+    id: "credibility",
+    label: "Credibility",
+    role: "Qualitative (0–10)",
+    description: "How well the page earns trust with proof, specificity, and tone.",
+  },
+  {
+    id: "ctaStrength",
+    label: "CTA strength",
+    role: "Qualitative (0–10)",
+    description: "How compelling and low-friction the demo booking ask is.",
+  },
+  {
+    id: "audienceFit",
+    label: "Audience fit",
+    role: "Qualitative (0–10)",
+    description: "How well the page serves the personas that actually visited.",
+  },
+] as const;
+
 export type VariantJudgment = {
   variantId: string;
   conversionRate: number;
