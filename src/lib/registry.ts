@@ -12,11 +12,16 @@ import path from "path";
 
 const RUN_PATH = path.join(process.cwd(), "data", "run.json");
 
+let cachedRun: ExperimentRun | null | undefined;
+
 export function loadRun(): ExperimentRun | null {
+  if (cachedRun !== undefined) return cachedRun;
   try {
     const raw = fs.readFileSync(RUN_PATH, "utf-8");
-    return JSON.parse(raw) as ExperimentRun;
+    cachedRun = JSON.parse(raw) as ExperimentRun;
+    return cachedRun;
   } catch {
+    cachedRun = null;
     return null;
   }
 }
@@ -30,3 +35,25 @@ export function allVariants(): PageVariant[] {
 export function getVariant(id: string): PageVariant | undefined {
   return allVariants().find((v) => v.id === id);
 }
+
+export function getVisit(generation: number, visitId: string) {
+  const run = loadRun();
+  return run?.generations[generation]?.visits.find((v) => v.id === visitId);
+}
+
+/** Slim index for client components — avoids shipping 1.6MB of visit traces. */
+export function visitIndex(run: ExperimentRun) {
+  return run.generations.map((g) => ({
+    generation: g.generation,
+    variantIds: g.variantIds,
+    metrics: g.metrics,
+    visits: g.visits.map((v) => ({
+      id: v.id,
+      personaId: v.personaId,
+      variantId: v.variantId,
+      converted: v.converted,
+    })),
+  }));
+}
+
+export type VisitIndex = ReturnType<typeof visitIndex>;

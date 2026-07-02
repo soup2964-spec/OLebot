@@ -1,30 +1,55 @@
 "use client";
 
-import { useState } from "react";
-import type { ExperimentRun } from "@/lib/schema/experiment";
+import { useCallback, useEffect, useState } from "react";
+import type { VisitIndex } from "@/lib/registry";
 import type { Visit } from "@/lib/schema/events";
 import type { PageVariant } from "@/lib/schema/page";
 import { ReplayTheater } from "@/components/ReplayTheater";
 import { PERSONA_SET_V1 } from "@/config/personas";
 
 export function BehaviorExplorer({
-  run,
+  index,
   variants,
 }: {
-  run: ExperimentRun;
+  index: VisitIndex;
   variants: PageVariant[];
 }) {
-  const [genIdx, setGenIdx] = useState(run.generations.length - 1);
-  const [variantId, setVariantId] = useState(run.generations[genIdx]?.variantIds[0] ?? "");
+  const [genIdx, setGenIdx] = useState(index.length - 1);
+  const [variantId, setVariantId] = useState(index[genIdx]?.variantIds[0] ?? "");
   const [visitId, setVisitId] = useState("");
+  const [visit, setVisit] = useState<Visit | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const gen = run.generations[genIdx];
-  const visits = gen?.visits ?? [];
-  const filtered = visits.filter((v) => v.variantId === variantId);
-  const selected: Visit | undefined =
-    filtered.find((v) => v.id === visitId) ?? filtered[0];
-
+  const gen = index[genIdx];
+  const filtered = gen?.visits.filter((v) => v.variantId === variantId) ?? [];
+  const selectedMeta = filtered.find((v) => v.id === visitId) ?? filtered[0];
   const variant = variants.find((v) => v.id === variantId);
+
+  const fetchVisit = useCallback(
+    async (id: string, generation: number) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/visits/${encodeURIComponent(id)}?gen=${generation}`);
+        if (!res.ok) throw new Error("Could not load visit trace");
+        setVisit((await res.json()) as Visit);
+      } catch (e) {
+        setVisit(null);
+        setError(e instanceof Error ? e.message : "Failed to load visit");
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (selectedMeta) {
+      setVisitId(selectedMeta.id);
+      fetchVisit(selectedMeta.id, gen.generation);
+    }
+  }, [selectedMeta?.id, gen.generation, fetchVisit]);
 
   return (
     <div className="space-y-8">
@@ -36,12 +61,12 @@ export function BehaviorExplorer({
             onChange={(e) => {
               const idx = Number(e.target.value);
               setGenIdx(idx);
-              setVariantId(run.generations[idx].variantIds[0]);
+              setVariantId(index[idx].variantIds[0]);
               setVisitId("");
             }}
             className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
           >
-            {run.generations.map((g, i) => (
+            {index.map((g, i) => (
               <option key={g.generation} value={i}>
                 Generation {g.generation}
               </option>
@@ -62,7 +87,7 @@ export function BehaviorExplorer({
             ))}
           </select>
           <select
-            value={selected?.id ?? ""}
+            value={selectedMeta?.id ?? ""}
             onChange={(e) => setVisitId(e.target.value)}
             className="min-w-[240px] rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
           >
@@ -76,13 +101,16 @@ export function BehaviorExplorer({
             })}
           </select>
         </div>
+        {error && <p className="mt-2 text-sm text-rose-400">{error}</p>}
       </section>
 
-      {selected && variant ? (
-        <ReplayTheater visit={selected} variant={variant} />
-      ) : (
+      {loading && <p className="text-sm text-slate-500">Loading visit trace…</p>}
+
+      {visit && variant && !loading ? (
+        <ReplayTheater visit={visit} variant={variant} />
+      ) : !loading && !visit ? (
         <p className="text-slate-500">No visits for this variant.</p>
-      )}
+      ) : null}
 
       <HeatmapGrid gen={gen} variants={variants} />
     </div>
@@ -93,7 +121,7 @@ function HeatmapGrid({
   gen,
   variants,
 }: {
-  gen: ExperimentRun["generations"][0];
+  gen: VisitIndex[number];
   variants: PageVariant[];
 }) {
   const top = gen.metrics.slice(0, 3);
