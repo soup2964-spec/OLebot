@@ -9,11 +9,13 @@ import {
   ExperimentProgressReporter,
   clearExperimentProgress,
 } from "./experiment-progress";
+import { saveExperimentRun } from "@/lib/experiments/store";
 import {
   loadLoopState,
   nextExperimentNumber,
   normalizeExperimentHistory,
   saveLoopState,
+  type LoopState,
 } from "./state";
 
 export type { ExperimentMode };
@@ -30,14 +32,13 @@ export interface ManualExperimentResult {
   deploy: PromoteResult;
 }
 
-/** full = LLM persona readings; hybrid = heuristic readings + LLM eval/breed (toggle off). */
-export function manualExperimentMode(state = loadLoopState()): ExperimentMode {
+export function manualExperimentMode(state: LoopState): ExperimentMode {
   return state.llmPersonas ? "full" : "hybrid";
 }
 
 export async function runManualExperiment(): Promise<ManualExperimentResult> {
-  const state = loadLoopState();
-  const mode = manualExperimentMode(state);
+  const loopState = await loadLoopState();
+  const mode = manualExperimentMode(loopState);
 
   if (!isLlmConfigured()) {
     throw new Error(
@@ -45,10 +46,13 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
     );
   }
 
+  const history = normalizeExperimentHistory(loopState.experimentHistory);
+  const experimentNumber = nextExperimentNumber(history);
+
   const seed = Date.now() % 1_000_000_000;
   const generations = Number(process.env.LLM_GENERATIONS ?? 2);
-  clearExperimentProgress();
-  const progress = new ExperimentProgressReporter(mode, generations);
+  await clearExperimentProgress();
+  const progress = new ExperimentProgressReporter(mode, generations, experimentNumber);
 
   try {
     const run = await runExperiment({
@@ -58,7 +62,8 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
     });
 
     progress.saving("Saving results and writing page previews…");
-    saveRun(run);
+    await saveRun(run);
+    await saveExperimentRun(experimentNumber, run);
     invalidateRunCache();
     writeAllVariantHtml(run.variants, { includeLabBaseline: true });
 
@@ -69,14 +74,13 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
       0
     );
 
-    const loopState = loadLoopState();
-    const history = normalizeExperimentHistory(loopState.experimentHistory);
-    const experimentNumber = nextExperimentNumber(history);
+    const loopStateAfter = await loadLoopState();
+    const historyAfter = normalizeExperimentHistory(loopStateAfter.experimentHistory);
     const previousVariants =
       experimentNumber === 1
         ? [...GENERATION_0]
         : [
-            ...(history.find((e) => e.experimentNumber === experimentNumber - 1)
+            ...(historyAfter.find((e) => e.experimentNumber === experimentNumber - 1)
               ?.currentVariants ?? GENERATION_0),
           ];
     const currentVariants = offspringIds
@@ -84,7 +88,7 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
       .filter((v): v is NonNullable<typeof v> => Boolean(v));
 
     const next = {
-      ...loopState,
+      ...loopStateAfter,
       lastSyncAt: new Date().toISOString(),
       lastRunId: run.id,
       syncHistory: [
@@ -93,10 +97,10 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
           visitors: 0,
           reason: mode === "full" ? "manual-llm-experiment" : "manual-hybrid-experiment",
         },
-        ...loopState.syncHistory.slice(0, 19),
+        ...loopStateAfter.syncHistory.slice(0, 19),
       ],
       experimentHistory: [
-        ...history,
+        ...historyAfter,
         {
           experimentNumber,
           runId: run.id,
@@ -105,11 +109,11 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
         },
       ],
     };
-    saveLoopState(next);
+    await saveLoopState(next);
 
     const deploy =
       process.env.AUTO_DEPLOY_BEST === "1"
-        ? promoteAndDeploy(run, { forceBest: true })
+        ? await promoteAndDeploy(run, { forceBest: true })
         : {
             promoted: false,
             reason: "Lab mode — baseline preserved (set AUTO_DEPLOY_BEST=1 to auto-promote)",
@@ -120,7 +124,7 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
 
     return {
       runId: run.id,
-      runVersion: loopState.runVersion,
+      runVersion: loopStateAfter.runVersion,
       experimentNumber,
       totalVisits,
       offspringCount: offspringIds.length,
@@ -136,7 +140,6 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
   }
 }
 
-/** Whether manual runs can use the optional LLM path. */
 export function isLlmExperimentAvailable(): boolean {
   return isLlmConfigured();
 }

@@ -2,7 +2,6 @@ import type { PageVariant, Section, ChangelogEntry } from "@/lib/schema/page";
 import type { VariantMetrics } from "@/lib/schema/events";
 import type { GenerationReport } from "@/lib/schema/experiment";
 import { chatJSONRetry, breederProvider } from "@/lib/llm";
-import { formatHeroHeadline, fitHeroBodyToBaseline, HERO_BODY_TARGET, HERO_LINE1_TARGET, HERO_LINE2_TARGET } from "@/lib/replica/hero-headline";
 
 /**
  * Optimizer agent: breeds the next generation from the evaluator's report.
@@ -45,8 +44,6 @@ Hard rules:
 - Keep what worked (high dwell, high sentiment, sections cited in conversions). Cut or rewrite what didn't (high exit rate, low read rate, negative sentiment).
 - Stay truthful to the product. Do not invent case studies, customers, or statistics that weren't in the parent pages. You may restructure, reframe, and reprioritize freely.
 - Never use dashes in customer-facing copy: no hyphens (-), en dashes (–), or em dashes (—) in name, thesis, headlines, body, item titles, item details, or ctaLabel. Rephrase with commas, periods, or separate sentences instead (e.g. write "one size fits all" not "one-size-fits-all", "built for teams" not "built for teams — fast").
-- Hero headline (type hero): MUST be exactly two lines for the Framer layout, stored as "First sentence. Second sentence." First line ~${HERO_LINE1_TARGET} characters (like "Faster competency. Higher engagement."). Second line ~${HERO_LINE2_TARGET} characters (like "Agentic Learning with Scholé."). Both lines must be substantive — never leave the second line empty or cram the full message into line one.
-- Hero body (type hero): one subheading paragraph ~${HERO_BODY_TARGET} characters — the same visual block as baseline ("Scholé uses the best of AI to construct exactly the right lesson…"). Prefer two short sentences. Never write a long paragraph that overflows the hero subhead slot.
 - Each offspring in a batch of six must be visually distinct: unique hero headline, unique strategic angle, and at least three sections meaningfully different from every sibling. Never clone a parent's hero or repeat the same headline as another offspring.
 - 6-8 sections. Page must end with a cta section.
 - The changelog must have 4-8 entries, each: {what, why, evidence, sourceVariantId?}. Evidence must cite specific numbers or quotes from the report. Use sourceVariantId when importing a section idea from another parent.
@@ -87,6 +84,7 @@ export async function breedVariant(
         })
         .join("\n");
       return `PARENT ${p.id} "${p.name}" - conversion ${(m?.conversionRate ?? 0) * 100}%, fitness ${m?.fitness.toFixed(1)}
+Funnel: ctaExposure ${((m?.funnel?.ctaExposureRate ?? 0) * 100).toFixed(0)}% ctaCTR ${((m?.funnel?.ctaClickThroughRate ?? 0) * 100).toFixed(0)}% demoRate ${((m?.funnel?.demoBookingRate ?? 0) * 100).toFixed(0)}%
 Thesis: ${p.thesis}
 Unresolved objections costing conversions: ${Object.entries(m?.objectionFailures ?? {}).sort((a, b) => b[1] - a[1]).map(([o, c]) => `${o}(${c})`).join(", ") || "none"}
 ${sections}`;
@@ -148,16 +146,11 @@ function sanitizeSections(sections: Section[], variantId: string): Section[] {
       let id = (s.id || `s${i}`).toLowerCase().replace(/[^a-z0-9-]/g, "-").slice(0, 24) || `s${i}`;
       while (seen.has(id)) id = `${id}-${i}`;
       seen.add(id);
-      const isHero = s.type === "hero" || id === "hero";
-      const rawHeadline = stripDashesFromCopy(String(s.headline));
-      const headline = isHero ? formatHeroHeadline(rawHeadline) : rawHeadline;
-      const rawBody = stripDashesFromCopy(String(s.body));
-      const body = isHero ? fitHeroBodyToBaseline(rawBody) : rawBody;
       return {
         id,
         type: VALID_SECTION_TYPES.includes(s.type) ? s.type : "features",
-        headline,
-        body,
+        headline: stripDashesFromCopy(String(s.headline)),
+        body: stripDashesFromCopy(String(s.body)),
         items: s.items?.slice(0, 6).map((it) => ({
           title: stripDashesFromCopy(String(it.title)),
           detail: stripDashesFromCopy(String(it.detail)),

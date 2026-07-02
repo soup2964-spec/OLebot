@@ -1,19 +1,22 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { isCtaSection } from "@/lib/analytics/posthog-events";
 import type { VariantContext } from "@/lib/analytics/track";
 import {
   identifyVariant,
-  trackBounce,
+  trackCtaViewed,
+  trackPageExit,
   trackScrollDepth,
+  trackSectionViewed,
 } from "@/lib/analytics/track";
-import { pushLiveAnalytics } from "@/lib/analytics/live-track";
 
 const MILESTONES = [25, 50, 75, 100];
+const CONVERTED_KEY = "ll_converted";
 
 /**
- * Instruments a variant page (or iframe document) with scroll-depth milestones
- * and exit events — the signals PostHog/GTM use to calibrate simulated personas.
+ * Instruments a variant page (or iframe document) with scroll-depth milestones,
+ * CTA exposure, and enriched exit events — aligned to the GTM Challenge PostHog plan.
  */
 export function useVariantAnalytics(
   ctx: VariantContext,
@@ -22,13 +25,26 @@ export function useVariantAnalytics(
   const fired = useRef(new Set<number>());
   const maxScroll = useRef(0);
   const startMs = useRef(Date.now());
+  const sectionsSeen = useRef(new Set<string>());
+  const ctaViewed = useRef(new Set<string>());
 
   useEffect(() => {
     fired.current = new Set();
     maxScroll.current = 0;
     startMs.current = Date.now();
+    sectionsSeen.current = new Set();
+    ctaViewed.current = new Set();
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.removeItem(CONVERTED_KEY);
+    }
     identifyVariant(ctx);
-  }, [ctx.variantId, ctx.generation, ctx.strategy]);
+  }, [
+    ctx.variantId,
+    ctx.generation,
+    ctx.strategy,
+    ctx.experimentNumber,
+    ctx.challenge,
+  ]);
 
   useEffect(() => {
     const root = scrollRoot ?? document.documentElement;
@@ -60,7 +76,13 @@ export function useVariantAnalytics(
     onScroll();
 
     const onExit = () => {
-      trackBounce(ctx, maxScroll.current, Date.now() - startMs.current);
+      const converted =
+        typeof sessionStorage !== "undefined" &&
+        sessionStorage.getItem(CONVERTED_KEY) === "1";
+      trackPageExit(ctx, maxScroll.current, Date.now() - startMs.current, {
+        converted,
+        sectionsViewedCount: sectionsSeen.current.size,
+      });
     };
     window.addEventListener("pagehide", onExit);
 
@@ -70,20 +92,30 @@ export function useVariantAnalytics(
     };
   }, [ctx, scrollRoot]);
 
-  // Section visibility — powers live section engagement in the behavior report.
   useEffect(() => {
-    const seen = new Set<string>();
-    const nodes = document.querySelectorAll<HTMLElement>("[data-section-id]");
+    const rootEl = scrollRoot ?? document;
+    const seen = sectionsSeen.current;
+    const ctaSeen = ctaViewed.current;
+    const nodes = rootEl.querySelectorAll<HTMLElement>("[data-section-id]");
     if (!nodes.length) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting || entry.intersectionRatio < 0.35) continue;
-          const sectionId = (entry.target as HTMLElement).dataset.sectionId;
+          const el = entry.target as HTMLElement;
+          const sectionId = el.dataset.sectionId;
           if (!sectionId || seen.has(sectionId)) continue;
           seen.add(sectionId);
-          pushLiveAnalytics(ctx, "section_view", { sectionId });
+          trackSectionViewed(ctx, sectionId);
+
+          if (isCtaSection(sectionId) && !ctaSeen.has(sectionId)) {
+            ctaSeen.add(sectionId);
+            const ctaLabel =
+              el.querySelector("button, a[href*='cal.com'], a[href*='demo']")
+                ?.textContent?.trim() || undefined;
+            trackCtaViewed(ctx, sectionId, ctaLabel);
+          }
         }
       },
       { threshold: [0.35, 0.5] }
@@ -91,5 +123,12 @@ export function useVariantAnalytics(
 
     nodes.forEach((n) => observer.observe(n));
     return () => observer.disconnect();
-  }, [ctx]);
+  }, [ctx, scrollRoot]);
+}
+
+/** Mark session converted before page_exit fires (called from CTA handlers). */
+export function markSessionConverted() {
+  if (typeof sessionStorage !== "undefined") {
+    sessionStorage.setItem(CONVERTED_KEY, "1");
+  }
 }

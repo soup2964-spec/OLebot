@@ -14,8 +14,8 @@ export const CRITERIA = [
   {
     id: "2",
     short: "Comparison method",
-    title: "How the pages were compared",
-    question: "How did we run the experiment?",
+    title: "How we compare page performance",
+    question: "How does each page get scored, and how do we pick winners?",
   },
   {
     id: "3",

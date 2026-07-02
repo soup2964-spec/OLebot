@@ -1,4 +1,5 @@
 import type { VariantContext } from "./track";
+import { POSTHOG_EVENTS } from "./posthog-events";
 
 const SESSION_KEY = "ll_session";
 
@@ -14,21 +15,26 @@ export function getLiveSessionToken(): string {
 
 type LiveEvent =
   | "session_start"
-  | "section_view"
-  | "scroll_depth"
-  | "cta_click"
-  | "page_exit";
+  | typeof POSTHOG_EVENTS.SECTION_VIEWED
+  | typeof POSTHOG_EVENTS.CTA_VIEWED
+  | typeof POSTHOG_EVENTS.SCROLL_DEPTH
+  | typeof POSTHOG_EVENTS.BOOK_DEMO_CLICK
+  | typeof POSTHOG_EVENTS.PAGE_LEAVE;
 
 export function pushLiveAnalytics(
   ctx: VariantContext,
   event: LiveEvent,
   extra: {
     sectionId?: string;
+    ctaLabel?: string;
     scrollDepth?: number;
     scrollDepthPct?: number;
     dwellMs?: number;
     converted?: boolean;
     bounced?: boolean;
+    sectionsViewedCount?: number;
+    unresolvedObjections?: string[];
+    experimentNumber?: number;
     targetToken?: string;
   } = {}
 ) {
@@ -40,6 +46,8 @@ export function pushLiveAnalytics(
       variantId: ctx.variantId,
       generation: ctx.generation,
       strategy: ctx.strategy,
+      experimentNumber: extra.experimentNumber ?? ctx.experimentNumber,
+      challenge: ctx.challenge,
       event,
       ...extra,
     }),

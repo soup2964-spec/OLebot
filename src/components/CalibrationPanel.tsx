@@ -174,12 +174,18 @@ export function CalibrationPanel({
       )}
 
       <div className="mt-4 rounded-xl bg-slate-100 p-4 text-xs text-slate-500">
-        Events pushed to GTM <code className="rounded bg-slate-100 px-1">dataLayer</code>:{" "}
-        <code className="rounded bg-slate-100 px-1">variant_page_view</code>,{" "}
-        <code className="rounded bg-slate-100 px-1">cta_click</code>,{" "}
-        <code className="rounded bg-slate-100 px-1">scroll_depth</code>,{" "}
-        <code className="rounded bg-slate-100 px-1">page_exit</code>. PostHog receives the same
-        properties for HogQL aggregation. Set{" "}
+        Events pushed to GTM <code className="rounded bg-slate-100 px-1">dataLayer</code> (GA4
+        recommended): <code className="rounded bg-slate-100 px-1">page_view</code>,{" "}
+        <code className="rounded bg-slate-100 px-1">generate_lead</code>,{" "}
+        <code className="rounded bg-slate-100 px-1">scroll</code>,{" "}
+        <code className="rounded bg-slate-100 px-1">section_view</code>,{" "}
+        <code className="rounded bg-slate-100 px-1">select_content</code>,{" "}
+        <code className="rounded bg-slate-100 px-1">session_end</code>. PostHog receives{" "}
+        <code className="rounded bg-slate-100 px-1">$pageview</code>,{" "}
+        <code className="rounded bg-slate-100 px-1">book_demo_click</code>,{" "}
+        <code className="rounded bg-slate-100 px-1">$pageleave</code>, and matching custom events.
+        Super-properties include <code className="rounded bg-slate-100 px-1">challenge</code> and{" "}
+        <code className="rounded bg-slate-100 px-1">experiment_number</code>. Set{" "}
         <code className="rounded bg-slate-100 px-1">POSTHOG_API_KEY</code> +{" "}
         <code className="rounded bg-slate-100 px-1">POSTHOG_PROJECT_ID</code> to pull live
         metrics and write <code className="rounded bg-slate-100 px-1">data/calibration.json</code>.

@@ -31,6 +31,7 @@ export function ExperimentProgressBar({ progress }: { progress: ExperimentProgre
       }`}
       role="status"
       aria-live="polite"
+      aria-busy={!isComplete && !isError}
       aria-valuenow={percent}
       aria-valuemin={0}
       aria-valuemax={100}

@@ -9,6 +9,8 @@
     "lint": "eslint",
     "experiment": "tsx scripts/run-experiment.ts",
     "demo": "tsx scripts/generate-demo-run.ts",
+    "migrate:supabase": "tsx scripts/migrate-to-supabase.ts",
+    "reset:lab": "tsx scripts/reset-lab.ts",
     "deploy:html": "tsx scripts/regenerate-variant-html.ts",
     "aa-test": "tsx scripts/aa-test.ts",
     "prepare:baseline": "tsx scripts/prepare-baseline-html.ts",

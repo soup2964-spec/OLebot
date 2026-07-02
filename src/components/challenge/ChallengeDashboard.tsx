@@ -4,11 +4,11 @@ import { PERSONA_SET_V1 } from "@/config/personas";
 import { ChallengeSection, schole, StatCard } from "@/components/schole-ui";
 import { ChallengeBehaviorPreview } from "@/components/challenge/ChallengeBehaviorPreview";
 import { ChallengeResultsBlock } from "@/components/challenge/ChallengeResultsBlock";
-import { allVariants, loadRun, visitIndex } from "@/lib/registry";
+import { allVariantsSync, loadRunSync, visitIndex } from "@/lib/registry";
 
 export function ChallengeDashboard() {
-  const run = loadRun();
-  const variants = allVariants();
+  const run = loadRunSync();
+  const variants = allVariantsSync();
   const gen0 = variants.filter((v) => v.generation === 0);
   const bred = variants.filter((v) => v.generation > 0);
   const lastGen = run?.generations[run.generations.length - 1];
@@ -94,7 +94,7 @@ export function ChallengeDashboard() {
         <div className="grid gap-4 md:grid-cols-3">
           <MethodCard title="Personas + objections" body="6 buyers from 2025–26 research, each with a ledger of critical objections that must be resolved to convert." />
           <MethodCard title="Traffic allocation" body="Thompson sampling routes each simulated visit using Beta posteriors — winners earn traffic over time." />
-          <MethodCard title="Winner selection" body="Promote at P(best) ≥ 95%. Kill at P(beat baseline) < 5%. Fitness = 60% conv + 20% scroll + 10% bounce + 10% sentiment." />
+          <MethodCard title="Winner selection" body="Promote at P(best) ≥ 95%. Kill at P(beat baseline) < 5%. Fitness = 60% book_demo_click + 20% scroll_depth + 10% $pageleave + 10% section_viewed." />
         </div>
         <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {PERSONA_SET_V1.personas.map((p) => (

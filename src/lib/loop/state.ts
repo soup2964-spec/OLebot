@@ -1,24 +1,16 @@
-import fs from "fs";
-import path from "path";
-
 import type { PageVariant } from "@/lib/schema/page";
+import { getLabDocument, LAB_DOC, setLabDocument } from "@/lib/supabase/lab-documents";
 
 export interface LoopState {
-  /** When true, live traffic triggers auto calibrate + re-simulate. */
   autonomous: boolean;
-  /** When true, manual runs use LLM persona readings (slow). When false, heuristic personas (fast). */
   llmPersonas: boolean;
-  /** Monotonic version — bumps on each full sync (calibrate + re-simulate). */
   runVersion: number;
   lastSyncAt: string | null;
-  /** Live visitors counted at last sync (PostHog + heartbeat). */
   lastVisitorCount: number;
-  /** Heartbeat visits recorded since deploy (works without PostHog API). */
   heartbeatVisits: number;
   lastCalibrationVersion: number;
   lastRunId: string | null;
   syncHistory: { at: string; visitors: number; reason: string }[];
-  /** Snapshots per completed manual experiment (for page comparison by iteration). */
   experimentHistory: ExperimentHistoryEntry[];
 }
 
@@ -28,8 +20,6 @@ export interface ExperimentHistoryEntry {
   previousVariants: PageVariant[];
   currentVariants: PageVariant[];
 }
-
-const STATE_PATH = path.join(process.cwd(), "data", "loop-state.json");
 
 const DEFAULT_STATE: LoopState = {
   autonomous: false,
@@ -44,7 +34,8 @@ const DEFAULT_STATE: LoopState = {
   experimentHistory: [],
 };
 
-/** Manual experiments use 1…N — independent of auto-sync runVersion. */
+let loopCache: LoopState | undefined;
+
 export function normalizeExperimentHistory(
   history: ExperimentHistoryEntry[] = []
 ): ExperimentHistoryEntry[] {
@@ -62,31 +53,33 @@ export function nextExperimentNumber(history: ExperimentHistoryEntry[] = []): nu
   return normalizeExperimentHistory(history).length + 1;
 }
 
-export function loadLoopState(): LoopState {
-  try {
-    const raw = { ...DEFAULT_STATE, ...JSON.parse(fs.readFileSync(STATE_PATH, "utf8")) };
-    return {
-      ...raw,
-      experimentHistory: normalizeExperimentHistory(raw.experimentHistory ?? []),
-    };
-  } catch {
-    return { ...DEFAULT_STATE };
-  }
+export async function loadLoopState(): Promise<LoopState> {
+  if (loopCache) return loopCache;
+  const raw = await getLabDocument<Partial<LoopState>>(LAB_DOC.LOOP_STATE);
+  loopCache = {
+    ...DEFAULT_STATE,
+    ...raw,
+    experimentHistory: normalizeExperimentHistory(raw?.experimentHistory ?? []),
+  };
+  return loopCache;
 }
 
-export function isAutonomousMode(state: LoopState = loadLoopState()): boolean {
-  return Boolean(state.autonomous);
+export function isAutonomousMode(state?: LoopState): boolean {
+  return Boolean(state?.autonomous);
 }
 
-export function saveLoopState(state: LoopState) {
-  fs.mkdirSync(path.dirname(STATE_PATH), { recursive: true });
-  fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2), "utf8");
+export async function saveLoopState(state: LoopState) {
+  loopCache = {
+    ...state,
+    experimentHistory: normalizeExperimentHistory(state.experimentHistory ?? []),
+  };
+  await setLabDocument(LAB_DOC.LOOP_STATE, loopCache);
 }
 
-export function recordHeartbeat() {
-  const state = loadLoopState();
+export async function recordHeartbeat() {
+  const state = await loadLoopState();
   state.heartbeatVisits += 1;
-  saveLoopState(state);
+  await saveLoopState(state);
   return state.heartbeatVisits;
 }
 
@@ -96,4 +89,8 @@ export function minNewVisitors() {
 
 export function minSyncIntervalMs() {
   return Number(process.env.LOOP_MIN_SYNC_MS ?? 3 * 60 * 1000);
+}
+
+export function invalidateLoopCache() {
+  loopCache = undefined;
 }

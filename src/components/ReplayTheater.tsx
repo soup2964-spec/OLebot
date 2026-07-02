@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Visit } from "@/lib/schema/events";
 import type { PageVariant } from "@/lib/schema/page";
+import { POSTHOG_EVENTS } from "@/lib/analytics/posthog-events";
 import { LandingPage } from "./LandingPage";
 import { PERSONA_SET_V1 } from "@/config/personas";
 
@@ -128,42 +129,55 @@ function buildTimeline(visit: Visit, variant: PageVariant): TimelineStep[] {
 
   for (const ev of visit.events) {
     const section = variant.sections.find((s) => s.id === ev.sectionId);
-    if (ev.type === "page_view") {
+    if (ev.type === POSTHOG_EVENTS.PAGEVIEW) {
       steps.push({
         at: ev.at,
         label: "Lands on page",
         thought: "Let me see what this is about…",
       });
-    } else if (ev.type === "view_section" && ev.sectionId) {
+    } else if (ev.type === POSTHOG_EVENTS.SECTION_VIEWED && ev.sectionId) {
       steps.push({
         at: ev.at,
         label: `Scrolls to: ${section?.headline.slice(0, 40) ?? ev.sectionId}`,
         sectionId: ev.sectionId,
         thought: reactionBySection.get(ev.sectionId)?.thought ?? "Scanning this section…",
       });
-    } else if ((ev.type === "read" || ev.type === "skim") && ev.sectionId) {
+    } else if (ev.type === POSTHOG_EVENTS.SCROLL_DEPTH) {
       steps.push({
         at: ev.at,
-        label: ev.type === "read" ? "Reads carefully" : "Skims quickly",
+        label: `Scroll depth ${ev.scrollDepthPct ?? 0}%`,
+        thought: "Scrolling further…",
+      });
+    } else if (ev.type === POSTHOG_EVENTS.SECTION_ENGAGED && ev.sectionId) {
+      steps.push({
+        at: ev.at,
+        label: ev.engagement === "read" ? "Reads carefully" : "Skims quickly",
         sectionId: ev.sectionId,
         thought: reactionBySection.get(ev.sectionId)?.thought ?? "",
         objectionNote: objectionsBySection.get(ev.sectionId)?.join(" "),
       });
-    } else if (ev.type === "cta_click" && ev.sectionId) {
+    } else if (ev.type === POSTHOG_EVENTS.CTA_VIEWED && ev.sectionId) {
+      steps.push({
+        at: ev.at,
+        label: "CTA enters view",
+        sectionId: ev.sectionId,
+        thought: ev.ctaLabel ? `Sees “${ev.ctaLabel}”.` : "Sees the demo ask.",
+      });
+    } else if (ev.type === POSTHOG_EVENTS.BOOK_DEMO_CLICK && ev.sectionId) {
       steps.push({
         at: ev.at,
         label: "Clicks CTA",
         sectionId: ev.sectionId,
         thought: "This is worth a next step.",
       });
-    } else if (ev.type === "bounce" && ev.sectionId) {
+    } else if (ev.type === POSTHOG_EVENTS.PAGE_EXIT && ev.bounced && ev.sectionId) {
       steps.push({
         at: ev.at,
         label: "Bounces",
         sectionId: ev.sectionId,
         thought: `Leaving. Still unresolved: ${visit.unresolvedCritical.join(", ") || "none"}.`,
       });
-    } else if (ev.type === "exit_complete") {
+    } else if (ev.type === POSTHOG_EVENTS.PAGE_EXIT && !ev.bounced) {
       steps.push({
         at: ev.at,
         label: "Exits without converting",

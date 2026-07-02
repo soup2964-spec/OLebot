@@ -11,6 +11,7 @@ import { buildJudgmentsFromMetrics } from "@/lib/judgment/criteria";
 import { comparisonSnapshotsForIteration, maxExperimentIteration } from "@/lib/comparison/snapshots";
 import { ControlCenterView } from "@/components/experiment/ControlCenterView";
 import { ExperimentDetailPanel } from "@/components/experiment/ExperimentDetailPanel";
+import { ExperimentProgressBar } from "@/components/experiment/ExperimentProgressBar";
 import { PageComparisonView } from "@/components/experiment/PageComparisonView";
 import {
   ExperimentSideMenu,
@@ -24,6 +25,7 @@ interface RunPayload {
   personaSetVersion?: number;
   experimentHistory?: ExperimentHistoryEntry[];
   experimentProgress?: ExperimentProgress;
+  experimentNumber?: number | null;
   deployVersion?: number;
   lastPromotedVariantId?: string | null;
   deploy?: {
@@ -85,43 +87,19 @@ export function ExperimentWorkbench({
   initialDeployVersion: number;
   initialIndex: VisitIndex | null;
 }) {
-  const [run, setRun] = useState(initialRun);
-  const [variants, setVariants] = useState(initialVariants);
-  const [visitIndex, setVisitIndex] = useState(initialIndex);
+  const [iterationRun, setIterationRun] = useState<ExperimentRun | null>(initialRun);
+  const [visitIndex, setVisitIndex] = useState<VisitIndex | null>(initialIndex);
   const [activeView, setActiveView] = useState<WorkbenchView>("control");
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [deployVersion, setDeployVersion] = useState(initialDeployVersion);
-  const [runVersion, setRunVersion] = useState(0);
   const [experimentHistory, setExperimentHistory] = useState<ExperimentHistoryEntry[]>([]);
   const [progress, setProgress] = useState<ExperimentProgress | null>(null);
   const [iteration, setIteration] = useState(1);
 
   const isRunning = progress?.status === "running";
   const maxIteration = maxExperimentIteration(experimentHistory, isRunning);
-
-  const refresh = useCallback(async (): Promise<RunPayload | null> => {
-    try {
-      const res = await fetch("/api/run", { cache: "no-store" });
-      if (!res.ok) return null;
-      const data = (await res.json()) as RunPayload;
-      setVariants(data.variants);
-      setVisitIndex(data.index);
-      setRunVersion(data.runVersion ?? 0);
-      setExperimentHistory(data.experimentHistory ?? []);
-      if (data.experimentProgress) setProgress(data.experimentProgress);
-      const nextDeploy = data.deployVersion ?? data.deploy?.deployVersion ?? 0;
-      setDeployVersion(nextDeploy);
-      setRun(runFromPayload(data));
-      const hist = data.experimentHistory ?? [];
-      const running = data.experimentProgress?.status === "running";
-      setIteration((i) =>
-        Math.min(Math.max(1, i), maxExperimentIteration(hist, running))
-      );
-      return data;
-    } catch {
-      return null;
-    }
-  }, []);
+  const experimentActive =
+    isRunning || progress?.status === "complete" || progress?.status === "error";
 
   const pollProgress = useCallback(async () => {
     try {
@@ -133,14 +111,40 @@ export function ExperimentWorkbench({
     }
   }, []);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const loadIteration = useCallback(async (experimentNumber: number) => {
+    try {
+      const res = await fetch(`/api/run?experiment=${experimentNumber}`, { cache: "no-store" });
+      if (!res.ok) return null;
+      const data = (await res.json()) as RunPayload;
+      setExperimentHistory(data.experimentHistory ?? []);
+      if (data.experimentProgress) setProgress(data.experimentProgress);
+      const nextDeploy = data.deployVersion ?? data.deploy?.deployVersion ?? 0;
+      setDeployVersion(nextDeploy);
+      setIterationRun(runFromPayload(data));
+      setVisitIndex(data.index ?? null);
+      return data;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const refresh = useCallback(async () => {
+    const data = await loadIteration(iteration);
+    if (!data) return null;
+    const hist = data.experimentHistory ?? [];
+    const running = data.experimentProgress?.status === "running";
+    setIteration((i) => Math.min(Math.max(1, i), maxExperimentIteration(hist, running)));
+    return data;
+  }, [iteration, loadIteration]);
 
   useEffect(() => {
-    const t = setInterval(refresh, 30_000);
-    return () => clearInterval(t);
-  }, [refresh]);
+    void pollProgress();
+    void loadIteration(1);
+  }, [loadIteration, pollProgress]);
+
+  useEffect(() => {
+    void loadIteration(iteration);
+  }, [iteration, loadIteration]);
 
   useEffect(() => {
     const ms = isRunning ? 800 : 5000;
@@ -150,31 +154,36 @@ export function ExperimentWorkbench({
   }, [isRunning, pollProgress]);
 
   useEffect(() => {
+    if (!isRunning || iteration !== maxIteration) return;
+    void loadIteration(iteration);
+    const t = setInterval(() => loadIteration(iteration), 5000);
+    return () => clearInterval(t);
+  }, [isRunning, iteration, maxIteration, loadIteration]);
+
+  useEffect(() => {
     setIteration((i) => Math.min(Math.max(1, i), maxIteration));
   }, [maxIteration]);
 
-  useEffect(() => {
-    if (activeView === "control") return;
-    void refresh();
-  }, [activeView, iteration, refresh]);
-
   const judgmentsByVariant = useMemo(() => {
-    const lastGen = run?.generations[run.generations.length - 1];
+    const lastGen = iterationRun?.generations[iterationRun.generations.length - 1];
     if (!lastGen?.metrics) return {};
     return buildJudgmentsFromMetrics(lastGen.metrics, lastGen.decisions);
-  }, [run]);
+  }, [iterationRun]);
+
+  const iterationVariants = iterationRun?.variants ?? [];
 
   const { previous: previousVariants, current: currentVariants } = useMemo(
     () =>
       comparisonSnapshotsForIteration(iteration, {
-        run,
+        run: iterationRun,
         experimentHistory,
         progress,
       }),
-    [iteration, run, experimentHistory, progress]
+    [iteration, iterationRun, experimentHistory, progress]
   );
 
   const comparisonMeta = CRITERIA.find((c) => c.id === "1");
+  const progressExperiment = progress?.experimentNumber ?? maxIteration;
 
   return (
     <div className="flex min-h-[calc(100vh-65px)] bg-slate-100">
@@ -188,13 +197,28 @@ export function ExperimentWorkbench({
       />
 
       <div className="min-w-0 flex-1 overflow-y-auto lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)]">
+        {experimentActive && progress && progress.status !== "idle" && (
+          <div className="sticky top-0 z-10 border-b border-slate-200 bg-slate-100/95 p-4 backdrop-blur">
+            <ExperimentProgressBar progress={progress} />
+            {progress.experimentNumber != null && (
+              <p className="mt-2 text-center text-xs text-slate-500">
+                Experiment {progress.experimentNumber} · progress saved — switch tabs freely
+              </p>
+            )}
+          </div>
+        )}
+
         {activeView === "control" ? (
           <ControlCenterView
+            progress={progress}
+            pollProgress={pollProgress}
             onExperimentComplete={async () => {
               const data = await refresh();
               await pollProgress();
               const hist = data?.experimentHistory ?? [];
-              setIteration(maxExperimentIteration(hist, false));
+              const next = maxExperimentIteration(hist, false);
+              setIteration(next);
+              await loadIteration(next);
               setActiveView("versions");
             }}
           />
@@ -210,16 +234,16 @@ export function ExperimentWorkbench({
               experimentNumber={iteration}
               previousVariants={previousVariants}
               currentVariants={currentVariants}
-              isRunning={isRunning && iteration === maxIteration}
+              isRunning={isRunning && iteration === progressExperiment}
             />
           </div>
         ) : (
           <div className="bg-white">
             <ExperimentDetailPanel
-              key={`${run?.id ?? "none"}-${iteration}`}
+              key={`${iterationRun?.id ?? "none"}-${iteration}`}
               activeView={activeView}
-              run={run}
-              variants={variants}
+              run={iterationRun}
+              variants={iterationVariants}
               visitIndex={visitIndex}
               selectedVariantId={selectedVariantId}
               experimentNumber={iteration}

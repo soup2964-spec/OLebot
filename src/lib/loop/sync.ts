@@ -35,7 +35,7 @@ export interface SyncResult {
 }
 
 async function liveVisitorCount(): Promise<number> {
-  const state = loadLoopState();
+  const state = await loadLoopState();
   let posthogCount = 0;
   if (process.env.POSTHOG_API_KEY && process.env.POSTHOG_PROJECT_ID) {
     try {
@@ -49,7 +49,7 @@ async function liveVisitorCount(): Promise<number> {
 }
 
 export async function getLoopStatus(): Promise<LoopStatus> {
-  const state = loadLoopState();
+  const state = await loadLoopState();
   const liveVisitors = await liveVisitorCount();
   const newVisitors = Math.max(0, liveVisitors - state.lastVisitorCount);
   const elapsed = state.lastSyncAt ? Date.now() - new Date(state.lastSyncAt).getTime() : Infinity;
@@ -84,12 +84,8 @@ export async function getLoopStatus(): Promise<LoopStatus> {
   };
 }
 
-/**
- * Full loop: pull live metrics → calibrate personas → re-run simulation → save.
- * Called automatically when thresholds are met, or manually via API.
- */
 export async function syncLoop(force = false): Promise<SyncResult> {
-  const state = loadLoopState();
+  const state = await loadLoopState();
   const status = await getLoopStatus();
 
   if (!force && !status.readyToSync) {
@@ -105,7 +101,6 @@ export async function syncLoop(force = false): Promise<SyncResult> {
     real = await fetchPostHogMetrics(30);
   }
 
-  // Synthetic real metrics from heartbeat when PostHog API unavailable
   if (!real || real.aggregate.visitors === 0) {
     real = {
       fetchedAt: new Date().toISOString(),
@@ -121,7 +116,7 @@ export async function syncLoop(force = false): Promise<SyncResult> {
     };
   }
 
-  const existingRun = loadRun();
+  const existingRun = await loadRun();
   const simulated =
     (existingRun && simulatedMetricsFromRun(existingRun)) ?? {
       conversionRate: 0.025,
@@ -129,13 +124,13 @@ export async function syncLoop(force = false): Promise<SyncResult> {
       avgScrollDepth: 0.42,
     };
 
-  const prevCal = loadCalibration();
+  const prevCal = await loadCalibration();
   const calibration = computeCalibration(real, simulated, (prevCal?.version ?? 0) + 1);
-  saveCalibration(calibration);
+  await saveCalibration(calibration);
 
   const seed = Date.now() % 1_000_000_000;
-  const run = runDemoExperiment({ seed });
-  saveRun(run);
+  const run = await runDemoExperiment({ seed });
+  await saveRun(run);
   invalidateRunCache();
 
   const next: typeof state = {
@@ -150,10 +145,10 @@ export async function syncLoop(force = false): Promise<SyncResult> {
       ...state.syncHistory.slice(0, 19),
     ],
   };
-  saveLoopState(next);
+  await saveLoopState(next);
 
   const forceBest = process.env.AUTO_DEPLOY_BEST !== "0";
-  const deploy = promoteAndDeploy(run, { forceBest });
+  const deploy = await promoteAndDeploy(run, { forceBest });
 
   return {
     synced: true,
@@ -165,9 +160,9 @@ export async function syncLoop(force = false): Promise<SyncResult> {
   };
 }
 
-/** Check thresholds and sync if ready — safe to call on every poll. */
 export async function maybeAutoSync(): Promise<SyncResult | null> {
-  if (!isAutonomousMode()) return null;
+  const state = await loadLoopState();
+  if (!isAutonomousMode(state)) return null;
   const status = await getLoopStatus();
   if (!status.readyToSync) return null;
   return syncLoop(false);

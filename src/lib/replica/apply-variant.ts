@@ -4,7 +4,6 @@ import {
   REPLICA_SECTION_IDS,
   type ReplicaSectionId,
 } from "./baseline-copy";
-import { fitHeroBodyToBaseline, splitHeroHeadlineForBaseline } from "./hero-headline";
 import { normalizeVariantForReplica } from "@/lib/deploy/normalize-variant";
 
 export interface HtmlReplacement {
@@ -106,11 +105,7 @@ export function buildReplacementsForSection(
 
   if (variant.headline !== baseline.headline) {
     const htmlHeadlines = BASELINE_HTML_COPY[sectionId]?.headline;
-    if (sectionId === "hero" && htmlHeadlines && htmlHeadlines.length >= 2) {
-      const { line1, line2 } = splitHeroHeadlineForBaseline(variant.headline);
-      pushIfChanged(out, sectionId, htmlHeadlines[0], line1);
-      pushIfChanged(out, sectionId, htmlHeadlines[1], line2);
-    } else if (htmlHeadlines && htmlHeadlines.length >= 2) {
+    if (htmlHeadlines && htmlHeadlines.length >= 2) {
       const [v1, v2] = splitHeadline(variant.headline);
       if (v2) {
         pushIfChanged(out, sectionId, htmlHeadlines[0], v1);
@@ -127,9 +122,7 @@ export function buildReplacementsForSection(
   }
 
   if (variant.body !== baseline.body) {
-    const body =
-      sectionId === "hero" ? fitHeroBodyToBaseline(variant.body) : variant.body;
-    pushIfChanged(out, sectionId, baseline.body.slice(0, 40), body);
+    pushIfChanged(out, sectionId, baseline.body.slice(0, 40), variant.body);
   }
 
   if (variant.ctaLabel && variant.ctaLabel !== baseline.ctaLabel) {

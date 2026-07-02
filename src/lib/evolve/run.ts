@@ -141,7 +141,7 @@ export async function runExperiment(cfg: RunConfig = DEFAULT_CONFIG): Promise<Ex
   const readingMode = cfg.personaReadingMode ?? "llm";
   const readingsPerPair = readingMode === "heuristic" ? 1 : cfg.readingsPerPair;
   const rng = makeRng(cfg.seed);
-  const personaSet = getCalibratedPersonaSet();
+  const personaSet = await getCalibratedPersonaSet();
   const personas = personaSet.personas;
   const baselineHtml = loadSourceBaselineHtml();
   const baselineVariant = (await import("@/config/variants")).GENERATION_0[0];

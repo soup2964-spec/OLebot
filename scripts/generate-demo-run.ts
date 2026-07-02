@@ -1,20 +1,20 @@
 /**
- * CLI entry — writes data/run.json using the shared demo experiment engine.
+ * CLI entry — writes active run to Supabase (and data/run.json fallback).
  */
-import fs from "fs";
-import path from "path";
+import { config } from "dotenv";
+config({ path: ".env.local" });
+
 import { runDemoExperiment } from "../src/lib/evolve/demo-run";
 import { writeAllVariantHtml } from "../src/lib/deploy/write-html";
+import { saveRun } from "../src/lib/registry";
 
 const SEED = 20260701;
 
-function main() {
+async function main() {
   console.log("Running demo experiment...");
-  const run = runDemoExperiment({ seed: SEED });
-  const outPath = path.join(process.cwd(), "data", "run.json");
-  fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, JSON.stringify(run));
-  console.log(`Wrote ${outPath} (${(fs.statSync(outPath).size / 1024 / 1024).toFixed(1)} MB)`);
+  const run = await runDemoExperiment({ seed: SEED });
+  await saveRun(run);
+  console.log(`Saved run ${run.id} to Supabase + local fallback`);
 
   const htmlResults = writeAllVariantHtml(run.variants);
   console.log(`Wrote ${htmlResults.length} variant HTML replicas`);
@@ -29,4 +29,7 @@ function main() {
   }
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

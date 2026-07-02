@@ -1,26 +1,44 @@
 import type { ObjectionId } from "./page";
+import { POSTHOG_EVENTS } from "@/lib/analytics/posthog-events";
+import type { VariantFunnelMetrics } from "@/lib/analytics/funnel-metrics";
 
 /**
  * One simulated visit = one ordered event trace + the agent's verbalized
- * reasoning. Traces power the metrics, the heatmaps, AND the replay theater.
+ * reasoning. Event names match the PostHog tracking plan where possible.
  */
 
 export type VisitEventType =
-  | "page_view"
-  | "view_section" // section entered viewport
-  | "read" // careful read (full dwell)
-  | "skim" // partial dwell
-  | "cta_click"
-  | "bounce" // left without converting
-  | "exit_complete"; // read to the end, left without converting
+  | typeof POSTHOG_EVENTS.PAGEVIEW
+  | typeof POSTHOG_EVENTS.SECTION_VIEWED
+  | typeof POSTHOG_EVENTS.CTA_VIEWED
+  | typeof POSTHOG_EVENTS.SCROLL_DEPTH
+  | typeof POSTHOG_EVENTS.SECTION_ENGAGED
+  | typeof POSTHOG_EVENTS.BOOK_DEMO_CLICK
+  | typeof POSTHOG_EVENTS.PAGE_EXIT;
 
 export interface VisitEvent {
   type: VisitEventType;
   sectionId?: string;
   /** Milliseconds since visit start. */
   at: number;
-  /** Dwell time on this section in ms (for read/skim). */
+  /** Dwell time on this section in ms (section_engaged). */
   dwellMs?: number;
+  /** scroll_depth milestone (25 / 50 / 75 / 100). */
+  scrollDepthPct?: number;
+  /** page_exit — left without meaningful engagement. */
+  bounced?: boolean;
+  /** page_exit — max scroll depth as page fraction (0–1). */
+  maxScrollDepth?: number;
+  /** page_exit — sections reached before exit. */
+  sectionsViewedCount?: number;
+  /** page_exit — critical objections still open (simulation). */
+  unresolvedObjections?: string[];
+  /** cta_viewed / cta_click — button copy shown. */
+  ctaLabel?: string;
+  /** page_exit — session converted before exit. */
+  converted?: boolean;
+  /** section_engaged — simulation detail for replay theater. */
+  engagement?: "read" | "skim";
 }
 
 export interface ObjectionUpdate {
@@ -81,4 +99,6 @@ export interface VariantMetrics {
   byPersona: Record<string, { visits: number; conversions: number }>;
   /** Count of unresolved-critical objections at exit, by objection id. */
   objectionFailures: Record<string, number>;
+  /** Tier-2 funnel diagnostics (not weighted in fitness). */
+  funnel: VariantFunnelMetrics;
 }

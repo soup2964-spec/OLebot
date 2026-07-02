@@ -8,10 +8,13 @@ import path from "path";
 config({ path: path.join(process.cwd(), ".env.local") });
 
 async function main() {
-  const { manualExperimentMode } = await import("../src/lib/loop/manual-experiment");
-  const { runManualExperiment } = await import("../src/lib/loop/manual-experiment");
+  const { manualExperimentMode, runManualExperiment } = await import(
+    "../src/lib/loop/manual-experiment"
+  );
+  const { loadLoopState } = await import("../src/lib/loop/state");
 
-  const mode = manualExperimentMode();
+  const state = await loadLoopState();
+  const mode = manualExperimentMode(state);
   console.log(
     `Starting ${mode === "full" ? "full LLM" : "hybrid (heuristic readings + LLM eval/breed)"} experiment...\n`
   );

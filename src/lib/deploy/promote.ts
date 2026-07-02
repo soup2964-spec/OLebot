@@ -31,7 +31,6 @@ function findPromotedDecision(
   return null;
 }
 
-/** Fallback when strict promote threshold isn't met — best lift with guardrails. */
 function findBestDeployCandidate(
   run: ExperimentRun
 ): { variant: PageVariant; decision: VariantDecision; reason: string } | null {
@@ -69,12 +68,12 @@ function gen0FromDeploy(state: DeployState): PageVariant[] {
   return state.currentVariants.length ? state.currentVariants : [...GENERATION_0];
 }
 
-/**
- * Promote winning copy → merge into production baseline → regenerate HTML for /v/ routes.
- */
-export function promoteAndDeploy(run: ExperimentRun, opts?: { forceBest?: boolean }): PromoteResult {
-  const deploy = loadDeployState();
-  const loop = loadLoopState();
+export async function promoteAndDeploy(
+  run: ExperimentRun,
+  opts?: { forceBest?: boolean }
+): Promise<PromoteResult> {
+  const deploy = await loadDeployState();
+  const loop = await loadLoopState();
   const baseline = GENERATION_0[0];
 
   let winner: PageVariant | null = null;
@@ -96,7 +95,7 @@ export function promoteAndDeploy(run: ExperimentRun, opts?: { forceBest?: boolea
   const htmlWritten = htmlResults.length;
 
   if (!winner) {
-    saveDeployState({
+    await saveDeployState({
       ...deploy,
       htmlVariantIds: [
         ...new Set([
@@ -151,7 +150,7 @@ export function promoteAndDeploy(run: ExperimentRun, opts?: { forceBest?: boolea
       ...deploy.history.slice(0, 19),
     ],
   };
-  saveDeployState(nextDeploy);
+  await saveDeployState(nextDeploy);
 
   return {
     promoted: true,
@@ -163,13 +162,13 @@ export function promoteAndDeploy(run: ExperimentRun, opts?: { forceBest?: boolea
   };
 }
 
-export function getComparisonVariants(): {
+export async function getComparisonVariants(): Promise<{
   previous: PageVariant[];
   current: PageVariant[];
   deployVersion: number;
   lastPromotedVariantId: string | null;
-} {
-  const deploy = loadDeployState();
+}> {
+  const deploy = await loadDeployState();
   return {
     previous: deploy.previousVariants,
     current: deploy.currentVariants,

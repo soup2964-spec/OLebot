@@ -4,45 +4,14 @@ import { NextResponse } from "next/server";
 import { allVariants, loadRun, visitIndex } from "@/lib/registry";
 import { getComparisonVariants } from "@/lib/deploy/promote";
 import { loadDeployState } from "@/lib/deploy/state";
+import { ensureExperimentSnapshots, loadRunForExperiment } from "@/lib/experiments/store";
 import { loadLoopState } from "@/lib/loop/state";
 import { loadExperimentProgress } from "@/lib/loop/experiment-progress";
+import type { ExperimentRun } from "@/lib/schema/experiment";
 
-export async function GET() {
-  const run = loadRun();
-  const state = loadLoopState();
-  const deploy = loadDeployState();
-  const comparison = getComparisonVariants();
-  const progress = loadExperimentProgress();
-  const variants = allVariants();
-
-  const base = {
-    runVersion: state.runVersion,
-    experimentHistory: state.experimentHistory ?? [],
-    experimentProgress: progress,
-    deployVersion: deploy.deployVersion,
-    lastPromotedVariantId: deploy.lastPromotedVariantId,
-    deploy,
-    comparison,
-    variants,
-  };
-
-  if (!run) {
-    return NextResponse.json({
-      ...base,
-      runId: null,
-      index: {},
-      generations: [],
-      totalVisits: 0,
-      generationCount: 0,
-      variantCount: variants.length,
-      lastGenBest: null,
-    });
-  }
-
+function runPayload(run: ExperimentRun) {
   const lastGen = run.generations[run.generations.length - 1];
-
-  return NextResponse.json({
-    ...base,
+  return {
     runId: run.id,
     updatedAt: run.createdAt,
     personaSetVersion: run.personaSetVersion,
@@ -71,5 +40,53 @@ export async function GET() {
           fitness: lastGen.metrics[0].fitness,
         }
       : null,
+  };
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const experimentParam = searchParams.get("experiment");
+  const experimentNumber = experimentParam ? Number(experimentParam) : null;
+
+  const state = await loadLoopState();
+  const history = await ensureExperimentSnapshots(state.experimentHistory ?? []);
+  const deploy = await loadDeployState();
+  const comparison = await getComparisonVariants();
+  const progress = await loadExperimentProgress();
+  const variants = await allVariants();
+
+  const base = {
+    runVersion: state.runVersion,
+    experimentHistory: history,
+    experimentProgress: progress,
+    deployVersion: deploy.deployVersion,
+    lastPromotedVariantId: deploy.lastPromotedVariantId,
+    deploy,
+    comparison,
+    variants,
+    experimentNumber: experimentNumber ?? progress.experimentNumber ?? null,
+  };
+
+  const run =
+    experimentNumber != null && Number.isFinite(experimentNumber)
+      ? (await loadRunForExperiment(experimentNumber, history, progress)) ?? (await loadRun())
+      : await loadRun();
+
+  if (!run) {
+    return NextResponse.json({
+      ...base,
+      runId: null,
+      index: {},
+      generations: [],
+      totalVisits: 0,
+      generationCount: 0,
+      variantCount: variants.length,
+      lastGenBest: null,
+    });
+  }
+
+  return NextResponse.json({
+    ...base,
+    ...runPayload(run),
   });
 }

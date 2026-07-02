@@ -22,6 +22,8 @@ export interface ExperimentProgress {
   startedAt: string | null;
   updatedAt: string | null;
   error: string | null;
+  /** Which manual experiment (1…N) this progress belongs to. */
+  experimentNumber?: number | null;
   /** Bred pages revealed so far during the active run (for page comparison grid). */
   bredVariants?: import("@/lib/schema/page").PageVariant[];
 }

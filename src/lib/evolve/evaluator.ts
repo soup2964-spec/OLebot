@@ -2,6 +2,7 @@ import type { PageVariant } from "@/lib/schema/page";
 import type { Visit, VariantMetrics } from "@/lib/schema/events";
 import type { GenerationReport, Scorecard } from "@/lib/schema/experiment";
 import { chatJSONRetry, evaluatorProvider } from "@/lib/llm";
+import { computeFunnelFromVisits } from "@/lib/analytics/funnel-metrics";
 
 /**
  * Evaluator agent: reads the quantitative rollup plus sampled qualitative
@@ -30,7 +31,14 @@ export async function evaluateGeneration(
   metrics: VariantMetrics[],
   visits: Visit[]
 ): Promise<GenerationReport> {
-  const metricsBlock = metrics
+  const metricsWithFunnel = metrics.map((m) => ({
+    ...m,
+    funnel:
+      m.funnel ??
+      computeFunnelFromVisits(visits.filter((v) => v.variantId === m.variantId)),
+  }));
+
+  const metricsBlock = metricsWithFunnel
     .map((m) => {
       const variant = variants.find((v) => v.id === m.variantId)!;
       const sections = m.perSection
@@ -49,6 +57,7 @@ export async function evaluateGeneration(
       return `VARIANT ${m.variantId} "${variant.name}" (strategy: ${variant.strategy})
   Thesis: ${variant.thesis}
   visits=${m.visits} conversions=${m.conversions} (${(m.conversionRate * 100).toFixed(1)}%) fitness=${m.fitness.toFixed(1)}
+  funnel: ctaExposure=${(m.funnel.ctaExposureRate * 100).toFixed(1)}% ctaCTR=${(m.funnel.ctaClickThroughRate * 100).toFixed(1)}% demoRate=${(m.funnel.demoBookingRate * 100).toFixed(1)}%
   scrollDepth=${(m.avgScrollDepth * 100).toFixed(0)}% bounceRate=${(m.bounceRate * 100).toFixed(0)}% avgDwell=${(m.avgDwellMs / 1000).toFixed(0)}s
   Per-persona conversion: ${personas}
   Unresolved critical objections at exit: ${objections || "none"}

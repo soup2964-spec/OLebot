@@ -2,10 +2,10 @@ import { allVariants, loadRun, visitIndex } from "@/lib/registry";
 import { loadDeployState } from "@/lib/deploy/state";
 import { ExperimentWorkbench } from "@/components/experiment/ExperimentWorkbench";
 
-export default function Home() {
-  const run = loadRun();
-  const variants = allVariants();
-  const { deployVersion } = loadDeployState();
+export default async function Home() {
+  const run = await loadRun();
+  const variants = await allVariants();
+  const { deployVersion } = await loadDeployState();
   const index = run ? visitIndex(run) : null;
 
   return (

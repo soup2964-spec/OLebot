@@ -3,18 +3,17 @@ import type { Persona } from "@/lib/schema/persona";
 import type { Visit, VisitEvent, SectionReaction, ObjectionUpdate } from "@/lib/schema/events";
 import type { PersonaReading } from "./reading";
 import { gaussian, type Rng } from "./rng";
+import {
+  isBounceExit,
+  isCtaSection,
+  POSTHOG_EVENTS,
+  scrollDepthMilestones,
+} from "@/lib/analytics/posthog-events";
 
 /**
  * Samples one stochastic visit from a PersonaReading.
- *
- * Behavioral model:
- * - Attention budget: patience sampled per visit; fatigue grows as accumulated
- *   dwell exceeds it, raising skim and bounce probability (position bias falls
- *   out naturally: later sections are seen less - consistent with NNG scroll research).
- * - Objection ledger: sections resolve/aggravate objections (per the LLM
- *   reading); skimming a section only applies its effects sometimes.
- * - Conversion gate: the persona clicks the CTA only if all critical
- *   objections are resolved, modulated by ctaInclination and ctaPropensity.
+ * Emits PostHog-style events: $pageview, section_viewed, scroll_depth,
+ * section_engaged (sim detail), book_demo_click, page_exit (sim) / $pageleave (live).
  */
 export function sampleVisit(
   rng: Rng,
@@ -40,20 +39,52 @@ export function sampleVisit(
   let converted = false;
   let bounced = false;
   let sectionsSeen = 0;
+  let ctaViewedFired = false;
+  const firedScroll = new Set<number>();
+  const sectionsViewedIds = new Set<string>();
 
-  events.push({ type: "page_view", at: 0 });
+  const pushPageExit = (atSectionId?: string, forceBounced?: boolean) => {
+    const maxScrollDepth = sectionsSeen / variant.sections.length;
+    events.push({
+      type: POSTHOG_EVENTS.PAGE_EXIT,
+      sectionId: atSectionId,
+      at: clock,
+      bounced: forceBounced ?? isBounceExit(maxScrollDepth),
+      maxScrollDepth,
+      sectionsViewedCount: sectionsViewedIds.size,
+      converted,
+      unresolvedObjections: critical.filter((c) => !resolved.has(c)),
+    });
+  };
+
+  events.push({ type: POSTHOG_EVENTS.PAGEVIEW, at: 0 });
 
   for (let i = 0; i < variant.sections.length; i++) {
     const section = variant.sections[i];
     const r = reading.sections[i];
     sectionsSeen++;
-    events.push({ type: "view_section", sectionId: section.id, at: clock });
+    sectionsViewedIds.add(section.id);
+    events.push({
+      type: POSTHOG_EVENTS.SECTION_VIEWED,
+      sectionId: section.id,
+      at: clock,
+    });
 
-    // Fatigue: 1 while under budget, decays toward 0.15 once over it.
+    const depthFraction = sectionsSeen / variant.sections.length;
+    for (const pct of scrollDepthMilestones(depthFraction)) {
+      if (!firedScroll.has(pct)) {
+        firedScroll.add(pct);
+        events.push({
+          type: POSTHOG_EVENTS.SCROLL_DEPTH,
+          at: clock,
+          scrollDepthPct: pct,
+        });
+      }
+    }
+
     const overBudget = Math.max(0, dwellTotal - patienceMs) / patienceMs;
     const fatigue = Math.max(0.15, 1 - overBudget);
 
-    // Read vs skim.
     const pRead = r.appeal * (1 - persona.skimPropensity * 0.6) * fatigue;
     const isRead = rng() < pRead;
     const dwellMs = Math.round(
@@ -63,10 +94,11 @@ export function sampleVisit(
     dwellTotal += dwellMs;
 
     events.push({
-      type: isRead ? "read" : "skim",
+      type: POSTHOG_EVENTS.SECTION_ENGAGED,
       sectionId: section.id,
       at: clock,
       dwellMs,
+      engagement: isRead ? "read" : "skim",
     });
     reactions.push({
       sectionId: section.id,
@@ -75,13 +107,10 @@ export function sampleVisit(
       thought: r.thought,
     });
 
-    // Objection effects: guaranteed on careful read, 35% chance on skim
-    // (headlines still carry some signal).
     const applyEffects = isRead || rng() < 0.35;
     if (applyEffects) {
       for (const eff of r.objectionEffects) {
         if (eff.effect === "resolved") {
-          // Skeptical personas sometimes don't buy the claim.
           if (rng() < 1 - persona.skepticism * 0.4) {
             resolved.add(eff.objectionId);
             aggravated.delete(eff.objectionId);
@@ -105,29 +134,42 @@ export function sampleVisit(
       }
     }
 
-    // CTA decision at any section with a button, gated by the objection ledger.
     const hasButton = Boolean(section.ctaLabel) || section.type === "cta";
+    if (hasButton && !ctaViewedFired && (isCtaSection(section.id) || section.type === "cta")) {
+      ctaViewedFired = true;
+      events.push({
+        type: POSTHOG_EVENTS.CTA_VIEWED,
+        sectionId: section.id,
+        at: clock,
+        ctaLabel: section.ctaLabel,
+      });
+    }
+
     if (hasButton && !converted) {
       const criticalResolved = critical.every((c) => resolved.has(c));
       const aggravationPenalty = Math.pow(0.55, aggravated.size);
       const pClick = criticalResolved
         ? reading.ctaInclination * persona.ctaPropensity * aggravationPenalty
-        : 0.02; // rare curiosity click
+        : 0.02;
       if (rng() < pClick) {
         converted = true;
         clock += 800;
-        events.push({ type: "cta_click", sectionId: section.id, at: clock });
+        events.push({
+          type: POSTHOG_EVENTS.BOOK_DEMO_CLICK,
+          sectionId: section.id,
+          at: clock,
+          ctaLabel: section.ctaLabel,
+        });
         break;
       }
     }
 
-    // Continue or bounce (never bounce "at" the final section - that's exit_complete).
     if (i < variant.sections.length - 1) {
       const pContinue = Math.min(0.98, r.continueDesire * fatigue + 0.05);
       if (rng() > pContinue) {
         bounced = true;
         clock += 300;
-        events.push({ type: "bounce", sectionId: section.id, at: clock });
+        pushPageExit(section.id, true);
         break;
       }
     }
@@ -135,7 +177,7 @@ export function sampleVisit(
 
   if (!converted && !bounced) {
     clock += 300;
-    events.push({ type: "exit_complete", at: clock });
+    pushPageExit();
   }
 
   return {

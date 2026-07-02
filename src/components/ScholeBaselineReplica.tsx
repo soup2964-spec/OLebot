@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { PageVariant } from "@/lib/schema/page";
 import { replicaHtmlWithGuard, staticReplicaPath } from "@/lib/replica/paths";
-import { ClarityVariantTag, trackCtaClick } from "./Clarity";
+import { trackCtaClick } from "./Clarity";
+import { useVariantTrackingContext } from "@/lib/analytics/variant-context";
 import { useVariantAnalytics } from "./useVariantAnalytics";
 
 /**
@@ -27,11 +28,9 @@ export function ScholeBaselineReplica({
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null);
   const staticSrc = staticReplicaPath(variant.id);
   const [srcdoc, setSrcdoc] = useState<string | undefined>(undefined);
-  const ctx = {
-    variantId: variant.id,
-    generation: variant.generation,
-    strategy: variant.strategy,
-  };
+  const ctx = useVariantTrackingContext(variant);
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
 
   useVariantAnalytics(ctx, scrollRoot);
 
@@ -69,14 +68,7 @@ export function ScholeBaselineReplica({
         el.addEventListener("click", (e) => {
           e.preventDefault();
           const v = variantRef.current;
-          trackCtaClick(
-            {
-              variantId: v.id,
-              generation: v.generation,
-              strategy: v.strategy,
-            },
-            "cta"
-          );
+          trackCtaClick(ctxRef.current, "cta", "Book a demo");
         });
       });
     };
@@ -110,11 +102,6 @@ export function ScholeBaselineReplica({
 
   return (
     <div className="relative min-h-screen bg-white">
-      <ClarityVariantTag
-        variantId={variant.id}
-        generation={variant.generation}
-        strategy={variant.strategy}
-      />
       {showLabChrome && (
         <div className="pointer-events-none absolute left-4 top-4 z-50 flex items-center gap-2">
           <span className="pointer-events-auto rounded-full border border-slate-200 bg-white/95 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm backdrop-blur">

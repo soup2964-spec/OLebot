@@ -5,8 +5,8 @@ import { getComparisonVariants, promoteAndDeploy } from "@/lib/deploy/promote";
 import { writeAllVariantHtml } from "@/lib/deploy/write-html";
 
 export async function GET() {
-  const deploy = loadDeployState();
-  const comparison = getComparisonVariants();
+  const deploy = await loadDeployState();
+  const comparison = await getComparisonVariants();
   return NextResponse.json({
     ...deploy,
     comparison,
@@ -14,7 +14,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const run = loadRun();
+  const run = await loadRun();
   if (!run) {
     return NextResponse.json({ error: "No experiment run" }, { status: 404 });
   }
@@ -34,6 +34,6 @@ export async function POST(req: Request) {
     });
   }
 
-  const result = promoteAndDeploy(run, { forceBest: body.forceBest ?? true });
+  const result = await promoteAndDeploy(run, { forceBest: body.forceBest ?? true });
   return NextResponse.json({ ok: true, ...result });
 }

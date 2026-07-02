@@ -1,15 +1,12 @@
-import fs from "fs";
-import path from "path";
 import type {
   ExperimentMode,
   ExperimentProgress,
   ExperimentStage,
 } from "@/lib/schema/experiment-progress";
 import type { PageVariant } from "@/lib/schema/page";
+import { getLabDocument, LAB_DOC, setLabDocument } from "@/lib/supabase/lab-documents";
 
 export type { ExperimentMode, ExperimentProgress, ExperimentStage };
-
-const PROGRESS_PATH = path.join(process.cwd(), "data", "experiment-progress.json");
 
 const IDLE: ExperimentProgress = {
   status: "idle",
@@ -23,26 +20,31 @@ const IDLE: ExperimentProgress = {
   startedAt: null,
   updatedAt: null,
   error: null,
+  experimentNumber: null,
   bredVariants: [],
 };
 
-/** In-memory copy — kept in sync with disk for poll requests. */
 let current: ExperimentProgress = { ...IDLE };
 
-function persist(state: ExperimentProgress) {
+async function persist(state: ExperimentProgress) {
   current = state;
   try {
-    fs.mkdirSync(path.dirname(PROGRESS_PATH), { recursive: true });
-    fs.writeFileSync(PROGRESS_PATH, JSON.stringify(state), "utf8");
+    await setLabDocument(LAB_DOC.EXPERIMENT_PROGRESS, state);
   } catch {
-    /* non-fatal */
+    /* non-fatal — in-memory still updated for this request */
   }
 }
 
-export function loadExperimentProgress(): ExperimentProgress {
+function persistSync(state: ExperimentProgress) {
+  current = state;
+  void setLabDocument(LAB_DOC.EXPERIMENT_PROGRESS, state);
+}
+
+export async function loadExperimentProgress(): Promise<ExperimentProgress> {
   try {
-    if (fs.existsSync(PROGRESS_PATH)) {
-      current = { ...IDLE, ...JSON.parse(fs.readFileSync(PROGRESS_PATH, "utf8")) };
+    const stored = await getLabDocument<ExperimentProgress>(LAB_DOC.EXPERIMENT_PROGRESS);
+    if (stored) {
+      current = { ...IDLE, ...stored };
     }
   } catch {
     /* use memory */
@@ -50,11 +52,14 @@ export function loadExperimentProgress(): ExperimentProgress {
   return current;
 }
 
-export function clearExperimentProgress() {
-  persist({ ...IDLE });
+export function loadExperimentProgressSync(): ExperimentProgress {
+  return current;
 }
 
-/** Weight readings vs eval/breed differently by mode. */
+export async function clearExperimentProgress() {
+  await persist({ ...IDLE });
+}
+
 function stageWeights(mode: ExperimentMode) {
   if (mode === "full") {
     return { readings: 0.72, simulating: 0.03, evaluating: 0.1, breeding: 0.15 };
@@ -66,19 +71,19 @@ export class ExperimentProgressReporter {
   private mode: ExperimentMode;
   private totalGenerations: number;
   private genSpan: number;
-  private postRunSpan: number;
   private gen = 0;
   private stage: ExperimentStage = "starting";
   private stageBase = 0;
   private stageSpan = 0;
   private startedAt: string;
   private bredVariants: PageVariant[] = [];
+  private experimentNumber: number;
 
-  constructor(mode: ExperimentMode, totalGenerations: number) {
+  constructor(mode: ExperimentMode, totalGenerations: number, experimentNumber: number) {
     this.mode = mode;
     this.totalGenerations = totalGenerations;
+    this.experimentNumber = experimentNumber;
     this.genSpan = 92 / Math.max(1, totalGenerations);
-    this.postRunSpan = 8;
     this.startedAt = new Date().toISOString();
     this.publish("starting", 0, "Starting experiment…", null);
   }
@@ -170,7 +175,7 @@ export class ExperimentProgressReporter {
 
   addBredVariant(variant: PageVariant) {
     this.bredVariants = [...this.bredVariants, variant];
-    persist({
+    persistSync({
       ...current,
       bredVariants: [...this.bredVariants],
       detail: `${this.bredVariants.length} page${this.bredVariants.length === 1 ? "" : "s"} ready`,
@@ -188,7 +193,7 @@ export class ExperimentProgressReporter {
   }
 
   fail(error: string) {
-    persist({
+    persistSync({
       ...current,
       status: "error",
       stage: "error",
@@ -208,7 +213,7 @@ export class ExperimentProgressReporter {
     status: ExperimentProgress["status"] = "running"
   ) {
     this.stage = stage;
-    persist({
+    persistSync({
       status,
       stage,
       mode: this.mode,
@@ -220,6 +225,7 @@ export class ExperimentProgressReporter {
       startedAt: this.startedAt,
       updatedAt: new Date().toISOString(),
       error: null,
+      experimentNumber: this.experimentNumber,
       bredVariants: [...this.bredVariants],
     });
   }

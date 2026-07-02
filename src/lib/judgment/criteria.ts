@@ -33,6 +33,13 @@ export const JUDGMENT_CRITERIA = {
   ],
   tier2: [
     {
+      id: "funnel_metrics",
+      label: "Funnel metrics (CTA exposure → CTR → demo)",
+      role: "Copy diagnostic",
+      description:
+        "Tier-2 rates explain why conversion moved: cta_viewed ÷ sessions (exposure), book_demo_click ÷ cta_viewed (CTR), book_demo_click ÷ sessions (demo rate). Not weighted in fitness — guide optimizer rewrites.",
+    },
+    {
       id: "objection_failures",
       label: "Top objection failures",
       role: "Why it lost",

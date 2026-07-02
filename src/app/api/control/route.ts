@@ -11,7 +11,7 @@ export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const state = loadLoopState();
+  const state = await loadLoopState();
   return NextResponse.json({
     autonomous: isAutonomousMode(state),
     llmPersonas: Boolean(state.llmPersonas),
@@ -37,13 +37,13 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const state = loadLoopState();
+  const state = await loadLoopState();
   const next = {
     ...state,
     ...(typeof body.autonomous === "boolean" ? { autonomous: body.autonomous } : {}),
     ...(typeof body.llmPersonas === "boolean" ? { llmPersonas: body.llmPersonas } : {}),
   };
-  saveLoopState(next);
+  await saveLoopState(next);
 
   return NextResponse.json({
     autonomous: next.autonomous,
@@ -53,7 +53,8 @@ export async function PATCH(request: Request) {
 }
 
 export async function POST() {
-  if (isAutonomousMode()) {
+  const state = await loadLoopState();
+  if (isAutonomousMode(state)) {
     return NextResponse.json(
       { error: "Turn off Autonomous mode to run an experiment manually" },
       { status: 400 }

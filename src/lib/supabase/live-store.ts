@@ -1,5 +1,12 @@
-import { allVariants } from "@/lib/registry";
-import { FITNESS_WEIGHTS } from "@/lib/sim/metrics";
+import { allVariants, allVariantsSync } from "@/lib/registry";
+import {
+  computeFitnessFromPostHogRates,
+  POSTHOG_EVENTS,
+} from "@/lib/analytics/posthog-events";
+import {
+  computeFunnelRates,
+  type VariantFunnelMetrics,
+} from "@/lib/analytics/funnel-metrics";
 import { analyzeGeneration } from "@/lib/stats/bayes";
 import type { VariantMetrics } from "@/lib/schema/events";
 import type { VariantDecision } from "@/lib/stats/bayes";
@@ -34,6 +41,7 @@ export async function ingestAnalyticsEvent(body: AnalyticsIngestBody): Promise<v
         variant_id: body.variantId,
         generation: body.generation ?? 0,
         strategy: body.strategy ?? null,
+        experiment_number: body.experimentNumber ?? null,
         target_token: body.targetToken ?? null,
       })
       .select("id")
@@ -63,10 +71,14 @@ export async function ingestAnalyticsEvent(body: AnalyticsIngestBody): Promise<v
 
   const eventType =
     body.event === "session_start"
-      ? "page_view"
-      : body.event === "page_exit"
-        ? "page_exit"
-        : body.event;
+      ? POSTHOG_EVENTS.PAGEVIEW
+      : body.event === "section_view"
+        ? POSTHOG_EVENTS.SECTION_VIEWED
+        : body.event === "cta_click"
+          ? POSTHOG_EVENTS.BOOK_DEMO_CLICK
+          : body.event === "page_exit"
+            ? POSTHOG_EVENTS.PAGE_LEAVE
+            : body.event;
 
   const { error: eventErr } = await sb.from("lab_events").insert({
     session_id: sessionId,
@@ -80,20 +92,31 @@ export async function ingestAnalyticsEvent(body: AnalyticsIngestBody): Promise<v
   if (eventErr) throw new Error(eventErr.message);
 }
 
-function fitnessFromRates(
-  conversionRate: number,
-  avgScrollDepth: number,
-  bounceRate: number,
-  meanSentiment = 0
+function avgSectionReach(
+  variantId: string,
+  sectionCount: number,
+  sessions: LabSessionRow[],
+  events: LabEventRow[]
 ): number {
-  return (
-    100 *
-    (FITNESS_WEIGHTS.conversion *
-      Math.min(1, conversionRate / FITNESS_WEIGHTS.conversionCeiling) +
-      FITNESS_WEIGHTS.scroll * avgScrollDepth +
-      FITNESS_WEIGHTS.bounce * (1 - bounceRate) +
-      FITNESS_WEIGHTS.sentiment * ((meanSentiment + 2) / 4))
-  );
+  if (sectionCount <= 0) return 0;
+  const sessionIds = sessions.filter((s) => s.variant_id === variantId).map((s) => s.id);
+  if (!sessionIds.length) return 0;
+
+  let total = 0;
+  for (const sid of sessionIds) {
+    const sections = new Set(
+      events
+        .filter(
+          (e) =>
+            e.session_id === sid &&
+            e.event_type === POSTHOG_EVENTS.SECTION_VIEWED &&
+            e.section_id
+        )
+        .map((e) => e.section_id!)
+    );
+    total += sections.size / sectionCount;
+  }
+  return total / sessionIds.length;
 }
 
 function buildPerSectionMetrics(
@@ -109,13 +132,15 @@ function buildPerSectionMetrics(
 
   return sectionIds.map((sectionId) => {
     const views = variantEvents.filter(
-      (e) => e.section_id === sectionId && e.event_type === "section_view"
+      (e) =>
+        e.section_id === sectionId && e.event_type === POSTHOG_EVENTS.SECTION_VIEWED
     ).length;
     const ctaClicks = variantEvents.filter(
-      (e) => e.section_id === sectionId && e.event_type === "cta_click"
+      (e) =>
+        e.section_id === sectionId &&
+        (e.event_type === POSTHOG_EVENTS.BOOK_DEMO_CLICK ||
+          e.event_type === "cta_click")
     ).length;
-    const reads = views;
-    const skims = 0;
 
     const exitedHere = sessions.filter(
       (s) =>
@@ -126,20 +151,46 @@ function buildPerSectionMetrics(
           (e) =>
             e.session_id === s.id &&
             e.section_id === sectionId &&
-            e.event_type === "section_view"
+            e.event_type === POSTHOG_EVENTS.SECTION_VIEWED
         )
     ).length;
 
     return {
       sectionId,
       views: Math.max(views, ctaClicks),
-      reads,
-      skims,
+      reads: views,
+      skims: 0,
       avgDwellMs: 0,
       avgSentiment: 0,
       exitRate: views > 0 ? exitedHere / views : 0,
     };
   });
+}
+
+function funnelForVariant(
+  vSessions: LabSessionRow[],
+  eventRows: LabEventRow[]
+): VariantFunnelMetrics {
+  let ctaExposed = 0;
+  let ctaClicks = 0;
+
+  for (const s of vSessions) {
+    const sessionEvents = eventRows.filter((e) => e.session_id === s.id);
+    const exposed = sessionEvents.some(
+      (e) => e.event_type === POSTHOG_EVENTS.CTA_VIEWED
+    );
+    const clicked =
+      s.converted ||
+      sessionEvents.some(
+        (e) =>
+          e.event_type === POSTHOG_EVENTS.BOOK_DEMO_CLICK ||
+          e.event_type === "cta_click"
+      );
+    if (exposed) ctaExposed++;
+    if (clicked) ctaClicks++;
+  }
+
+  return computeFunnelRates(vSessions.length, ctaExposed, ctaClicks);
 }
 
 export type LiveBehaviorSnapshot = {
@@ -157,6 +208,7 @@ export type LiveBehaviorSnapshot = {
     bounceRate: number;
     avgScroll: number;
     avgDwellMs: number;
+    funnel: VariantFunnelMetrics;
   };
 };
 
@@ -183,7 +235,7 @@ export async function fetchLiveBehaviorSnapshot(
       fetchedAt: new Date().toISOString(),
       windowDays,
       totalSessions: 0,
-      variantIds: allVariants().map((v) => v.id),
+      variantIds: allVariantsSync().map((v) => v.id),
       metrics: [],
       decisions: [],
       totals: {
@@ -193,6 +245,7 @@ export async function fetchLiveBehaviorSnapshot(
         bounceRate: 0,
         avgScroll: 0,
         avgDwellMs: 0,
+        funnel: computeFunnelRates(0, 0, 0),
       },
     };
   }
@@ -206,7 +259,7 @@ export async function fetchLiveBehaviorSnapshot(
   if (evErr) throw new Error(evErr.message);
   const eventRows = (events ?? []) as LabEventRow[];
 
-  const variants = allVariants();
+  const variants = await allVariants();
   const variantIds = [...new Set(rows.map((s) => s.variant_id))];
   const baselineId = variantIds.includes("v0-baseline")
     ? "v0-baseline"
@@ -226,8 +279,19 @@ export async function fetchLiveBehaviorSnapshot(
 
     const variant = variants.find((v) => v.id === variantId);
     const sectionIds = variant?.sections.map((s) => s.id) ?? [];
+    const sectionReach = avgSectionReach(
+      variantId,
+      sectionIds.length,
+      rows,
+      eventRows
+    );
 
-    const fitness = fitnessFromRates(conversionRate, avgScrollDepth, bounceRate);
+    const fitness = computeFitnessFromPostHogRates({
+      ctaClickRate: conversionRate,
+      avgScrollDepth,
+      bounceRate,
+      avgSectionReach: sectionReach,
+    });
 
     return {
       variantId,
@@ -241,6 +305,7 @@ export async function fetchLiveBehaviorSnapshot(
       perSection: buildPerSectionMetrics(variantId, sectionIds, rows, eventRows),
       byPersona: {},
       objectionFailures: {},
+      funnel: funnelForVariant(vSessions, eventRows),
     };
   });
 
@@ -259,6 +324,7 @@ export async function fetchLiveBehaviorSnapshot(
 
   const totalVisits = rows.length;
   const totalConversions = rows.filter((s) => s.converted).length;
+  const funnelTotals = funnelForVariant(rows, eventRows);
 
   return {
     source: "live",
@@ -281,6 +347,7 @@ export async function fetchLiveBehaviorSnapshot(
       avgDwellMs: totalVisits
         ? rows.reduce((s, r) => s + r.total_dwell_ms, 0) / totalVisits
         : 0,
+      funnel: funnelTotals,
     },
   };
 }

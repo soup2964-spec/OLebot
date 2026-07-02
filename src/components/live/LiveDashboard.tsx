@@ -48,15 +48,29 @@ function LiveEventsReference() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-        Instrumentation reference
+        Instrumentation reference — Scholé AI GTM Challenge
       </h2>
+      <p className="mt-2 text-sm text-slate-600">
+        Aligned to schole.ai production: PostHog (defaults 2026-01-30), GTM{" "}
+        <code className="rounded bg-white px-1 text-xs">GTM-KMB4RW7C</code>, GA4, HubSpot via{" "}
+        <code className="rounded bg-white px-1 text-xs">generate_lead</code>.
+      </p>
       <ul className="mt-3 space-y-2 text-sm text-slate-600">
         <li>
-          <strong className="text-slate-900">PostHog</strong> — variant_page_view, cta_click,
-          scroll_depth, page_exit (with variantId, generation, strategy)
+          <strong className="text-slate-900">Fitness events (weighted)</strong> — $pageview,
+          section_viewed, scroll_depth, book_demo_click, $pageleave
         </li>
         <li>
-          <strong className="text-slate-900">GTM / GA4</strong> — same events pushed to dataLayer
+          <strong className="text-slate-900">GTM / GA4 dataLayer</strong> — page_view,
+          generate_lead, scroll, section_view, select_content, session_end
+        </li>
+        <li>
+          <strong className="text-slate-900">Phase 2 diagnostics</strong> — cta_viewed (funnel
+          exposure); simulation page_exit with unresolved_objections
+        </li>
+        <li>
+          <strong className="text-slate-900">Super-properties</strong> — challenge, experiment_number,
+          variant_id, generation, strategy, source
         </li>
         <li>
           <strong className="text-slate-900">Clarity</strong> — optional session replay per variant

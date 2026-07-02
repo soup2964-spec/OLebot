@@ -13,8 +13,9 @@ import fs from "fs";
 import path from "path";
 import type { PageVariant } from "../src/lib/schema/page";
 import type { Visit } from "../src/lib/schema/events";
+import { POSTHOG_EVENTS } from "../src/lib/analytics/posthog-events";
 import { GENERATION_0 } from "../src/config/variants";
-import { getCalibratedPersonaSet } from "../src/lib/calibration/store";
+import { getCalibratedPersonaSetSync } from "../src/lib/calibration/store";
 import { heuristicReadPage } from "../src/lib/sim/heuristic-reading";
 import { sampleVisit } from "../src/lib/sim/visit";
 import { ThompsonBandit } from "../src/lib/sim/bandit";
@@ -46,7 +47,7 @@ function makeIdenticalArms(): PageVariant[] {
 function runReplication(seed: number): ReplicationResult {
   const rng = makeRng(seed);
   const pool = makeIdenticalArms();
-  const personas = getCalibratedPersonaSet().personas;
+  const personas = getCalibratedPersonaSetSync().personas;
 
   const readings = new Map<string, ReturnType<typeof heuristicReadPage>>();
   for (const v of pool) {
@@ -71,7 +72,7 @@ function runReplication(seed: number): ReplicationResult {
     const c = counts.get(variantId)!;
     c.n++;
     if (visit.converted) c.conv++;
-    if (visit.events.some((e) => e.type === "bounce")) c.bounce++;
+    if (visit.events.some((e) => e.type === POSTHOG_EVENTS.PAGE_EXIT && e.bounced)) c.bounce++;
   }
 
   // Match demo-run.ts: one heuristic reading per persona backs each arm, so

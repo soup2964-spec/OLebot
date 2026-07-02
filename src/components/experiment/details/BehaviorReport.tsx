@@ -11,7 +11,15 @@ import {
   BEHAVIOR_SIGNALS,
   BEHAVIOR_GATES,
   BEHAVIOR_WEIGHT_TOTAL,
+  FUNNEL_METRIC_DEFINITIONS,
+  GTM_CHALLENGE,
+  POSTHOG_DIAGNOSTIC_EVENTS,
 } from "@/lib/judgment/behavior-criteria";
+import {
+  aggregateFunnelMetrics,
+  computeFunnelFromVisits,
+  formatFunnelPct,
+} from "@/lib/analytics/funnel-metrics";
 import { VariantSectionHeatmap } from "@/components/behavior/VisitVisuals";
 
 type DataMode = "live" | "simulated" | "loading";
@@ -80,14 +88,28 @@ export function BehaviorReport({
   const gen = index?.[genIdx];
   const simDecisions = run?.generations?.[genIdx]?.decisions ?? [];
   const simMetrics = gen?.metrics ?? [];
+  const fullVisits = run?.generations?.[genIdx]?.visits ?? [];
+
+  const enrichFunnel = useCallback(
+    (m: VariantMetrics): VariantMetrics => ({
+      ...m,
+      funnel:
+        m.funnel ??
+        (mode === "simulated"
+          ? computeFunnelFromVisits(fullVisits.filter((v) => v.variantId === m.variantId))
+          : computeFunnelFromVisits([])),
+    }),
+    [mode, fullVisits]
+  );
 
   const decisions = mode === "live" ? (live?.decisions ?? []) : simDecisions;
   const rankedMetrics = useMemo(
     () =>
       (mode === "live" ? (live?.metrics ?? []) : simMetrics)
+        .map(enrichFunnel)
         .slice()
         .sort((a, b) => b.fitness - a.fitness),
-    [mode, live, simMetrics]
+    [mode, live, simMetrics, enrichFunnel]
   );
 
   const decisionById = useMemo(
@@ -110,23 +132,30 @@ export function BehaviorReport({
         bounceRate: live.totals.bounceRate,
         avgScroll: live.totals.avgScroll,
         avgDwellMs: live.totals.avgDwellMs,
+        funnel: live.totals.funnel,
       };
     }
-    const ms = simMetrics;
-    const visits = ms.reduce((s, m) => s + m.visits, 0);
-    const conversions = ms.reduce((s, m) => s + m.conversions, 0);
+    const enriched = simMetrics.map((m) => ({
+      ...m,
+      funnel:
+        m.funnel ??
+        computeFunnelFromVisits(fullVisits.filter((v) => v.variantId === m.variantId)),
+    }));
+    const visits = enriched.reduce((s, m) => s + m.visits, 0);
+    const conversions = enriched.reduce((s, m) => s + m.conversions, 0);
     const w = (sel: (m: VariantMetrics) => number) =>
-      visits ? ms.reduce((s, m) => s + sel(m) * m.visits, 0) / visits : 0;
+      visits ? enriched.reduce((s, m) => s + sel(m) * m.visits, 0) / visits : 0;
     return {
-      variants: ms.length,
+      variants: enriched.length,
       visits,
       conversions,
       conversionRate: visits ? conversions / visits : 0,
       bounceRate: w((m) => m.bounceRate),
       avgScroll: w((m) => m.avgScrollDepth),
       avgDwellMs: w((m) => m.avgDwellMs),
+      funnel: aggregateFunnelMetrics(enriched.map((m) => m.funnel)),
     };
-  }, [mode, live, simMetrics]);
+  }, [mode, live, simMetrics, fullVisits]);
 
   const [detailVariantId, setDetailVariantId] = useState<string | null>(
     selectedVariantId ?? null
@@ -177,8 +206,8 @@ export function BehaviorReport({
           </span>
         </div>
         <p className="mt-1 text-sm text-slate-600">
-          Every variant gets a single fitness score (0–100). Each behavior contributes a fixed
-          share of that score — the higher the share, the more that behavior counts.
+          Every variant gets a fitness score (0–100) from four PostHog events. Each event
+          contributes a fixed share — the event name is what you would chart in PostHog.
         </p>
 
         <div className="mt-4 space-y-3">
@@ -200,7 +229,8 @@ export function BehaviorReport({
                     style={{ width: `${sig.weight * 100}%` }}
                   />
                 </div>
-                <div className="mt-1 text-[11px] uppercase tracking-wide text-slate-500">
+                <div className="mt-1 font-mono text-[10px] text-slate-500">{sig.posthogEvent}</div>
+                <div className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">
                   {sig.role}
                 </div>
               </div>
@@ -210,6 +240,41 @@ export function BehaviorReport({
                   <span className="font-medium text-slate-600">Measured as:</span> {sig.measure}
                 </p>
               </div>
+            </div>
+          ))}
+        </div>
+
+        <h4 className="mt-5 text-sm font-semibold text-slate-900">
+          Phase 2 diagnostics — {GTM_CHALLENGE.name}
+        </h4>
+        <p className="mt-1 text-xs text-slate-500">
+          Tracked in PostHog for funnel and loss analysis. Not included in the fitness score.
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {POSTHOG_DIAGNOSTIC_EVENTS.map((diag) => (
+            <div
+              key={diag.id}
+              className="rounded-xl border border-violet-100 bg-violet-50/40 p-3"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-900">{diag.label}</span>
+                <code className="font-mono text-[10px] text-slate-500">{diag.event}</code>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">{diag.why}</p>
+            </div>
+          ))}
+        </div>
+
+        <h4 className="mt-5 text-sm font-semibold text-slate-900">Funnel metrics (Tier 2)</h4>
+        <p className="mt-1 text-xs text-slate-500">
+          Explain why conversion moved — guide copy updates. Not weighted in fitness.
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {FUNNEL_METRIC_DEFINITIONS.map((f) => (
+            <div key={f.id} className="rounded-xl border border-amber-100 bg-amber-50/40 p-3">
+              <div className="text-sm font-medium text-slate-900">{f.label}</div>
+              <code className="mt-0.5 block font-mono text-[10px] text-slate-500">{f.formula}</code>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">{f.why}</p>
             </div>
           ))}
         </div>
@@ -272,6 +337,37 @@ export function BehaviorReport({
         </div>
       </section>
 
+      {/* Funnel KPIs */}
+      <section className="rounded-2xl border border-amber-200 bg-amber-50/30 p-5">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-900">
+          Conversion funnel
+        </h3>
+        <p className="mt-1 text-xs text-slate-600">
+          Sessions → CTA exposed → demo booked. Low exposure = layout problem. Low CTR = copy problem.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <FunnelStep
+            label="CTA exposure"
+            rate={totals.funnel.ctaExposureRate}
+            count={`${totals.funnel.ctaExposed.toLocaleString()} / ${totals.funnel.sessions.toLocaleString()}`}
+            formula="cta_viewed ÷ sessions"
+          />
+          <FunnelStep
+            label="CTA click-through"
+            rate={totals.funnel.ctaClickThroughRate}
+            count={`${totals.funnel.ctaClicks.toLocaleString()} / ${totals.funnel.ctaExposed.toLocaleString()}`}
+            formula="book_demo_click ÷ cta_viewed"
+          />
+          <FunnelStep
+            label="Demo booking rate"
+            rate={totals.funnel.demoBookingRate}
+            count={`${totals.funnel.ctaClicks.toLocaleString()} / ${totals.funnel.sessions.toLocaleString()}`}
+            formula="book_demo_click ÷ sessions"
+            accent
+          />
+        </div>
+      </section>
+
       {/* Variant table */}
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-4 py-3">
@@ -287,6 +383,8 @@ export function BehaviorReport({
                 <th className="px-4 py-2 font-medium">Variant</th>
                 <th className="px-3 py-2 text-right font-medium">Sessions</th>
                 <th className="px-3 py-2 text-right font-medium">Conv.</th>
+                <th className="px-3 py-2 text-right font-medium">CTA exp.</th>
+                <th className="px-3 py-2 text-right font-medium">CTA CTR</th>
                 <th className="px-3 py-2 text-right font-medium">Bounce</th>
                 <th className="px-3 py-2 text-right font-medium">Scroll</th>
                 <th className="px-3 py-2 text-right font-medium">Dwell</th>
@@ -323,6 +421,12 @@ export function BehaviorReport({
                     </td>
                     <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-schole-primary">
                       {(m.conversionRate * 100).toFixed(1)}%
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-slate-600">
+                      {formatFunnelPct(m.funnel.ctaExposureRate, 0)}
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-amber-800">
+                      {formatFunnelPct(m.funnel.ctaClickThroughRate, 0)}
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums text-slate-600">
                       {(m.bounceRate * 100).toFixed(0)}%
@@ -447,6 +551,41 @@ function Kpi({ label, value, accent }: { label: string; value: string; accent?: 
     >
       <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
       <div className="mt-1 text-2xl font-bold text-slate-900">{value}</div>
+    </div>
+  );
+}
+
+function FunnelStep({
+  label,
+  rate,
+  count,
+  formula,
+  accent,
+}: {
+  label: string;
+  rate: number;
+  count: string;
+  formula: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-amber-100 bg-white p-4">
+      <div className="text-[10px] uppercase tracking-wide text-amber-800">{label}</div>
+      <div
+        className={`mt-1 text-2xl font-bold tabular-nums ${
+          accent ? "text-schole-primary" : "text-slate-900"
+        }`}
+      >
+        {formatFunnelPct(rate)}
+      </div>
+      <div className="mt-1 text-xs tabular-nums text-slate-500">{count}</div>
+      <code className="mt-2 block font-mono text-[10px] text-slate-400">{formula}</code>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-amber-100">
+        <div
+          className={`h-full rounded-full ${accent ? "bg-schole-primary" : "bg-amber-500"}`}
+          style={{ width: `${Math.min(100, rate * 100)}%` }}
+        />
+      </div>
     </div>
   );
 }

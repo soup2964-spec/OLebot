@@ -53,9 +53,11 @@ function PostHogInit({ children }: { children: React.ReactNode }) {
     if ((posthog as { __loaded?: boolean }).__loaded) return;
     posthog.init(POSTHOG_KEY, {
       api_host: POSTHOG_HOST,
+      defaults: "2026-01-30",
       person_profiles: "identified_only",
-      capture_pageview: false, // variant pages fire their own tagged pageviews
-      capture_pageleave: true,
+      capture_pageview: false, // variant pages fire tagged $pageview with experiment props
+      capture_pageleave: false, // we enrich $pageleave manually on variant pages
+      autocapture: true, // match schole.ai — supplements explicit book_demo_click
     });
   }, []);
 

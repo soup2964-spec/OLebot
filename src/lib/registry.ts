@@ -1,50 +1,44 @@
 import { GENERATION_0 } from "@/config/variants";
-import type { PageVariant } from "@/lib/schema/page";
+import { POSTHOG_EVENTS } from "@/lib/analytics/posthog-events";
+import type { DeployState } from "@/lib/deploy/state";
+import { getLabDocumentSync, LAB_DOC } from "@/lib/supabase/lab-documents";
 import type { ExperimentRun } from "@/lib/schema/experiment";
-import { loadDeployState } from "@/lib/deploy/state";
-import fs from "fs";
-import path from "path";
-
-/**
- * Variant + run registry. The precomputed experiment lives in data/run.json
- * (committed to the repo - no database needed). Generated variants come from
- * the run; Generation 0 comes from config.
- */
-
-const RUN_PATH = path.join(process.cwd(), "data", "run.json");
+import type { PageVariant } from "@/lib/schema/page";
+import { getLabDocument, setLabDocument } from "@/lib/supabase/lab-documents";
 
 let cachedRun: ExperimentRun | null | undefined;
 
-export function loadRun(): ExperimentRun | null {
+export async function loadRun(): Promise<ExperimentRun | null> {
   if (cachedRun !== undefined) return cachedRun;
-  try {
-    const raw = fs.readFileSync(RUN_PATH, "utf-8");
-    cachedRun = JSON.parse(raw) as ExperimentRun;
-    return cachedRun;
-  } catch {
-    cachedRun = null;
-    return null;
-  }
+  cachedRun = await getLabDocument<ExperimentRun>(LAB_DOC.ACTIVE_RUN);
+  return cachedRun;
 }
 
-export function saveRun(run: ExperimentRun) {
-  fs.mkdirSync(path.dirname(RUN_PATH), { recursive: true });
-  fs.writeFileSync(RUN_PATH, JSON.stringify(run));
+export function loadRunSync(): ExperimentRun | null {
+  return getLabDocumentSync<ExperimentRun>(LAB_DOC.ACTIVE_RUN);
+}
+
+export async function saveRun(run: ExperimentRun) {
   cachedRun = run;
+  await setLabDocument(LAB_DOC.ACTIVE_RUN, run);
 }
 
 export function invalidateRunCache() {
   cachedRun = undefined;
 }
 
+function deploySnapshotSync(): DeployState | null {
+  return getLabDocumentSync<DeployState>(LAB_DOC.DEPLOY_STATE);
+}
+
 export function getGen0Variants(): PageVariant[] {
-  const deploy = loadDeployState();
-  return deploy.currentVariants?.length ? deploy.currentVariants : GENERATION_0;
+  const deploy = deploySnapshotSync();
+  return deploy?.currentVariants?.length ? deploy.currentVariants : GENERATION_0;
 }
 
 export function getProductionVariant(): PageVariant | null {
-  const deploy = loadDeployState();
-  if (deploy.deployVersion === 0) return null;
+  const deploy = deploySnapshotSync();
+  if (!deploy || deploy.deployVersion === 0) return null;
   const baseline = deploy.currentVariants.find((v) => v.id === "v0-baseline");
   if (!baseline) return null;
   return {
@@ -55,8 +49,8 @@ export function getProductionVariant(): PageVariant | null {
   };
 }
 
-export function allVariants(): PageVariant[] {
-  const run = loadRun();
+export async function allVariants(): Promise<PageVariant[]> {
+  const run = await loadRun();
   const gen0 = getGen0Variants();
   const gen0Ids = new Set(gen0.map((v) => v.id));
   const bred = run?.variants.filter((v) => !gen0Ids.has(v.id)) ?? [];
@@ -64,17 +58,26 @@ export function allVariants(): PageVariant[] {
   return [...gen0, ...bred, ...(production ? [production] : [])];
 }
 
-export function getVariant(id: string): PageVariant | undefined {
-  if (id === "production") return getProductionVariant() ?? undefined;
-  return allVariants().find((v) => v.id === id);
+export function allVariantsSync(): PageVariant[] {
+  const run = loadRunSync();
+  const gen0 = getGen0Variants();
+  const gen0Ids = new Set(gen0.map((v) => v.id));
+  const bred = run?.variants.filter((v) => !gen0Ids.has(v.id)) ?? [];
+  const production = getProductionVariant();
+  return [...gen0, ...bred, ...(production ? [production] : [])];
 }
 
-export function getVisit(generation: number, visitId: string) {
-  const run = loadRun();
+export async function getVariant(id: string): Promise<PageVariant | undefined> {
+  if (id === "production") return getProductionVariant() ?? undefined;
+  const variants = await allVariants();
+  return variants.find((v) => v.id === id);
+}
+
+export async function getVisit(generation: number, visitId: string) {
+  const run = await loadRun();
   return run?.generations[generation]?.visits.find((v) => v.id === visitId);
 }
 
-/** Slim visit row for the behavior dashboard — previews without full event traces. */
 export interface VisitSummary {
   id: string;
   personaId: string;
@@ -87,7 +90,6 @@ export interface VisitSummary {
   path: { sectionId: string; action: "read" | "skim" | "bounce" }[];
 }
 
-/** Slim index for client components — avoids shipping full visit traces. */
 export function visitIndex(run: ExperimentRun) {
   return run.generations.map((g) => ({
     generation: g.generation,
@@ -98,18 +100,23 @@ export function visitIndex(run: ExperimentRun) {
       personaId: v.personaId,
       variantId: v.variantId,
       converted: v.converted,
-      bounced: v.events.some((e) => e.type === "bounce"),
+      bounced: v.events.some(
+        (e) => e.type === POSTHOG_EVENTS.PAGE_EXIT && e.bounced === true
+      ),
       scrollDepth: v.scrollDepth,
       totalDwellMs: v.totalDwellMs,
       verdictPreview: v.verdict.slice(0, 140),
       path: v.events
         .filter(
           (e): e is typeof e & { sectionId: string } =>
-            !!e.sectionId && (e.type === "read" || e.type === "skim" || e.type === "bounce")
+            !!e.sectionId && e.type === POSTHOG_EVENTS.SECTION_ENGAGED
         )
         .map((e) => ({
           sectionId: e.sectionId,
-          action: (e.type === "bounce" ? "bounce" : e.type) as "read" | "skim" | "bounce",
+          action: (e.engagement === "read" ? "read" : e.engagement === "skim" ? "skim" : "bounce") as
+            | "read"
+            | "skim"
+            | "bounce",
         })),
     })) satisfies VisitSummary[],
   }));

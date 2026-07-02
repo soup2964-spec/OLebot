@@ -6,6 +6,7 @@ import type { Visit } from "@/lib/schema/events";
 import type { ExperimentRun, GenerationRun, AllocationSnapshot } from "@/lib/schema/experiment";
 import { GENERATION_0 } from "@/config/variants";
 import { getCalibratedPersonaSet } from "@/lib/calibration/store";
+import type { PersonaSet } from "@/lib/schema/persona";
 import { heuristicReadPage } from "@/lib/sim/heuristic-reading";
 import { sampleVisit } from "@/lib/sim/visit";
 import { ThompsonBandit } from "@/lib/sim/bandit";
@@ -118,9 +119,9 @@ function runGeneration(
   seed: number,
   visitsPerGen: number,
   maxGenerations: number,
-  storedVisits: number
+  storedVisits: number,
+  personaSet: PersonaSet
 ): { genRun: GenerationRun; offspring: PageVariant[]; decisions: VariantDecision[] } {
-  const personaSet = getCalibratedPersonaSet();
   const personas = personaSet.personas;
   const readings = new Map<string, ReturnType<typeof heuristicReadPage>>();
   for (const v of pool) {
@@ -239,7 +240,7 @@ function runGeneration(
 }
 
 /** Run the full multi-generation heuristic experiment. */
-export function runDemoExperiment(cfg: DemoRunConfig = {}): ExperimentRun {
+export async function runDemoExperiment(cfg: DemoRunConfig = {}): Promise<ExperimentRun> {
   const seed = cfg.seed ?? DEFAULTS.seed;
   const visitsPerGeneration = cfg.visitsPerGeneration ?? DEFAULTS.visitsPerGeneration;
   const generations = cfg.generations ?? DEFAULTS.generations;
@@ -248,7 +249,7 @@ export function runDemoExperiment(cfg: DemoRunConfig = {}): ExperimentRun {
     cfg.storedVisitsPerGeneration ?? DEFAULTS.storedVisitsPerGeneration;
 
   const rng = makeRng(seed);
-  const personaSet = getCalibratedPersonaSet();
+  const personaSet = await getCalibratedPersonaSet();
   const allVariants: PageVariant[] = [...GENERATION_0];
   let pool = [...GENERATION_0];
   const generationRuns: GenerationRun[] = [];
@@ -261,7 +262,8 @@ export function runDemoExperiment(cfg: DemoRunConfig = {}): ExperimentRun {
       seed,
       visitsPerGeneration,
       generations,
-      storedVisitsPerGeneration
+      storedVisitsPerGeneration,
+      personaSet
     );
     generationRuns.push(genRun);
     allVariants.push(...offspring);

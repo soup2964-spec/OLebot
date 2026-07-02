@@ -1,6 +1,5 @@
-import fs from "fs";
-import path from "path";
 import { GENERATION_0 } from "@/config/variants";
+import { getLabDocument, getLabDocumentSync, LAB_DOC, setLabDocument } from "@/lib/supabase/lab-documents";
 import type { PageVariant } from "@/lib/schema/page";
 
 export interface DeployRecord {
@@ -16,15 +15,11 @@ export interface DeployState {
   deployVersion: number;
   lastPromotedAt: string | null;
   lastPromotedVariantId: string | null;
-  /** Gen-0 snapshot before the latest production merge (for comparison grid). */
   previousVariants: PageVariant[];
-  /** Gen-0 snapshot after the latest production merge. */
   currentVariants: PageVariant[];
   htmlVariantIds: string[];
   history: DeployRecord[];
 }
-
-const DEPLOY_PATH = path.join(process.cwd(), "data", "deploy-state.json");
 
 const DEFAULT_STATE: DeployState = {
   deployVersion: 0,
@@ -36,23 +31,30 @@ const DEFAULT_STATE: DeployState = {
   history: [],
 };
 
-export function loadDeployState(): DeployState {
-  try {
-    const parsed = JSON.parse(fs.readFileSync(DEPLOY_PATH, "utf8")) as Partial<DeployState>;
-    return {
-      ...DEFAULT_STATE,
-      ...parsed,
-      previousVariants: parsed.previousVariants ?? DEFAULT_STATE.previousVariants,
-      currentVariants: parsed.currentVariants ?? DEFAULT_STATE.currentVariants,
-      htmlVariantIds: parsed.htmlVariantIds ?? DEFAULT_STATE.htmlVariantIds,
-      history: parsed.history ?? [],
-    };
-  } catch {
+function mergeDeployState(parsed: Partial<DeployState> | null): DeployState {
+  if (!parsed) {
     return { ...DEFAULT_STATE, previousVariants: [...GENERATION_0], currentVariants: [...GENERATION_0] };
   }
+  return {
+    ...DEFAULT_STATE,
+    ...parsed,
+    previousVariants: parsed.previousVariants ?? DEFAULT_STATE.previousVariants,
+    currentVariants: parsed.currentVariants ?? DEFAULT_STATE.currentVariants,
+    htmlVariantIds: parsed.htmlVariantIds ?? DEFAULT_STATE.htmlVariantIds,
+    history: parsed.history ?? [],
+  };
 }
 
-export function saveDeployState(state: DeployState) {
-  fs.mkdirSync(path.dirname(DEPLOY_PATH), { recursive: true });
-  fs.writeFileSync(DEPLOY_PATH, JSON.stringify(state, null, 2), "utf8");
+export async function loadDeployState(): Promise<DeployState> {
+  const parsed = await getLabDocument<Partial<DeployState>>(LAB_DOC.DEPLOY_STATE);
+  return mergeDeployState(parsed);
+}
+
+export function loadDeployStateSync(): DeployState {
+  const parsed = getLabDocumentSync<Partial<DeployState>>(LAB_DOC.DEPLOY_STATE);
+  return mergeDeployState(parsed);
+}
+
+export async function saveDeployState(state: DeployState) {
+  await setLabDocument(LAB_DOC.DEPLOY_STATE, state);
 }

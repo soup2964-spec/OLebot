@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { allVariants, getVariant } from "@/lib/registry";
+import { allVariantsSync, getVariant } from "@/lib/registry";
 import { LandingPage } from "@/components/LandingPage";
 
 export function generateStaticParams() {
-  return allVariants().map((v) => ({ variantId: v.id }));
+  return allVariantsSync().map((v) => ({ variantId: v.id }));
 }
 
 export default async function VariantPage({
@@ -12,7 +12,7 @@ export default async function VariantPage({
   params: Promise<{ variantId: string }>;
 }) {
   const { variantId } = await params;
-  const variant = getVariant(variantId);
+  const variant = await getVariant(variantId);
   if (!variant) notFound();
   return <LandingPage variant={variant} />;
 }

@@ -1,20 +1,26 @@
 /**
  * Regenerate static HTML for all variants and optionally promote the best candidate.
  */
+import { config } from "dotenv";
+config({ path: ".env.local" });
+
 import { loadRun } from "../src/lib/registry";
 import { promoteAndDeploy } from "../src/lib/deploy/promote";
 
 const forceBest = process.argv.includes("--promote");
 
-function main() {
-  const run = loadRun();
+async function main() {
+  const run = await loadRun();
   if (!run) {
-    console.error("No data/run.json — run npm run demo first.");
+    console.error("No active run — run npm run demo first.");
     process.exit(1);
   }
 
-  const result = promoteAndDeploy(run, { forceBest: forceBest || true });
+  const result = await promoteAndDeploy(run, { forceBest: forceBest || true });
   console.log(JSON.stringify(result, null, 2));
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

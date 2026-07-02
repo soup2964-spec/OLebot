@@ -3,41 +3,25 @@
 import type { PageVariant } from "@/lib/schema/page";
 import { shouldUseReplica } from "@/lib/replica/paths";
 import { ScholeBaselineReplica } from "./ScholeBaselineReplica";
-import { ClarityVariantTag, trackCtaClick } from "./Clarity";
+import { trackCtaClick } from "./Clarity";
+import { useVariantTrackingContext } from "@/lib/analytics/variant-context";
 import { useVariantAnalytics } from "./useVariantAnalytics";
-
-function VariantAnalytics({ variant }: { variant: PageVariant }) {
-  useVariantAnalytics({
-    variantId: variant.id,
-    generation: variant.generation,
-    strategy: variant.strategy,
-  });
-  return null;
-}
+import type { VariantContext } from "@/lib/analytics/track";
 
 function CtaButton({
   label,
-  variant,
+  ctx,
   sectionId,
   big,
 }: {
   label: string;
-  variant: PageVariant;
+  ctx: VariantContext;
   sectionId: string;
   big?: boolean;
 }) {
   return (
     <button
-      onClick={() =>
-        trackCtaClick(
-          {
-            variantId: variant.id,
-            generation: variant.generation,
-            strategy: variant.strategy,
-          },
-          sectionId
-        )
-      }
+      onClick={() => trackCtaClick(ctx, sectionId, label)}
       className={`inline-block rounded-full bg-schole-primary font-semibold text-white shadow-lg shadow-schole-primary/25 transition hover:bg-schole-primary-hover hover:shadow-schole-primary/30 ${
         big ? "px-8 py-4 text-lg" : "px-6 py-3 text-sm"
       }`}
@@ -49,11 +33,11 @@ function CtaButton({
 
 function SectionBlock({
   section,
-  variant,
+  ctx,
   highlight,
 }: {
   section: PageVariant["sections"][number];
-  variant: PageVariant;
+  ctx: VariantContext;
   highlight?: boolean;
 }) {
   const s = section;
@@ -76,7 +60,7 @@ function SectionBlock({
             <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600">{s.body}</p>
             {s.ctaLabel && (
               <div className="mt-8">
-                <CtaButton label={s.ctaLabel} variant={variant} sectionId={s.id} big />
+                <CtaButton label={s.ctaLabel} ctx={ctx} sectionId={s.id} big />
               </div>
             )}
           </div>
@@ -95,16 +79,7 @@ function SectionBlock({
             {s.ctaLabel && (
               <div className="mt-8">
                 <button
-                  onClick={() =>
-                    trackCtaClick(
-                      {
-                        variantId: variant.id,
-                        generation: variant.generation,
-                        strategy: variant.strategy,
-                      },
-                      s.id
-                    )
-                  }
+                  onClick={() => trackCtaClick(ctx, s.id, s.ctaLabel)}
                   className="rounded-full bg-white px-8 py-4 text-lg font-semibold text-schole-primary-hover shadow-lg transition hover:bg-schole-primary/5"
                 >
                   {s.ctaLabel}
@@ -133,7 +108,7 @@ function SectionBlock({
             )}
             {s.ctaLabel && (
               <div className="mt-8">
-                <CtaButton label={s.ctaLabel} variant={variant} sectionId={s.id} />
+                <CtaButton label={s.ctaLabel} ctx={ctx} sectionId={s.id} />
               </div>
             )}
           </div>
@@ -150,19 +125,16 @@ function StructuredLandingPage({
   variant: PageVariant;
   highlightSectionId?: string;
 }) {
+  const ctx = useVariantTrackingContext(variant);
+  useVariantAnalytics(ctx);
+
   return (
     <div className="min-h-screen bg-white">
-      <VariantAnalytics variant={variant} />
-      <ClarityVariantTag
-        variantId={variant.id}
-        generation={variant.generation}
-        strategy={variant.strategy}
-      />
       {variant.sections.map((s) => (
         <SectionBlock
           key={s.id}
           section={s}
-          variant={variant}
+          ctx={ctx}
           highlight={highlightSectionId === s.id}
         />
       ))}

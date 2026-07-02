@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CRITERIA } from "@/config/criteria";
 import type { ExperimentProgress } from "@/lib/schema/experiment-progress";
-import { ExperimentProgressBar } from "@/components/experiment/ExperimentProgressBar";
+import { LiveStatusPanel } from "@/components/experiment/LiveStatusPanel";
 
 interface ControlState {
   autonomous: boolean;
@@ -48,15 +48,19 @@ function Toggle({
 }
 
 export function ControlCenterView({
+  progress,
+  pollProgress,
   onExperimentComplete,
 }: {
+  progress: ExperimentProgress | null;
+  pollProgress: () => Promise<void>;
   onExperimentComplete?: () => void;
 }) {
   const meta = CRITERIA.find((c) => c.id === "0");
   const [state, setState] = useState<ControlState | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
-  const [progress, setProgress] = useState<ExperimentProgress | null>(null);
+  const [liveActive, setLiveActive] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,7 +68,9 @@ export function ControlCenterView({
     try {
       const res = await fetch("/api/control");
       if (!res.ok) return;
-      setState(await res.json());
+      const data = (await res.json()) as ControlState;
+      setState(data);
+      if (data.autonomous) setLiveActive(true);
     } catch {
       /* ignore */
     } finally {
@@ -75,23 +81,6 @@ export function ControlCenterView({
   useEffect(() => {
     refresh();
   }, [refresh]);
-
-  const pollProgress = useCallback(async () => {
-    try {
-      const res = await fetch("/api/control/progress");
-      if (!res.ok) return;
-      setProgress(await res.json());
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!running) return;
-    void pollProgress();
-    const t = setInterval(pollProgress, 800);
-    return () => clearInterval(t);
-  }, [running, pollProgress]);
 
   const patchControl = async (patch: Partial<Pick<ControlState, "autonomous" | "llmPersonas">>) => {
     setError(null);
@@ -121,6 +110,13 @@ export function ControlCenterView({
             }
           : s
       );
+      if (typeof patch.autonomous === "boolean") {
+        setLiveActive(patch.autonomous);
+        if (patch.autonomous) {
+          setMessage(null);
+          setError(null);
+        }
+      }
     } catch (e) {
       if (prev) setState(prev);
       setError(e instanceof Error ? e.message : "Failed to update settings");
@@ -130,7 +126,6 @@ export function ControlCenterView({
   const runExperiment = async () => {
     setRunning(true);
     setError(null);
-    setProgress(null);
 
     const llmMode = state?.llmPersonas ?? false;
     setMessage(
@@ -154,7 +149,7 @@ export function ControlCenterView({
           : `hybrid (${body.llmProvider ?? "api"})`;
 
       setMessage(
-        `Experiment complete (${modeLabel}): ${body.totalVisits?.toLocaleString?.() ?? body.totalVisits} simulated visits, ${body.offspringCount} new page${body.offspringCount === 1 ? "" : "s"} bred.`
+        `Experiment ${body.experimentNumber} complete (${modeLabel}): ${body.totalVisits?.toLocaleString?.() ?? body.totalVisits} simulated visits, ${body.offspringCount} new page${body.offspringCount === 1 ? "" : "s"} bred.`
       );
       await refresh();
       onExperimentComplete?.();
@@ -166,10 +161,18 @@ export function ControlCenterView({
     }
   };
 
+  const goLive = () => {
+    setError(null);
+    setMessage(null);
+    setLiveActive(true);
+  };
+
   const autonomous = state?.autonomous ?? false;
   const llmPersonas = state?.llmPersonas ?? false;
   const llmAvailable = state?.llmExperimentAvailable ?? false;
-  const runBlocked = running || !llmAvailable;
+  const experimentRunning =
+    running || progress?.status === "running" || progress?.status === "complete";
+  const runBlocked = running || (!autonomous && !llmAvailable);
 
   return (
     <div className="flex min-h-[calc(100vh-65px)] items-start justify-center p-6">
@@ -216,47 +219,54 @@ export function ControlCenterView({
             />
           </div>
 
-          {!autonomous && (
-            <div className="border-t border-slate-100 pt-6">
-              <button
-                type="button"
-                onClick={runExperiment}
-                disabled={runBlocked}
-                className="w-full rounded-xl bg-schole-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-schole-primary-hover disabled:opacity-50"
-              >
-                {running
-                  ? llmPersonas
-                    ? "Running LLM experiment…"
-                    : "Running experiment…"
+          <div className="border-t border-slate-100 pt-6">
+            <button
+              type="button"
+              onClick={autonomous ? goLive : runExperiment}
+              disabled={runBlocked}
+              className="w-full rounded-xl bg-schole-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-schole-primary-hover disabled:opacity-50"
+            >
+              {running
+                ? llmPersonas
+                  ? "Running LLM experiment…"
+                  : "Running experiment…"
+                : autonomous
+                  ? "Live"
                   : "Run experiment"}
-              </button>
-              <p className="mt-3 text-center text-xs text-slate-500">
-                {llmPersonas
+            </button>
+            <p className="mt-3 text-center text-xs text-slate-500">
+              {autonomous
+                ? "Real visitors on variant pages feed the loop. Click Live to confirm status and share pages for people to run."
+                : llmPersonas
                   ? "LLM personas read each page, traffic is simulated, the LLM evaluator reports, and the optimizer breeds six new landing pages."
                   : "Rule-based persona readings and Monte Carlo visits, then the LLM evaluator diagnoses results and the optimizer writes six new pages."}
+            </p>
+            {!autonomous && !llmAvailable && !loading && (
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                Evaluator and optimizer need an API key — add{" "}
+                <code className="font-mono">KIE_API_KEY</code> or{" "}
+                <code className="font-mono">OPENAI_API_KEY</code> to{" "}
+                <code className="font-mono">.env.local</code> and restart the dev server.
               </p>
-              {!llmAvailable && !loading && (
-                <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                  Evaluator and optimizer need an API key — add{" "}
-                  <code className="font-mono">KIE_API_KEY</code> or{" "}
-                  <code className="font-mono">OPENAI_API_KEY</code> to{" "}
-                  <code className="font-mono">.env.local</code> and restart the dev server.
-                </p>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </section>
 
-        {(running || progress?.status === "running" || progress?.status === "complete") &&
-          progress &&
-          progress.status !== "idle" && <ExperimentProgressBar progress={progress} />}
+        {autonomous && liveActive && !experimentRunning && (
+          <LiveStatusPanel onSync={() => refresh()} />
+        )}
 
-        {running && !progress && (
-          <p className="rounded-xl border border-schole-primary/20 bg-schole-primary/5 px-4 py-3 text-sm text-slate-700">
+        {running && !progress && !autonomous && (
+          <p
+            className="rounded-xl border border-schole-primary/20 bg-schole-primary/5 px-4 py-3 text-sm text-slate-700"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+          >
             {message}
           </p>
         )}
-        {!running && message && (
+        {!running && !autonomous && message && (
           <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             {message}
           </p>

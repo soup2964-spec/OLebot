@@ -1,69 +1,110 @@
 import type { PageVariant } from "@/lib/schema/page";
-import type { Visit, VariantMetrics } from "@/lib/schema/events";
+import type { Visit, VisitEvent, VariantMetrics } from "@/lib/schema/events";
+import {
+  computeFitnessFromPostHogRates,
+  POSTHOG_BEHAVIOR_WEIGHTS,
+  POSTHOG_EVENTS,
+} from "@/lib/analytics/posthog-events";
+import {
+  computeFunnelFromVisits,
+} from "@/lib/analytics/funnel-metrics";
 
-/**
- * Behavior weighting — the single source of truth for how much each simulated
- * behavior counts toward a variant's fitness. Surfaced verbatim in the
- * behavior report so the presented criteria never drift from the scoring.
- *
- * Rationale for the ordering:
- *   conversion  dominates — only behavior that maps directly to revenue
- *   scroll      strongest attention proxy (deep scroll precedes conversion)
- *   bounce      early-abandonment guard (overlaps scroll; catches worst cases)
- *   sentiment   softest, most subjective signal — kept small
- */
+/** @deprecated Use POSTHOG_BEHAVIOR_WEIGHTS — kept for imports that expect this name. */
 export const FITNESS_WEIGHTS = {
-  conversion: 0.6,
-  scroll: 0.2,
-  bounce: 0.1,
-  sentiment: 0.1,
-  /** Conversion rate at which the conversion term saturates (8% > 2-5% B2B benchmark). */
-  conversionCeiling: 0.08,
+  conversion: POSTHOG_BEHAVIOR_WEIGHTS.cta_click,
+  scroll: POSTHOG_BEHAVIOR_WEIGHTS.scroll_depth,
+  bounce: POSTHOG_BEHAVIOR_WEIGHTS.page_exit,
+  sectionViewed: POSTHOG_BEHAVIOR_WEIGHTS.section_viewed,
+  conversionCeiling: POSTHOG_BEHAVIOR_WEIGHTS.conversionCeiling,
 } as const;
 
+function uniqueSectionsViewed(events: VisitEvent[]): number {
+  return new Set(
+    events
+      .filter((e) => e.type === POSTHOG_EVENTS.SECTION_VIEWED && e.sectionId)
+      .map((e) => e.sectionId!)
+  ).size;
+}
+
+function visitBounced(events: VisitEvent[]): boolean {
+  const exit = events.find((e) => e.type === POSTHOG_EVENTS.PAGE_EXIT);
+  return exit?.bounced === true;
+}
+
 /**
- * Fitness (0-100): conversion dominates, engagement quality refines.
- * Weights come from FITNESS_WEIGHTS above.
+ * Fitness (0-100) from PostHog-style event rates on simulated visits.
  */
 export function computeMetrics(variant: PageVariant, visits: Visit[]): VariantMetrics {
   const v = visits.filter((x) => x.variantId === variant.id);
   const n = v.length || 1;
+  const sectionCount = Math.max(1, variant.sections.length);
+
   const conversions = v.filter((x) => x.converted).length;
   const conversionRate = conversions / n;
   const avgScrollDepth = v.reduce((s, x) => s + x.scrollDepth, 0) / n;
-  const avgDwellMs = v.reduce((s, x) => s + x.totalDwellMs, 0) / n;
-  const bounces = v.filter((x) => x.events.some((e) => e.type === "bounce")).length;
+  const bounces = v.filter((x) => visitBounced(x.events)).length;
   const bounceRate = bounces / n;
+  const avgSectionReach =
+    v.reduce((s, x) => s + uniqueSectionsViewed(x.events) / sectionCount, 0) / n;
 
-  const allSentiments = v.flatMap((x) => x.reactions.map((r) => r.sentiment));
-  const meanSentiment = allSentiments.length
-    ? allSentiments.reduce((s, x) => s + x, 0) / allSentiments.length
-    : 0;
+  const fitness = computeFitnessFromPostHogRates({
+    ctaClickRate: conversionRate,
+    avgScrollDepth,
+    bounceRate,
+    avgSectionReach,
+  });
 
-  const fitness =
-    100 *
-    (FITNESS_WEIGHTS.conversion *
-      Math.min(1, conversionRate / FITNESS_WEIGHTS.conversionCeiling) +
-      FITNESS_WEIGHTS.scroll * avgScrollDepth +
-      FITNESS_WEIGHTS.bounce * (1 - bounceRate) +
-      FITNESS_WEIGHTS.sentiment * ((meanSentiment + 2) / 4));
+  const avgDwellMs = v.reduce((s, x) => s + x.totalDwellMs, 0) / n;
 
   const perSection = variant.sections.map((s) => {
-    const views = v.filter((x) => x.events.some((e) => e.type === "view_section" && e.sectionId === s.id));
-    const reads = v.filter((x) => x.events.some((e) => e.type === "read" && e.sectionId === s.id));
-    const skims = v.filter((x) => x.events.some((e) => e.type === "skim" && e.sectionId === s.id));
-    const dwells = v.flatMap((x) =>
-      x.events.filter((e) => (e.type === "read" || e.type === "skim") && e.sectionId === s.id)
+    const views = v.filter((x) =>
+      x.events.some(
+        (e) => e.type === POSTHOG_EVENTS.SECTION_VIEWED && e.sectionId === s.id
+      )
     );
-    const sentiments = v.flatMap((x) => x.reactions.filter((r) => r.sectionId === s.id).map((r) => r.sentiment));
-    const exits = v.filter((x) => x.events.some((e) => e.type === "bounce" && e.sectionId === s.id));
+    const reads = v.filter((x) =>
+      x.events.some(
+        (e) =>
+          e.type === POSTHOG_EVENTS.SECTION_ENGAGED &&
+          e.sectionId === s.id &&
+          e.engagement === "read"
+      )
+    );
+    const skims = v.filter((x) =>
+      x.events.some(
+        (e) =>
+          e.type === POSTHOG_EVENTS.SECTION_ENGAGED &&
+          e.sectionId === s.id &&
+          e.engagement === "skim"
+      )
+    );
+    const dwells = v.flatMap((x) =>
+      x.events.filter(
+        (e) => e.type === POSTHOG_EVENTS.SECTION_ENGAGED && e.sectionId === s.id
+      )
+    );
+    const sentiments = v.flatMap((x) =>
+      x.reactions.filter((r) => r.sectionId === s.id).map((r) => r.sentiment)
+    );
+    const exits = v.filter((x) =>
+      x.events.some(
+        (e) =>
+          e.type === POSTHOG_EVENTS.PAGE_EXIT &&
+          e.bounced &&
+          e.sectionId === s.id
+      )
+    );
     return {
       sectionId: s.id,
       views: views.length,
       reads: reads.length,
       skims: skims.length,
-      avgDwellMs: dwells.length ? dwells.reduce((sum, e) => sum + (e.dwellMs ?? 0), 0) / dwells.length : 0,
-      avgSentiment: sentiments.length ? sentiments.reduce((sum, x) => sum + x, 0) / sentiments.length : 0,
+      avgDwellMs: dwells.length
+        ? dwells.reduce((sum, e) => sum + (e.dwellMs ?? 0), 0) / dwells.length
+        : 0,
+      avgSentiment: sentiments.length
+        ? sentiments.reduce((sum, x) => sum + x, 0) / sentiments.length
+        : 0,
       exitRate: views.length ? exits.length / views.length : 0,
     };
   });
@@ -95,5 +136,6 @@ export function computeMetrics(variant: PageVariant, visits: Visit[]): VariantMe
     perSection,
     byPersona,
     objectionFailures,
+    funnel: computeFunnelFromVisits(v),
   };
 }

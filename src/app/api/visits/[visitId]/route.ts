@@ -8,11 +8,11 @@ export async function GET(
   const { visitId } = await params;
   const gen = Number(req.nextUrl.searchParams.get("gen") ?? 0);
 
-  if (!loadRun()) {
+  if (!(await loadRun())) {
     return NextResponse.json({ error: "No experiment run found" }, { status: 404 });
   }
 
-  const visit = getVisit(gen, visitId);
+  const visit = await getVisit(gen, visitId);
   if (!visit) {
     return NextResponse.json({ error: "Visit not found" }, { status: 404 });
   }
