@@ -64,6 +64,10 @@ function main() {
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, html, "utf8");
 
+  const sourceCopy = path.join(ROOT, "public", "baseline", "lab-source.html");
+  fs.writeFileSync(sourceCopy, html, "utf8");
+  console.log(`  lab-source: ${sourceCopy} (pristine baseline for variant patching)`);
+
   const framerScripts = (html.match(/framerusercontent\.com\/sites/gi) ?? []).length;
   const totalScripts = (html.match(/<script/gi) ?? []).length;
   console.log(`Wrote ${OUT} (${(html.length / 1024).toFixed(0)} KB)`);

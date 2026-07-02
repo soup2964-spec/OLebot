@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadRun, visitIndex } from "@/lib/registry";
+import { getComparisonVariants } from "@/lib/deploy/promote";
+import { loadDeployState } from "@/lib/deploy/state";
 import { loadLoopState } from "@/lib/loop/state";
 
 export async function GET() {
@@ -10,9 +12,15 @@ export async function GET() {
 
   const lastGen = run.generations[run.generations.length - 1];
   const state = loadLoopState();
+  const deploy = loadDeployState();
+  const comparison = getComparisonVariants();
 
   return NextResponse.json({
     runVersion: state.runVersion,
+    deployVersion: deploy.deployVersion,
+    lastPromotedVariantId: deploy.lastPromotedVariantId,
+    deploy,
+    comparison,
     runId: run.id,
     updatedAt: run.createdAt,
     personaSetVersion: run.personaSetVersion,

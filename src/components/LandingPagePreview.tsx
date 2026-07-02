@@ -6,7 +6,15 @@ import { useEffect, useRef, useState } from "react";
 const PREVIEW_WIDTH = 1280;
 const PREVIEW_HEIGHT = 960;
 
-export function LandingPagePreview({ src, title }: { src: string; title: string }) {
+export function LandingPagePreview({
+  src,
+  title,
+  className = "",
+}: {
+  src: string;
+  title: string;
+  className?: string;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
 
@@ -23,7 +31,7 @@ export function LandingPagePreview({ src, title }: { src: string; title: string 
   return (
     <div
       ref={containerRef}
-      className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50"
+      className={`relative aspect-[4/3] w-full overflow-hidden bg-slate-50 ${className}`}
     >
       {scale > 0 && (
         <iframe

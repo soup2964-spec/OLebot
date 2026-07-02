@@ -1,5 +1,6 @@
 import posthog from "posthog-js";
 import { pushDataLayer } from "./gtm";
+import { pushLiveAnalytics } from "./live-track";
 
 declare global {
   interface Window {
@@ -44,6 +45,8 @@ export function identifyVariant(ctx: VariantContext) {
       body: JSON.stringify(payload),
     }).catch(() => {});
   }
+
+  pushLiveAnalytics(ctx, "session_start");
 }
 
 export function trackCtaClick(ctx: VariantContext, sectionId: string) {
@@ -55,6 +58,11 @@ export function trackCtaClick(ctx: VariantContext, sectionId: string) {
   window.clarity?.("set", "cta_variant", ctx.variantId);
   window.clarity?.("set", "cta_section", sectionId);
   window.clarity?.("event", "cta_click");
+
+  pushLiveAnalytics(ctx, "cta_click", {
+    sectionId,
+    converted: true,
+  });
 }
 
 export function trackScrollDepth(ctx: VariantContext, depthPct: number) {
@@ -62,6 +70,11 @@ export function trackScrollDepth(ctx: VariantContext, depthPct: number) {
 
   posthog.capture("scroll_depth", payload);
   pushDataLayer("scroll_depth", payload);
+
+  pushLiveAnalytics(ctx, "scroll_depth", {
+    scrollDepth: depthPct / 100,
+    scrollDepthPct: depthPct,
+  });
 }
 
 export function trackBounce(ctx: VariantContext, scrollDepth: number, dwellMs: number) {
@@ -73,4 +86,10 @@ export function trackBounce(ctx: VariantContext, scrollDepth: number, dwellMs: n
 
   posthog.capture("page_exit", payload);
   pushDataLayer("page_exit", payload);
+
+  pushLiveAnalytics(ctx, "page_exit", {
+    scrollDepth,
+    dwellMs,
+    bounced: scrollDepth < 0.15,
+  });
 }

@@ -2,12 +2,28 @@ import type { PageVariant } from "@/lib/schema/page";
 import type { Visit, VariantMetrics } from "@/lib/schema/events";
 
 /**
+ * Behavior weighting — the single source of truth for how much each simulated
+ * behavior counts toward a variant's fitness. Surfaced verbatim in the
+ * behavior report so the presented criteria never drift from the scoring.
+ *
+ * Rationale for the ordering:
+ *   conversion  dominates — only behavior that maps directly to revenue
+ *   scroll      strongest attention proxy (deep scroll precedes conversion)
+ *   bounce      early-abandonment guard (overlaps scroll; catches worst cases)
+ *   sentiment   softest, most subjective signal — kept small
+ */
+export const FITNESS_WEIGHTS = {
+  conversion: 0.6,
+  scroll: 0.2,
+  bounce: 0.1,
+  sentiment: 0.1,
+  /** Conversion rate at which the conversion term saturates (8% > 2-5% B2B benchmark). */
+  conversionCeiling: 0.08,
+} as const;
+
+/**
  * Fitness (0-100): conversion dominates, engagement quality refines.
- *   60% conversion rate (normalized against an 8% ceiling - generous vs the
- *       2-5% B2B SaaS benchmark so improvement stays visible)
- *   20% scroll depth
- *   10% inverse bounce rate
- *   10% mean sentiment (shifted to 0-1)
+ * Weights come from FITNESS_WEIGHTS above.
  */
 export function computeMetrics(variant: PageVariant, visits: Visit[]): VariantMetrics {
   const v = visits.filter((x) => x.variantId === variant.id);
@@ -26,10 +42,11 @@ export function computeMetrics(variant: PageVariant, visits: Visit[]): VariantMe
 
   const fitness =
     100 *
-    (0.6 * Math.min(1, conversionRate / 0.08) +
-      0.2 * avgScrollDepth +
-      0.1 * (1 - bounceRate) +
-      0.1 * ((meanSentiment + 2) / 4));
+    (FITNESS_WEIGHTS.conversion *
+      Math.min(1, conversionRate / FITNESS_WEIGHTS.conversionCeiling) +
+      FITNESS_WEIGHTS.scroll * avgScrollDepth +
+      FITNESS_WEIGHTS.bounce * (1 - bounceRate) +
+      FITNESS_WEIGHTS.sentiment * ((meanSentiment + 2) / 4));
 
   const perSection = variant.sections.map((s) => {
     const views = v.filter((x) => x.events.some((e) => e.type === "view_section" && e.sectionId === s.id));

@@ -1,7 +1,7 @@
 export const CRITERIA = [
   {
     id: "1",
-    short: "Initial versions",
+    short: "Page comparison",
     title: "The initial landing page versions",
     question: "What pages did we start with?",
   },

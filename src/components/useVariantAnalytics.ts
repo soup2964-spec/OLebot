@@ -7,6 +7,7 @@ import {
   trackBounce,
   trackScrollDepth,
 } from "@/lib/analytics/track";
+import { pushLiveAnalytics } from "@/lib/analytics/live-track";
 
 const MILESTONES = [25, 50, 75, 100];
 
@@ -68,4 +69,27 @@ export function useVariantAnalytics(
       window.removeEventListener("pagehide", onExit);
     };
   }, [ctx, scrollRoot]);
+
+  // Section visibility — powers live section engagement in the behavior report.
+  useEffect(() => {
+    const seen = new Set<string>();
+    const nodes = document.querySelectorAll<HTMLElement>("[data-section-id]");
+    if (!nodes.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting || entry.intersectionRatio < 0.35) continue;
+          const sectionId = (entry.target as HTMLElement).dataset.sectionId;
+          if (!sectionId || seen.has(sectionId)) continue;
+          seen.add(sectionId);
+          pushLiveAnalytics(ctx, "section_view", { sectionId });
+        }
+      },
+      { threshold: [0.35, 0.5] }
+    );
+
+    nodes.forEach((n) => observer.observe(n));
+    return () => observer.disconnect();
+  }, [ctx]);
 }

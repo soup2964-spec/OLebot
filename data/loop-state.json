@@ -1,11 +1,46 @@
 {
-  "runVersion": 10,
-  "lastSyncAt": "2026-07-02T05:11:14.042Z",
-  "lastVisitorCount": 15,
-  "heartbeatVisits": 15,
-  "lastCalibrationVersion": 10,
-  "lastRunId": "run-969073672",
+  "runVersion": 17,
+  "lastSyncAt": "2026-07-02T07:21:13.789Z",
+  "lastVisitorCount": 23,
+  "heartbeatVisits": 24,
+  "lastCalibrationVersion": 17,
+  "lastRunId": "run-976873401",
   "syncHistory": [
+    {
+      "at": "2026-07-02T07:21:13.789Z",
+      "visitors": 23,
+      "reason": "auto"
+    },
+    {
+      "at": "2026-07-02T06:26:44.492Z",
+      "visitors": 22,
+      "reason": "auto"
+    },
+    {
+      "at": "2026-07-02T06:18:49.275Z",
+      "visitors": 21,
+      "reason": "auto"
+    },
+    {
+      "at": "2026-07-02T06:11:54.278Z",
+      "visitors": 20,
+      "reason": "auto"
+    },
+    {
+      "at": "2026-07-02T05:57:15.242Z",
+      "visitors": 19,
+      "reason": "auto"
+    },
+    {
+      "at": "2026-07-02T05:54:03.858Z",
+      "visitors": 17,
+      "reason": "auto"
+    },
+    {
+      "at": "2026-07-02T05:45:00.845Z",
+      "visitors": 16,
+      "reason": "auto"
+    },
     {
       "at": "2026-07-02T05:11:14.042Z",
       "visitors": 15,

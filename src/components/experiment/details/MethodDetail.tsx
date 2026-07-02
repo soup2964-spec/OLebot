@@ -1,5 +1,7 @@
 import { PERSONA_SET_V1 } from "@/config/personas";
 import type { ExperimentRun } from "@/lib/schema/experiment";
+import { JUDGMENT_CRITERIA } from "@/lib/judgment/criteria";
+import { DECISION_THRESHOLDS } from "@/lib/stats/bayes";
 
 export function MethodDetail({ run }: { run: ExperimentRun | null }) {
   const totalVisits =
@@ -9,7 +11,8 @@ export function MethodDetail({ run }: { run: ExperimentRun | null }) {
     <div className="space-y-5">
       <p className="text-sm text-slate-600">
         Six objection-gated LLM personas visit landing pages. Thompson sampling allocates traffic.
-        Bayesian analysis promotes winners and breeds new variants.
+        Bayesian analysis promotes winners using the judgment criteria below, then the optimizer
+        breeds new variants from the evidence.
       </p>
 
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-700">
@@ -19,7 +22,9 @@ export function MethodDetail({ run }: { run: ExperimentRun | null }) {
         <span className="text-slate-300">→</span>
         <span>Thompson bandit</span>
         <span className="text-slate-300">→</span>
-        <span>Bayesian decisions</span>
+        <span>Judgment criteria</span>
+        <span className="text-slate-300">→</span>
+        <span>Bayesian promote/kill</span>
         <span className="text-slate-300">→</span>
         <span>Optimizer breeds</span>
       </div>
@@ -28,6 +33,58 @@ export function MethodDetail({ run }: { run: ExperimentRun | null }) {
         <StatChip label="Simulated visits" value={totalVisits.toLocaleString()} />
         <StatChip label="Personas" value="6" />
         <StatChip label="Allocation" value="Thompson sampling" />
+      </div>
+
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Judgment criteria
+        </h3>
+        <p className="mt-1 text-sm text-slate-600">
+          Every page comparison uses a two-tier framework. Tier 1 metrics decide promote/kill.
+          Tier 2 metrics explain why — they never override a statistical decision.
+        </p>
+
+        <div className="mt-3 space-y-3">
+          <CriteriaGroup
+            title="Tier 1 — Decision"
+            subtitle="What picks a winner"
+            items={JUDGMENT_CRITERIA.tier1}
+          />
+          <CriteriaGroup
+            title="Tier 2 — Diagnosis"
+            subtitle="Why it won or lost"
+            items={JUDGMENT_CRITERIA.tier2}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <h3 className="text-sm font-semibold text-slate-900">Decision order</h3>
+        <ol className="mt-3 space-y-2">
+          {JUDGMENT_CRITERIA.decisionOrder.map((step, i) => (
+            <li key={step} className="flex gap-2 text-xs leading-relaxed text-slate-600">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">
+                {i + 1}
+              </span>
+              <span className="pt-0.5">{step}</span>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <ThresholdChip
+            label="Promote threshold"
+            value={`P(best) ≥ ${(DECISION_THRESHOLDS.promotePBest * 100).toFixed(0)}%`}
+          />
+          <ThresholdChip
+            label="Kill threshold"
+            value={`P(beats baseline) < ${(DECISION_THRESHOLDS.killPBeatBaseline * 100).toFixed(0)}%`}
+          />
+          <ThresholdChip
+            label="Bounce guardrail"
+            value={`≤ baseline × ${DECISION_THRESHOLDS.guardrailBounceRelMax}`}
+          />
+          <ThresholdChip label="Prior" value="Beta(3, 97) — ~3% B2B demo-booking benchmark" />
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -40,8 +97,8 @@ export function MethodDetail({ run }: { run: ExperimentRun | null }) {
           body="Thompson sampling routes visits using Beta posteriors — winners earn traffic over time."
         />
         <MethodCard
-          title="Winner selection"
-          body="Promote at P(best) ≥ 95%. Kill at P(beat baseline) < 5%. Fitness blends conversion, scroll, bounce, and sentiment."
+          title="Why not t-tests"
+          body="Adaptive allocation violates fixed-split assumptions. Posterior P(best) is an always-valid stopping rule that supports continuous evaluation."
         />
       </div>
 
@@ -77,6 +134,49 @@ function MethodCard({ title, body }: { title: string; body: string }) {
     <div className="rounded-xl border border-slate-200 bg-white p-4">
       <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
       <p className="mt-2 text-xs leading-relaxed text-slate-600">{body}</p>
+    </div>
+  );
+}
+
+function CriteriaGroup({
+  title,
+  subtitle,
+  items,
+}: {
+  title: string;
+  subtitle: string;
+  items: readonly { label: string; role: string; description: string }[];
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
+        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+          {subtitle}
+        </span>
+      </div>
+      <ul className="mt-3 space-y-3">
+        {items.map((item) => (
+          <li key={item.label} className="border-t border-slate-100 pt-3 first:border-0 first:pt-0">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-sm font-medium text-slate-900">{item.label}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-schole-primary">
+                {item.role}
+              </span>
+            </div>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">{item.description}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ThresholdChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-0.5 text-xs font-medium text-slate-800">{value}</div>
     </div>
   );
 }

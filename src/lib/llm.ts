@@ -1,23 +1,43 @@
 /**
- * Minimal LLM client (OpenAI-compatible chat completions, JSON output).
- * No SDK dependency; model + key from env.
+ * Unified LLM client for JSON structured output.
+ * Provider: KIE AI (Claude) or OpenAI-compatible chat completions.
+ *
+ * Set LLM_PROVIDER=kie + KIE_API_KEY, or OPENAI_API_KEY for OpenAI.
  */
 
-const API_URL = process.env.OPENAI_BASE_URL
+import { kieChatJSON, kieChatJSONRetry, KIE_MODEL } from "./kie-claude";
+
+export type LLMProvider = "kie" | "openai";
+
+export type ChatJSONOptions = {
+  temperature?: number;
+  model?: string;
+  maxTokens?: number;
+  thinkingFlag?: boolean;
+};
+
+const OPENAI_API_URL = process.env.OPENAI_BASE_URL
   ? `${process.env.OPENAI_BASE_URL}/chat/completions`
   : "https://api.openai.com/v1/chat/completions";
 
 export const LLM_MODEL = process.env.LLM_MODEL || "gpt-4o-mini";
 
-export async function chatJSON<T>(
+export function llmProvider(): LLMProvider {
+  const explicit = process.env.LLM_PROVIDER?.toLowerCase();
+  if (explicit === "kie" || explicit === "openai") return explicit;
+  if (process.env.KIE_API_KEY) return "kie";
+  return "openai";
+}
+
+async function openaiChatJSON<T>(
   system: string,
   user: string,
-  opts: { temperature?: number; model?: string; maxTokens?: number } = {}
+  opts: ChatJSONOptions = {}
 ): Promise<T> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error("OPENAI_API_KEY is not set");
 
-  const res = await fetch(API_URL, {
+  const res = await fetch(OPENAI_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -48,17 +68,47 @@ export async function chatJSON<T>(
   return JSON.parse(content) as T;
 }
 
+export async function chatJSON<T>(
+  system: string,
+  user: string,
+  opts: ChatJSONOptions = {}
+): Promise<T> {
+  if (llmProvider() === "kie") {
+    return kieChatJSON<T>(system, user, {
+      model: opts.model ?? KIE_MODEL,
+      maxTokens: opts.maxTokens,
+      temperature: opts.temperature,
+      thinkingFlag: opts.thinkingFlag,
+    });
+  }
+  return openaiChatJSON<T>(system, user, opts);
+}
+
 /** Retry wrapper for transient failures / malformed JSON. */
 export async function chatJSONRetry<T>(
   system: string,
   user: string,
-  opts: { temperature?: number; model?: string; maxTokens?: number } = {},
+  opts: ChatJSONOptions = {},
   attempts = 3
 ): Promise<T> {
+  if (llmProvider() === "kie") {
+    return kieChatJSONRetry<T>(
+      system,
+      user,
+      {
+        model: opts.model ?? KIE_MODEL,
+        maxTokens: opts.maxTokens,
+        temperature: opts.temperature,
+        thinkingFlag: opts.thinkingFlag,
+      },
+      attempts
+    );
+  }
+
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
-      return await chatJSON<T>(system, user, opts);
+      return await openaiChatJSON<T>(system, user, opts);
     } catch (err) {
       lastErr = err;
       await new Promise((r) => setTimeout(r, 1500 * (i + 1)));

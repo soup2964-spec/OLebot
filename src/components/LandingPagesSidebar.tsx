@@ -189,10 +189,18 @@ export function LandingPagesGrid({
         />
 
         <div className="min-w-[10rem] text-center">
-          <p className="text-sm font-semibold text-slate-900">Experiment {experimentNumber}</p>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Previews {previewStart}–{previewEnd} of {variants.length}
-          </p>
+          {embedded ? (
+            <p className="text-xs text-slate-500">
+              Previews {previewStart}–{previewEnd} of {variants.length}
+            </p>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-slate-900">Experiment {experimentNumber}</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Previews {previewStart}–{previewEnd} of {variants.length}
+              </p>
+            </>
+          )}
         </div>
 
         <NavArrow

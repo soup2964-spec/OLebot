@@ -2,6 +2,7 @@ import { fetchPostHogMetrics } from "@/lib/calibration/posthog";
 import { computeCalibration } from "@/lib/calibration/calibrate";
 import { loadCalibration, saveCalibration } from "@/lib/calibration/store";
 import { runDemoExperiment, simulatedMetricsFromRun } from "@/lib/evolve/demo-run";
+import { promoteAndDeploy, type PromoteResult } from "@/lib/deploy/promote";
 import { invalidateRunCache, loadRun, saveRun } from "@/lib/registry";
 import {
   loadLoopState,
@@ -29,6 +30,7 @@ export interface SyncResult {
   runVersion?: number;
   calibrationVersion?: number;
   liveVisitors?: number;
+  deploy?: PromoteResult;
 }
 
 async function liveVisitorCount(): Promise<number> {
@@ -149,12 +151,16 @@ export async function syncLoop(force = false): Promise<SyncResult> {
   };
   saveLoopState(next);
 
+  const forceBest = process.env.AUTO_DEPLOY_BEST !== "0";
+  const deploy = promoteAndDeploy(run, { forceBest });
+
   return {
     synced: true,
     reason: force ? "Manual sync completed" : "Auto-sync triggered by new traffic",
     runVersion: next.runVersion,
     calibrationVersion: calibration.version,
     liveVisitors: status.liveVisitors,
+    deploy,
   };
 }
 

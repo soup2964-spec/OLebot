@@ -1,17 +1,37 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ExperimentRun, GenerationRun } from "@/lib/schema/experiment";
 import type { VisitIndex } from "@/lib/registry";
 import type { PageVariant } from "@/lib/schema/page";
-import { LandingPagesGrid } from "@/components/LandingPagesSidebar";
+import { CRITERIA } from "@/config/criteria";
+import { buildJudgmentsFromMetrics } from "@/lib/judgment/criteria";
+import { DeployBanner } from "@/components/experiment/DeployBanner";
+import { ExperimentDetailPanel } from "@/components/experiment/ExperimentDetailPanel";
 import {
-  ExperimentDetailPanel,
-  type DetailTab,
-} from "@/components/experiment/ExperimentDetailPanel";
+  PageComparisonView,
+  snapshotFromRun,
+} from "@/components/experiment/PageComparisonView";
+import {
+  ExperimentSideMenu,
+  type WorkbenchView,
+} from "@/components/experiment/ExperimentSideMenu";
 
 interface RunPayload {
   runVersion: number;
+  deployVersion?: number;
+  lastPromotedVariantId?: string | null;
+  deploy?: {
+    deployVersion: number;
+    lastPromotedVariantId: string | null;
+    history?: { reason: string }[];
+  };
+  comparison?: {
+    previous: PageVariant[];
+    current: PageVariant[];
+    deployVersion: number;
+    lastPromotedVariantId: string | null;
+  };
   variants: PageVariant[];
   index: VisitIndex;
   generations?: Array<
@@ -60,8 +80,20 @@ export function ExperimentWorkbench({
   const [run, setRun] = useState(initialRun);
   const [variants, setVariants] = useState(initialVariants);
   const [visitIndex, setVisitIndex] = useState(initialIndex);
-  const [activeTab, setActiveTab] = useState<DetailTab>("method");
+  const [activeView, setActiveView] = useState<WorkbenchView>("versions");
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [comparisonVariantId, setComparisonVariantId] = useState<string | null>(null);
+  const [runVersion, setRunVersion] = useState(initialRunVersion);
+  const [deployVersion, setDeployVersion] = useState(0);
+  const [lastPromotedVariantId, setLastPromotedVariantId] = useState<string | null>(null);
+  const [lastDeployReason, setLastDeployReason] = useState<string | null>(null);
+  const [comparisonVariants, setComparisonVariants] = useState<{
+    previous: PageVariant[];
+    current: PageVariant[];
+  } | null>(null);
+  const [iteration, setIteration] = useState(Math.max(1, initialRunVersion + 1));
+
+  const maxIteration = Math.max(1, runVersion + 1);
 
   const refresh = useCallback(async () => {
     try {
@@ -70,7 +102,25 @@ export function ExperimentWorkbench({
       const data = (await res.json()) as RunPayload;
       setVariants(data.variants);
       setVisitIndex(data.index);
+      setDeployVersion(data.deployVersion ?? data.deploy?.deployVersion ?? 0);
+      setLastPromotedVariantId(
+        data.lastPromotedVariantId ?? data.deploy?.lastPromotedVariantId ?? null
+      );
+      setLastDeployReason(data.deploy?.history?.[0]?.reason ?? null);
+      if (data.comparison) {
+        setComparisonVariants({
+          previous: data.comparison.previous,
+          current: data.comparison.current,
+        });
+      }
       setRun((prev) => runFromPayload(prev, data));
+      setRunVersion((prev) => {
+        const next = data.runVersion;
+        if (next > prev) {
+          setIteration(next + 1);
+        }
+        return next;
+      });
     } catch {
       /* ignore */
     }
@@ -81,39 +131,78 @@ export function ExperimentWorkbench({
     return () => clearInterval(t);
   }, [refresh]);
 
+  useEffect(() => {
+    setIteration((i) => Math.min(Math.max(1, i), maxIteration));
+  }, [maxIteration]);
+
   const handleSelectVariant = (variantId: string) => {
     setSelectedVariantId(variantId);
-    setActiveTab("behavior");
+    setActiveView("behavior");
   };
 
-  return (
-    <div className="min-h-[calc(100vh-65px)] bg-slate-100 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] xl:grid-cols-[minmax(0,1fr)_480px]">
-      {/* Left: preview grid — unchanged card behavior */}
-      <div className="border-b border-slate-200 lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)] lg:overflow-y-auto lg:border-b-0 lg:border-r">
-        <div className="p-6">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Initial landing page versions
-          </p>
-          <LandingPagesGrid
-            embedded
-            initialVariants={initialVariants}
-            initialRunVersion={initialRunVersion}
-            selectedVariantId={selectedVariantId}
-            onSelectVariant={handleSelectVariant}
-          />
-        </div>
-      </div>
+  const judgmentsByVariant = useMemo(() => {
+    const lastGen = run?.generations[run.generations.length - 1];
+    if (!lastGen?.metrics) return {};
+    return buildJudgmentsFromMetrics(lastGen.metrics, lastGen.decisions);
+  }, [run]);
 
-      {/* Right: experiment detail tabs */}
-      <div className="flex min-h-[480px] flex-col bg-white lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)]">
-        <ExperimentDetailPanel
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          run={run}
-          variants={variants}
-          visitIndex={visitIndex}
-          selectedVariantId={selectedVariantId}
-        />
+  const currentSnapshot = useMemo(() => {
+    const gridVariants = comparisonVariants?.current ?? variants;
+    return snapshotFromRun(deployVersion || iteration, gridVariants, judgmentsByVariant);
+  }, [comparisonVariants, variants, deployVersion, iteration, judgmentsByVariant]);
+
+  const previousSnapshot = useMemo(() => {
+    if (!comparisonVariants?.previous?.length || deployVersion === 0) return null;
+    return snapshotFromRun(Math.max(1, deployVersion - 1), comparisonVariants.previous);
+  }, [comparisonVariants, deployVersion]);
+
+  const comparisonMeta = CRITERIA.find((c) => c.id === "1");
+
+  return (
+    <div className="flex min-h-[calc(100vh-65px)] bg-slate-100">
+      <ExperimentSideMenu
+        activeView={activeView}
+        onViewChange={setActiveView}
+        iteration={iteration}
+        maxIteration={maxIteration}
+        onPrevIteration={() => setIteration((i) => Math.max(1, i - 1))}
+        onNextIteration={() => setIteration((i) => Math.min(maxIteration, i + 1))}
+      />
+
+      <div className="min-w-0 flex-1 overflow-y-auto lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)]">
+        {activeView === "versions" ? (
+          <div className="p-6">
+            {comparisonMeta && (
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-slate-900">{comparisonMeta.title}</h2>
+                <p className="mt-1 text-sm text-slate-500">{comparisonMeta.question}</p>
+              </div>
+            )}
+            <DeployBanner
+              deployVersion={deployVersion}
+              lastPromotedVariantId={lastPromotedVariantId}
+              lastDeployReason={lastDeployReason}
+            />
+            <PageComparisonView
+              experimentNumber={deployVersion || iteration}
+              previousSnapshot={previousSnapshot}
+              currentSnapshot={currentSnapshot}
+              selectedVariantId={comparisonVariantId}
+              onSelectVariant={setComparisonVariantId}
+              onViewBehavior={handleSelectVariant}
+            />
+          </div>
+        ) : (
+          <div className="bg-white">
+            <ExperimentDetailPanel
+              activeView={activeView}
+              run={run}
+              variants={variants}
+              visitIndex={visitIndex}
+              selectedVariantId={selectedVariantId}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -11,7 +11,12 @@ const BASELINE_ID = "v0-baseline";
 /** Static HTML path when prepare-variant-html has pre-built the replica. */
 export function staticReplicaPath(variantId: string): string | null {
   if (variantId === BASELINE_ID) return "/baseline/index.html";
-  if (GENERATION_0.some((v) => v.id === variantId)) {
+  if (variantId === "production") return "/baseline/variants/production.html";
+  if (
+    GENERATION_0.some((v) => v.id === variantId) ||
+    variantId.startsWith("g") ||
+    variantId.startsWith("v")
+  ) {
     return `/baseline/variants/${variantId}.html`;
   }
   return null;

@@ -1,6 +1,7 @@
 import { GENERATION_0 } from "@/config/variants";
 import type { PageVariant } from "@/lib/schema/page";
 import type { ExperimentRun } from "@/lib/schema/experiment";
+import { loadDeployState } from "@/lib/deploy/state";
 import fs from "fs";
 import path from "path";
 
@@ -36,13 +37,35 @@ export function invalidateRunCache() {
   cachedRun = undefined;
 }
 
+export function getGen0Variants(): PageVariant[] {
+  const deploy = loadDeployState();
+  return deploy.currentVariants?.length ? deploy.currentVariants : GENERATION_0;
+}
+
+export function getProductionVariant(): PageVariant | null {
+  const deploy = loadDeployState();
+  if (deploy.deployVersion === 0) return null;
+  const baseline = deploy.currentVariants.find((v) => v.id === "v0-baseline");
+  if (!baseline) return null;
+  return {
+    ...baseline,
+    id: "production",
+    name: "Production (auto-deployed winner)",
+    strategy: "baseline",
+  };
+}
+
 export function allVariants(): PageVariant[] {
   const run = loadRun();
-  if (run) return run.variants;
-  return GENERATION_0;
+  const gen0 = getGen0Variants();
+  const gen0Ids = new Set(gen0.map((v) => v.id));
+  const bred = run?.variants.filter((v) => !gen0Ids.has(v.id)) ?? [];
+  const production = getProductionVariant();
+  return [...gen0, ...bred, ...(production ? [production] : [])];
 }
 
 export function getVariant(id: string): PageVariant | undefined {
+  if (id === "production") return getProductionVariant() ?? undefined;
   return allVariants().find((v) => v.id === id);
 }
 

@@ -9,6 +9,7 @@
     "lint": "eslint",
     "experiment": "tsx scripts/run-experiment.ts",
     "demo": "tsx scripts/generate-demo-run.ts",
+    "deploy:html": "tsx scripts/regenerate-variant-html.ts",
     "aa-test": "tsx scripts/aa-test.ts",
     "prepare:baseline": "tsx scripts/prepare-baseline-html.ts",
     "prepare:variants": "tsx scripts/prepare-variant-html.ts",
@@ -17,6 +18,7 @@
     "prebuild": "npm run prepare:pages"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.0",
     "dotenv": "^17.4.2",
     "next": "16.2.10",
     "posthog-js": "^1.396.4",

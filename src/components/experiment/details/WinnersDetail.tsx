@@ -1,6 +1,6 @@
 import type { ExperimentRun } from "@/lib/schema/experiment";
 import type { PageVariant } from "@/lib/schema/page";
-import type { VariantDecision } from "@/lib/stats/bayes";
+import { DecisionChip } from "@/components/experiment/DecisionChip";
 
 export function WinnersDetail({
   run,
@@ -42,7 +42,7 @@ export function WinnersDetail({
                 Fitness {m.fitness.toFixed(1)}
                 {d ? ` · P(best) ${(d.pBest * 100).toFixed(0)}%` : ""}
               </p>
-              {d && <DecisionChip decision={d} />}
+              {d && <DecisionChip decision={d} className="mt-2" />}
             </div>
           );
         })}
@@ -119,23 +119,5 @@ export function WinnersDetail({
         </div>
       )}
     </div>
-  );
-}
-
-function DecisionChip({ decision }: { decision: VariantDecision }) {
-  const styles: Record<VariantDecision["status"], string> = {
-    promoted: "bg-emerald-100 text-emerald-800",
-    killed: "bg-rose-100 text-rose-800",
-    collecting: "bg-slate-100 text-slate-600",
-  };
-  const labels: Record<VariantDecision["status"], string> = {
-    promoted: "Promoted",
-    killed: "Killed",
-    collecting: "Collecting",
-  };
-  return (
-    <span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${styles[decision.status]}`}>
-      {labels[decision.status]}
-    </span>
   );
 }
