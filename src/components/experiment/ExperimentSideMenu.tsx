@@ -9,10 +9,11 @@ const MENU_ITEMS: { id: WorkbenchView; criterionId: string }[] = [
   { id: "control", criterionId: "0" },
   { id: "versions", criterionId: "1" },
   { id: "method", criterionId: "2" },
-  { id: "behavior", criterionId: "3" },
-  { id: "winners", criterionId: "4" },
-  { id: "new", criterionId: "5" },
-  { id: "changelog", criterionId: "6" },
+  { id: "personas", criterionId: "3" },
+  { id: "behavior", criterionId: "4" },
+  { id: "winners", criterionId: "5" },
+  { id: "new", criterionId: "6" },
+  { id: "changelog", criterionId: "7" },
 ];
 
 function NavArrow({

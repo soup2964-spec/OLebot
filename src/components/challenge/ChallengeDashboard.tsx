@@ -4,6 +4,7 @@ import { PERSONA_SET_V1 } from "@/config/personas";
 import { ChallengeSection, schole, StatCard } from "@/components/schole-ui";
 import { ChallengeBehaviorPreview } from "@/components/challenge/ChallengeBehaviorPreview";
 import { ChallengeResultsBlock } from "@/components/challenge/ChallengeResultsBlock";
+import { PersonaResearchLinks } from "@/components/experiment/details/PersonaResearchLinks";
 import { allVariantsSync, loadRunSync, visitIndex } from "@/lib/registry";
 
 export function ChallengeDashboard() {
@@ -58,7 +59,7 @@ export function ChallengeDashboard() {
 
       <ChallengeSection
         n="1"
-        title={CRITERIA[0].title}
+        title={CRITERIA.find((c) => c.id === "1")!.title}
         subtitle="Six Generation-0 pages on the exact schole.ai Framer layout. All pages are listed on the left — click any preview to open the live page."
       >
         <div className="space-y-2">
@@ -88,15 +89,22 @@ export function ChallengeDashboard() {
 
       <ChallengeSection
         n="2"
-        title={CRITERIA[1].title}
-        subtitle="Objection-gated LLM personas · Thompson sampling · Bayesian promote/kill · separate evaluator and optimizer agents."
+        title={CRITERIA.find((c) => c.id === "2")!.title}
+        subtitle="Conversion-first fitness, funnel diagnostics, Bayesian winner comparison, and LLM copy evaluation."
       >
         <div className="grid gap-4 md:grid-cols-3">
-          <MethodCard title="Personas + objections" body="6 buyers from 2025–26 research, each with a ledger of critical objections that must be resolved to convert." />
-          <MethodCard title="Traffic allocation" body="Thompson sampling routes each simulated visit using Beta posteriors — winners earn traffic over time." />
-          <MethodCard title="Winner selection" body="Promote at P(best) ≥ 95%. Kill at P(beat baseline) < 5%. Conversion-first fitness = 80% book_demo_click + 10% scroll_depth + 5% $pageleave + 5% section_viewed." />
+          <MethodCard title="Fitness score" body="80% book_demo_click · 10% scroll · 5% non-bounce · 5% section reach. Ranks variants; does not alone declare a winner." />
+          <MethodCard title="Funnel metrics" body="CTA exposure → CTR → demo rate. Explains why conversion moved — layout vs copy problem." />
+          <MethodCard title="Winner comparison" body="Promote at P(best) ≥ 95%. Kill at P(beat baseline) < 5%. Bounce guardrail blocks false wins." />
         </div>
-        <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      </ChallengeSection>
+
+      <ChallengeSection
+        n="3"
+        title={CRITERIA.find((c) => c.id === "3")!.title}
+        subtitle="Six L&D buyers from 2025–26 research. Each has critical objections that must be resolved before a demo click counts."
+      >
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {PERSONA_SET_V1.personas.map((p) => (
             <div key={p.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
               <div className="flex justify-between text-sm font-medium text-slate-900">
@@ -104,15 +112,17 @@ export function ChallengeDashboard() {
                 <span className="text-xs text-slate-500">{(p.trafficWeight * 100).toFixed(0)}%</span>
               </div>
               <p className="text-[11px] text-slate-500">{p.role}</p>
+              <p className="mt-1 line-clamp-2 text-[11px] text-slate-600">{p.profile}</p>
             </div>
           ))}
         </div>
+        <PersonaResearchLinks className="mt-5" />
       </ChallengeSection>
 
       <ChallengeSection
-        n="3"
-        title={CRITERIA[2].title}
-        subtitle="Pick a visit below to replay scroll path, section engagement, and the agent's reasoning."
+        n="4"
+        title={CRITERIA.find((c) => c.id === "4")!.title}
+        subtitle="Select a persona, pick a visit, and replay scroll path, section engagement, and the agent's reasoning."
       >
         {run ? (
           <ChallengeBehaviorPreview initialIndex={visitIndex(run)} initialVariants={variants} />
@@ -122,8 +132,8 @@ export function ChallengeDashboard() {
       </ChallengeSection>
 
       <ChallengeSection
-        n="4"
-        title={CRITERIA[3].title}
+        n="5"
+        title={CRITERIA.find((c) => c.id === "5")!.title}
         subtitle="Bayesian leaderboard per generation with credible intervals, P(best), and promote/kill decisions."
       >
         {run ? (
@@ -134,8 +144,8 @@ export function ChallengeDashboard() {
       </ChallengeSection>
 
       <ChallengeSection
-        n="5"
-        title={CRITERIA[4].title}
+        n="6"
+        title={CRITERIA.find((c) => c.id === "6")!.title}
         subtitle="Pages bred by the optimizer from behavioral evidence on winners and strong parent sections."
       >
         {bred.length > 0 ? (
@@ -163,8 +173,8 @@ export function ChallengeDashboard() {
       </ChallengeSection>
 
       <ChallengeSection
-        n="6"
-        title={CRITERIA[5].title}
+        n="7"
+        title={CRITERIA.find((c) => c.id === "7")!.title}
         subtitle="Full changelogs with the simulated behavior and evaluator evidence behind each copy change."
       >
         {bred.some((v) => v.changelog?.length) ? (

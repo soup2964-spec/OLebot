@@ -40,7 +40,7 @@ export function ChallengeSection({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-widest text-schole-primary">
-              Criterion {n} of 6
+              Criterion {n} of {CRITERIA.length - 1}
               {meta ? ` · ${meta.short}` : ""}
             </p>
             <h2 className="mt-1 text-xl font-semibold leading-tight text-slate-900 md:text-2xl">

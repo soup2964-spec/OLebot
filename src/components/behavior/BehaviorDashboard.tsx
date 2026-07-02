@@ -17,17 +17,26 @@ type OutcomeFilter = "all" | "converted" | "lost" | "bounced";
 export function BehaviorDashboard({
   index,
   variants,
+  initialVariantId,
 }: {
   index: VisitIndex;
   variants: PageVariant[];
+  /** Pre-select variant from workbench page comparison. */
+  initialVariantId?: string | null;
 }) {
   const [genIdx, setGenIdx] = useState(index.length - 1);
-  const [variantId, setVariantId] = useState(index[index.length - 1]?.variantIds[0] ?? "");
+  const [variantId, setVariantId] = useState(
+    initialVariantId ?? index[index.length - 1]?.variantIds[0] ?? ""
+  );
   const [personaFilter, setPersonaFilter] = useState<string>("all");
   const [outcomeFilter, setOutcomeFilter] = useState<OutcomeFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [visit, setVisit] = useState<Visit | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialVariantId) setVariantId(initialVariantId);
+  }, [initialVariantId]);
 
   const gen = index[genIdx];
   const variant = variants.find((v) => v.id === variantId);
@@ -52,6 +61,25 @@ export function BehaviorDashboard({
       avgScroll: visits.reduce((s, v) => s + v.scrollDepth, 0) / n,
       avgDwell: visits.reduce((s, v) => s + v.totalDwellMs, 0) / n,
     };
+  }, [gen, variantId]);
+
+  const personaStats = useMemo(() => {
+    const visits = gen?.visits.filter((v) => v.variantId === variantId) ?? [];
+    return new Map(
+      PERSONA_SET_V1.personas.map((p) => {
+        const mine = visits.filter((v) => v.personaId === p.id);
+        const n = mine.length || 1;
+        return [
+          p.id,
+          {
+            visits: mine.length,
+            conversionRate: mine.filter((v) => v.converted).length / n,
+            bounceRate: mine.filter((v) => v.bounced).length / n,
+            avgScroll: mine.reduce((s, v) => s + v.scrollDepth, 0) / n,
+          },
+        ] as const;
+      })
+    );
   }, [gen, variantId]);
 
   const fetchVisit = useCallback(async (id: string, generation: number) => {
@@ -82,6 +110,38 @@ export function BehaviorDashboard({
 
   return (
     <div className="space-y-6">
+      {/* Persona strip — who visited and how they behaved on this variant */}
+      <div
+        className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+        aria-label="Buyer personas"
+      >
+        <PersonaCard
+          active={personaFilter === "all"}
+          name="All personas"
+          role="Combined traffic mix"
+          stat={`${stats.visits} visits · ${(stats.conversionRate * 100).toFixed(0)}% conv`}
+          onClick={() => setPersonaFilter("all")}
+        />
+        {PERSONA_SET_V1.personas.map((p) => {
+          const row = personaStats.get(p.id)!;
+          return (
+            <PersonaCard
+              key={p.id}
+              active={personaFilter === p.id}
+              name={p.name}
+              role={p.role}
+              stat={
+                row.visits
+                  ? `${row.visits} visits · ${(row.conversionRate * 100).toFixed(0)}% conv`
+                  : `${(p.trafficWeight * 100).toFixed(0)}% traffic mix`
+              }
+              onClick={() => setPersonaFilter(personaFilter === p.id ? "all" : p.id)}
+            />
+          );
+        })}
+      </div>
+
       {/* KPI strip */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Visits" value={String(stats.visits)} />
@@ -205,7 +265,10 @@ export function BehaviorDashboard({
           )}
 
           {metrics && (
-            <PersonaBreakdown metrics={metrics} />
+            <>
+              <PersonaBreakdown metrics={metrics} />
+              <ObjectionFailures metrics={metrics} variantName={variant?.name} />
+            </>
           )}
         </div>
       </div>
@@ -312,6 +375,82 @@ function SelectedVisitHeader({
         <LegendDot color="bg-rose-500" label="Bounce" />
       </div>
     </div>
+  );
+}
+
+function PersonaCard({
+  active,
+  name,
+  role,
+  stat,
+  onClick,
+}: {
+  active: boolean;
+  name: string;
+  role: string;
+  stat: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`flex min-w-[9.5rem] flex-1 shrink-0 flex-col rounded-xl border px-3 py-3 text-left transition ${
+        active
+          ? "border-schole-primary/40 bg-schole-primary/5 ring-2 ring-schole-primary/30 shadow-md"
+          : "border-slate-200 bg-white hover:shadow-sm"
+      }`}
+    >
+      <span className="text-sm font-semibold leading-tight text-slate-900">{name}</span>
+      <span className="mt-0.5 line-clamp-2 text-[11px] text-slate-600">{role}</span>
+      <span className="mt-2 truncate font-mono text-[10px] font-medium text-slate-500">{stat}</span>
+    </button>
+  );
+}
+
+function ObjectionFailures({
+  metrics,
+  variantName,
+}: {
+  metrics: { objectionFailures?: Record<string, number> };
+  variantName?: string;
+}) {
+  const failures = metrics.objectionFailures ?? {};
+  const entries = Object.entries(failures)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6);
+
+  if (entries.length === 0) return null;
+
+  const max = Math.max(1, ...entries.map(([, c]) => c));
+
+  return (
+    <section className="rounded-2xl border border-rose-100 bg-rose-50/30 p-5">
+      <h2 className="text-sm font-semibold text-slate-900">
+        Why non-converters left{variantName ? ` · ${variantName}` : ""}
+      </h2>
+      <p className="mt-1 text-xs text-slate-600">
+        Critical objections still unresolved at exit — explains lost demo bookings.
+      </p>
+      <div className="mt-4 space-y-2">
+        {entries.map(([objection, count]) => (
+          <div key={objection}>
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium text-slate-700">{objection.replace(/_/g, " ")}</span>
+              <span className="tabular-nums text-slate-500">{count} lost</span>
+            </div>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-white">
+              <div
+                className="h-full rounded-full bg-rose-400"
+                style={{ width: `${(count / max) * 100}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

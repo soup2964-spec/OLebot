@@ -7,22 +7,24 @@ import type { PageVariant } from "@/lib/schema/page";
 import type { VariantJudgment } from "@/lib/judgment/criteria";
 import { BehaviorReport } from "./details/BehaviorReport";
 import { ChangelogDetail } from "./details/ChangelogDetail";
+import { PersonasDetail } from "./details/PersonasDetail";
 import { MethodDetail } from "./details/MethodDetail";
 import { NewVariantsDetail } from "./details/NewVariantsDetail";
 import { VersionsDetail } from "./details/VersionsDetail";
 import { WinnersDetail } from "./details/WinnersDetail";
 import type { WorkbenchView } from "./ExperimentSideMenu";
 
-export type DetailTab = "method" | "behavior" | "winners" | "new" | "changelog";
+export type DetailTab = "method" | "personas" | "behavior" | "winners" | "new" | "changelog";
 
 const VIEW_CRITERION: Record<WorkbenchView, string> = {
   control: "0",
   versions: "1",
   method: "2",
-  behavior: "3",
-  winners: "4",
-  new: "5",
-  changelog: "6",
+  personas: "3",
+  behavior: "4",
+  winners: "5",
+  new: "6",
+  changelog: "7",
 };
 
 export function ExperimentDetailPanel({
@@ -58,6 +60,7 @@ export function ExperimentDetailPanel({
 
         {activeView === "versions" && <VersionsDetail variants={variants} />}
         {activeView === "method" && <MethodDetail />}
+        {activeView === "personas" && <PersonasDetail />}
         {activeView === "behavior" && (
           <BehaviorReport
             run={run}
@@ -66,7 +69,9 @@ export function ExperimentDetailPanel({
             selectedVariantId={selectedVariantId}
           />
         )}
-        {activeView === "winners" && <WinnersDetail run={run} variants={variants} />}
+        {activeView === "winners" && (
+          <WinnersDetail run={run} variants={variants} judgmentsByVariant={judgmentsByVariant} />
+        )}
         {activeView === "new" && (
           <NewVariantsDetail run={run} variants={variants} bredVariants={bredVariants} />
         )}
