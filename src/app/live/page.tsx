@@ -1,5 +1,5 @@
-import { LiveDashboardShell } from "@/components/Nav";
-import { LandingPagesSidebar } from "@/components/LandingPagesSidebar";
+import { AppShell } from "@/components/Nav";
+import { LandingPagesGrid } from "@/components/LandingPagesSidebar";
 import { LiveDashboard } from "@/components/live/LiveDashboard";
 import { loadRun } from "@/lib/registry";
 
@@ -20,11 +20,8 @@ export default function LivePage() {
     : undefined;
 
   return (
-    <LiveDashboardShell
-      sidebar={<LandingPagesSidebar />}
-      mobileSidebar={<LandingPagesSidebar compact />}
-    >
+    <AppShell menu={<LandingPagesGrid />} mobileMenu={<LandingPagesGrid compact />}>
       <LiveDashboard simulated={simulated} />
-    </LiveDashboardShell>
+    </AppShell>
   );
 }

@@ -1,14 +1,14 @@
-import { SimulationDashboardShell } from "@/components/Nav";
-import { LandingPagesSidebar } from "@/components/LandingPagesSidebar";
+import { AppShell } from "@/components/Nav";
+import { LandingPagesGrid } from "@/components/LandingPagesSidebar";
 import { ChallengeDashboard } from "@/components/challenge/ChallengeDashboard";
 
 export default function Home() {
   return (
-    <SimulationDashboardShell
-      sidebar={<LandingPagesSidebar />}
-      mobileSidebar={<LandingPagesSidebar compact />}
+    <AppShell
+      menu={<LandingPagesGrid />}
+      mobileMenu={<LandingPagesGrid compact />}
     >
       <ChallengeDashboard />
-    </SimulationDashboardShell>
+    </AppShell>
   );
 }
