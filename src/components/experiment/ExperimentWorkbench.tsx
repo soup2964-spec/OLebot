@@ -276,7 +276,7 @@ export function ExperimentWorkbench({
   const progressExperiment = progress?.experimentNumber ?? maxIteration;
 
   return (
-    <div className="flex min-h-[calc(100vh-65px)] bg-slate-100">
+    <div className="flex min-h-0 flex-1 overflow-hidden bg-slate-100">
       <ExperimentSideMenu
         activeView={activeView}
         onViewChange={setActiveView}
@@ -299,7 +299,7 @@ export function ExperimentWorkbench({
 
       <div
         key={`experiment-${iteration}-${iterationRun?.id ?? "none"}`}
-        className="min-w-0 flex-1 overflow-y-auto lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)]"
+        className="min-w-0 flex-1 overflow-y-auto"
       >
         {showProgressBar && progress && (
           <div className="sticky top-0 z-10 border-b border-slate-200 bg-slate-100/95 p-4 backdrop-blur">

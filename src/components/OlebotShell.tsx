@@ -8,9 +8,11 @@ export function OlebotShell({ children }: { children: React.ReactNode }) {
   const showHeader = !path.startsWith("/v/");
 
   return (
-    <>
+    <div className={showHeader ? "flex h-full min-h-0 flex-1 flex-col overflow-hidden" : undefined}>
       {showHeader && <OlebotHeader />}
-      {children}
-    </>
+      <div className={showHeader ? "flex min-h-0 flex-1 flex-col overflow-hidden" : undefined}>
+        {children}
+      </div>
+    </div>
   );
 }

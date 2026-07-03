@@ -83,7 +83,7 @@ export function ExperimentSideMenu({
 
   return (
     <nav
-      className="flex w-44 shrink-0 flex-col border-r border-slate-200 bg-white py-4 lg:w-48"
+      className="flex h-full w-44 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white py-4 lg:w-48"
       aria-label="Experiment sections"
     >
       <div className="mx-2 mb-4 space-y-2 border-b border-slate-100 pb-4">

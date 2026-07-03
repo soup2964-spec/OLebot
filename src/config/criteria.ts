@@ -36,7 +36,7 @@ export const CRITERIA = [
     id: "5",
     short: "Winners",
     title: "Which versions performed better",
-    question: "Who won and by how much?",
+    question: "Who won in simulation and by how much?",
   },
   {
     id: "6",

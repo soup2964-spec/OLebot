@@ -53,41 +53,39 @@ export function ExperimentDetailPanel({
   const meta = CRITERIA.find((c) => c.id === VIEW_CRITERION[activeView]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto p-5">
-        {meta && (
-          <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-schole-primary">
-              Experiment {experimentNumber ?? 1}
-            </p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">{meta.title}</h2>
-            <p className="mt-1 text-sm text-slate-500">{meta.question}</p>
-          </div>
-        )}
+    <div className="p-5">
+      {meta && (
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-schole-primary">
+            Experiment {experimentNumber ?? 1}
+          </p>
+          <h2 className="mt-1 text-lg font-semibold text-slate-900">{meta.title}</h2>
+          <p className="mt-1 text-sm text-slate-500">{meta.question}</p>
+        </div>
+      )}
 
-        {activeView === "versions" && <VersionsDetail variants={variants} />}
-        {activeView === "method" && <MethodDetail />}
-        {activeView === "personas" && <PersonasDetail />}
-        {activeView === "behavior" && (
-          <BehaviorReport
-            run={run}
-            index={visitIndex}
-            variants={variants}
-            selectedVariantId={selectedVariantId}
-            experimentMode={experimentMode}
-            llmPersonas={llmPersonas}
-          />
-        )}
-        {activeView === "winners" && (
-          <WinnersDetail run={run} variants={variants} judgmentsByVariant={judgmentsByVariant} />
-        )}
-        {activeView === "new" && (
-          <NewVariantsDetail run={run} variants={variants} bredVariants={bredVariants} />
-        )}
-        {activeView === "changelog" && (
-          <ChangelogDetail variants={variants} bredVariants={bredVariants} />
-        )}
-      </div>
+      {activeView === "versions" && <VersionsDetail variants={variants} />}
+      {activeView === "method" && <MethodDetail />}
+      {activeView === "personas" && <PersonasDetail />}
+      {activeView === "behavior" && (
+        <BehaviorReport
+          run={run}
+          index={visitIndex}
+          variants={variants}
+          selectedVariantId={selectedVariantId}
+          experimentMode={experimentMode}
+          llmPersonas={llmPersonas}
+        />
+      )}
+      {activeView === "winners" && (
+        <WinnersDetail run={run} variants={variants} judgmentsByVariant={judgmentsByVariant} />
+      )}
+      {activeView === "new" && (
+        <NewVariantsDetail run={run} variants={variants} bredVariants={bredVariants} />
+      )}
+      {activeView === "changelog" && (
+        <ChangelogDetail variants={variants} bredVariants={bredVariants} />
+      )}
     </div>
   );
 }
