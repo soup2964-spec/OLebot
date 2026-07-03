@@ -13,6 +13,7 @@ import { staticReplicaPath } from "@/lib/replica/paths";
 import { variantPageTitle } from "@/lib/variants/display-name";
 import { LandingPagePreview } from "@/components/LandingPagePreview";
 import { DecisionChip } from "@/components/experiment/DecisionChip";
+import { RobustnessDetail } from "./RobustnessDetail";
 
 export function WinnersDetail({
   run,
@@ -35,7 +36,12 @@ export function WinnersDetail({
   }, [gen]);
 
   if (!run?.generations.length) {
-    return <p className="text-sm text-slate-500">No results yet. Run an experiment to see winners.</p>;
+    return (
+      <div className="space-y-5">
+        <RobustnessDetail />
+        <p className="text-sm text-slate-500">No results yet. Run an experiment to see winners.</p>
+      </div>
+    );
   }
 
   if (!gen) {
@@ -47,6 +53,8 @@ export function WinnersDetail({
 
   return (
     <div className="space-y-5">
+      <RobustnessDetail />
+
       {run.generations.length > 1 && (
         <label className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
           <span className="font-medium text-slate-700">Generation</span>

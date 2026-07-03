@@ -104,7 +104,10 @@ export function MethodDetail() {
         <strong className="font-medium text-slate-800">Bayesian comparison</strong> decides
         promote/kill with guardrails, and an{" "}
         <strong className="font-medium text-slate-800">LLM evaluator</strong> diagnoses copy for
-        the next breeding round. Select a tier for the full criteria.
+        the next breeding round. Before promoting a winner, we also re-run gen-0 across multiple RNG
+        seeds and report ranking stability on the{" "}
+        <strong className="font-medium text-slate-800">Winners</strong> tab. Select a tier for the
+        full criteria.
       </p>
 
       {/* Horizontal tier selector — single row */}
