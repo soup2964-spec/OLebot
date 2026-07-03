@@ -129,15 +129,40 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
     }
   }
 
+  function patchScope(p) {
+    return document.querySelector('[data-section-id="' + p.sectionId + '"]') || document.body;
+  }
+
+  function targetPresent(p) {
+    if (!p.to) return true;
+    var text = patchScope(p).textContent || "";
+    if (text.indexOf(p.to) >= 0) return true;
+    var hint = p.to.slice(0, Math.min(p.to.length, 48));
+    return hint.length >= 12 && text.indexOf(hint) >= 0;
+  }
+
+  function anchorStillPresent(p) {
+    if (!p.anchor) return false;
+    return (patchScope(p).textContent || "").indexOf(p.anchor) >= 0;
+  }
+
   function applyPatch(p) {
-    var n = needle(p.anchor);
-    if (!n) return false;
+    if (targetPresent(p) && !anchorStillPresent(p)) return true;
+
     var scope = document.querySelector('[data-section-id="' + p.sectionId + '"]');
-    var tn = scope ? findTextNode(scope, n) : null;
-    if (!tn) tn = findTextNode(document.body, n);
+    var tn =
+      (scope && p.anchor ? findTextNode(scope, p.anchor) : null) ||
+      (scope ? findTextNode(scope, needle(p.anchor)) : null) ||
+      (p.anchor ? findTextNode(document.body, p.anchor) : null) ||
+      findTextNode(document.body, needle(p.anchor));
     if (!tn) return false;
-    if (tn.data.indexOf(p.anchor) >= 0) {
-      tn.data = tn.data.split(p.anchor).join(p.to);
+
+    if (p.anchor && tn.data.indexOf(p.anchor) >= 0) {
+      tn.data = tn.data.replace(p.anchor, p.to);
+    } else if (p.to && tn.data.indexOf(p.to) >= 0) {
+      return true;
+    } else if (needle(p.anchor) && tn.data.indexOf(needle(p.anchor)) >= 0) {
+      tn.data = tn.data.replace(needle(p.anchor), p.to);
     } else {
       tn.data = p.to;
     }
@@ -151,9 +176,8 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
 
   function needsWork() {
     if (!document.body) return false;
-    var text = document.body.textContent || "";
     for (var i = 0; i < PATCHES.length; i++) {
-      if (text.indexOf(needle(PATCHES[i].anchor)) >= 0) return true;
+      if (anchorStillPresent(PATCHES[i]) && !targetPresent(PATCHES[i])) return true;
     }
     for (var j = 0; j < MARKERS.length; j++) {
       if (!document.querySelector('[data-section-id="' + MARKERS[j].id + '"]')) return true;
@@ -181,7 +205,11 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
   var observer = new MutationObserver(function () {
     clearTimeout(debounce);
     debounce = setTimeout(function () {
-      if (needsWork()) safeRun();
+      if (!needsWork()) {
+        observer.disconnect();
+        return;
+      }
+      safeRun();
     }, 40);
   });
   observer.observe(document.documentElement, {

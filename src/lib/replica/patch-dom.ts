@@ -13,7 +13,8 @@ export function replaceTextInSectionElement(
 ): boolean {
   if (!anchor) return false;
   const needle = anchor.slice(0, Math.min(anchor.length, 28));
-  if (!section.textContent?.includes(needle)) return false;
+  if (!section.textContent?.includes(needle) && !section.textContent?.includes(anchor)) return false;
+  if (to && section.textContent?.includes(to)) return true;
 
   // Prefer leaf text elements (single text node — matches our HTML swap model).
   const leaves = section.querySelectorAll("h1,h2,h3,h4,p,span,a,button");
@@ -67,8 +68,14 @@ export function needsVariantPatch(doc: Document, variant: PageVariant): boolean 
   if (variant.id === "v0-baseline") return false;
   return variantDomReplacements(variant).some((r) => {
     const section = doc.querySelector(`[data-section-id="${r.sectionId}"]`);
-    const needle = r.anchor.slice(0, Math.min(r.anchor.length, 28));
-    return section?.textContent?.includes(needle) ?? false;
+    if (!section) return false;
+    const text = section.textContent ?? "";
+    if (r.to && text.includes(r.to)) return false;
+    if (r.to.length >= 12) {
+      const hint = r.to.slice(0, Math.min(r.to.length, 48));
+      if (text.includes(hint)) return false;
+    }
+    return r.anchor ? text.includes(r.anchor) : false;
   });
 }
 
