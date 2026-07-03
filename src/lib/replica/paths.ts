@@ -30,9 +30,10 @@ export function replicaHtmlWithGuard(
 ): string {
   const baselineVariant = GENERATION_0[0];
   if (variant.id === baselineVariant.id) return baselineHtml;
-  const patches = buildVariantHtmlReplacements(baselineVariant, variant, baselineHtml);
-  const html = applyVariantToBaselineHtml(baselineHtml, baselineVariant, variant);
-  return injectLabGuard(stripLabGuard(html), patches);
+  const clean = stripLabGuard(baselineHtml);
+  const patches = buildVariantHtmlReplacements(baselineVariant, variant, clean);
+  const html = applyVariantToBaselineHtml(clean, baselineVariant, variant);
+  return injectLabGuard(html, patches);
 }
 
 export function shouldUseReplica(_variant: PageVariant): boolean {

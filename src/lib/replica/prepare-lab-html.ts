@@ -1,5 +1,4 @@
 import type { HtmlReplacement } from "./apply-variant";
-import { FROZEN_BASELINE_COPY, FROZEN_FRAMER_NAMES } from "./baseline-copy";
 import { SECTION_MARKERS } from "./section-markers";
 
 /**
@@ -58,15 +57,16 @@ export function stripLabGuard(html: string): string {
 }
 
 /**
- * In-page guard, injected into every replica page.
+ * In-page safety net, injected into every replica page.
  *
- * Framer hydration REBUILDS the DOM after load: it restores original CMS copy
- * and strips any attributes we injected into the static HTML (including
- * data-section-id markers). So the guard must not rely on pre-injected markup.
- * Instead it:
- *   1. re-marks sections by locating unique baseline (or already-patched) text
- *   2. re-applies variant text swaps, scoped to the section when possible
- * and repeats whenever the DOM mutates back to baseline copy.
+ * The page copy lives in static framer-text elements (h1/h2/p/span) and is
+ * patched server-side before this script runs. Framer's hydration JSON carries
+ * only route/breakpoint metadata, not copy, so hydration does NOT rebuild text
+ * and the static patches persist. This guard is a safety net only: if any
+ * baseline anchor text leaks back into a section (e.g. a Framer re-render
+ * restores CMS copy from its remote bundle), it re-applies the variant text
+ * surgically — replacing just the matching text node, never wiping whole
+ * containers and never touching other sections.
  */
 export function injectLabGuard(html: string, patches: HtmlReplacement[]): string {
   const patchesBySection = new Map<string, string>(
@@ -74,8 +74,8 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
   );
   const markers = SECTION_MARKERS.map((m) => ({
     ...m,
-    // After a successful patch the baseline anchor is gone — find the section
-    // by the replacement text instead.
+    // After a successful static patch the baseline anchor is gone — find the
+    // section by the replacement text instead.
     alt: patchesBySection.get(m.id) ?? "",
   }));
 
@@ -84,18 +84,6 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
 (function () {
   var MARKERS = ${JSON.stringify(markers)};
   var PATCHES = ${JSON.stringify(patches)};
-  var FROZEN_COPY = ${JSON.stringify(FROZEN_BASELINE_COPY)};
-  var FROZEN_NAMES = ${JSON.stringify([...FROZEN_FRAMER_NAMES])};
-
-  function isFrozenEl(el) {
-    var name = el.getAttribute && el.getAttribute("data-framer-name");
-    if (name && FROZEN_NAMES.indexOf(name) >= 0) return true;
-    var text = el.textContent || "";
-    for (var i = 0; i < FROZEN_COPY.length; i++) {
-      if (text.indexOf(FROZEN_COPY[i]) >= 0) return true;
-    }
-    return false;
-  }
 
   function needle(s) {
     return s ? s.slice(0, Math.min(s.length, 28)) : "";
@@ -112,8 +100,6 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
   }
 
   function containerFor(textNode) {
-    // Climb from the text node to a block-ish ancestor that visually contains
-    // the section headline (Framer wraps text in several nested divs).
     var el = textNode.parentElement;
     var best = el;
     var hops = 0;
@@ -146,49 +132,88 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
     return document.querySelector('[data-section-id="' + p.sectionId + '"]');
   }
 
-  function targetPresent(p) {
-    if (!p.to) return true;
-    var root = document.getElementById("main") || document.body;
-    var text = root.textContent || "";
-    if (text.indexOf(p.to) >= 0) return true;
-    var hint = p.to.slice(0, Math.min(p.to.length, 48));
-    return hint.length >= 12 && text.indexOf(hint) >= 0;
+  // Replace the baseline anchor substring inside a single text node with the
+  // variant text. Surgical: preserves sibling text, nested spans, and styling.
+  function replaceInTextNode(node, anchor, to) {
+    if (!node || !node.data || !anchor) return false;
+    var forms = [anchor];
+    var esc = anchor.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    if (esc !== anchor) forms.push(esc);
+    var changed = false;
+    for (var i = 0; i < forms.length; i++) {
+      var f = forms[i];
+      var idx = node.data.indexOf(f);
+      if (idx >= 0) {
+        node.data = node.data.slice(0, idx) + to + node.data.slice(idx + f.length);
+        changed = true;
+        break;
+      }
+    }
+    return changed;
   }
 
-  function anchorStillPresent(p) {
-    if (!p.anchor) return false;
-    var root = document.getElementById("main") || document.body;
-    var text = root.textContent || "";
-    if (text.indexOf(p.anchor) >= 0) return true;
-    var n = needle(p.anchor);
-    return n.length > 0 && text.indexOf(n) >= 0;
+  function replaceSplitHeadline(scope, anchor, to) {
+    if (!anchor || anchor.length < 8) return false;
+    var changed = false;
+    for (var cut = anchor.length - 1; cut >= 4; cut--) {
+      var prefix = anchor.slice(0, cut);
+      var suffix = anchor.slice(cut);
+      if (suffix.length < 4) continue;
+      var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
+      var node;
+      while ((node = walker.nextNode())) {
+        if (!node.data || node.data.indexOf(suffix) < 0) continue;
+        var prev = node.previousSibling;
+        while (prev && prev.nodeType !== Node.TEXT_NODE && prev.nodeType !== Node.ELEMENT_NODE) {
+          prev = prev.previousSibling;
+        }
+        if (prev && prev.nodeType === Node.ELEMENT_NODE) {
+          var inner = prev.querySelector ? prev.querySelector(".framer-text") : null;
+          var target = inner && inner.firstChild && inner.firstChild.nodeType === Node.TEXT_NODE
+            ? inner.firstChild : (prev.firstChild && prev.firstChild.nodeType === Node.TEXT_NODE ? prev.firstChild : null);
+          if (target && target.data && target.data.indexOf(prefix) >= 0) {
+            target.data = "";
+            node.data = node.data.replace(suffix, to);
+            changed = true;
+          }
+        }
+      }
+    }
+    return changed;
   }
 
   function applyPatch(p) {
-    if (targetPresent(p) && !anchorStillPresent(p)) return true;
-    if (!p.anchor) return false;
-
-    var n = needle(p.anchor);
-    var root = document.getElementById("main") || document.body;
-    var containers = root.querySelectorAll('[data-framer-component-type="RichTextContainer"]');
-    var applied = false;
-    var wrotePrimary = false;
-
-    for (var i = 0; i < containers.length; i++) {
-      var el = containers[i];
-      if (isFrozenEl(el)) continue;
-      var text = el.textContent || "";
-      if (text.indexOf(p.anchor) < 0 && (!n || text.indexOf(n) < 0)) continue;
-
-      if (p.to && !wrotePrimary) {
-        el.textContent = p.to;
-        wrotePrimary = true;
-      } else {
-        el.textContent = "";
-      }
-      applied = true;
+    if (!p.anchor) return;
+    var scope = patchScope(p);
+    if (!scope) return;
+    var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
+    var node;
+    var changed = false;
+    while ((node = walker.nextNode())) {
+      if (replaceInTextNode(node, p.anchor, p.to)) changed = true;
     }
-    return applied;
+    if (!changed) replaceSplitHeadline(scope, p.anchor, p.to);
+  }
+
+  function anchorLeaks(scope, anchor) {
+    if (!anchor) return false;
+    var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
+    var node;
+    while ((node = walker.nextNode())) {
+      if (node.data && node.data.indexOf(anchor) >= 0) return true;
+      var esc = anchor.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      if (esc !== anchor && node.data && node.data.indexOf(esc) >= 0) return true;
+    }
+    for (var cut = anchor.length - 1; cut >= 4; cut--) {
+      var suffix = anchor.slice(cut);
+      if (suffix.length < 4) continue;
+      walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
+      while ((node = walker.nextNode())) {
+        if (node.data && node.data.indexOf(suffix) >= 0) return true;
+      }
+    }
+    return false;
   }
 
   function run() {
@@ -199,10 +224,10 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
   function needsWork() {
     if (!document.body) return false;
     for (var i = 0; i < PATCHES.length; i++) {
-      if (anchorStillPresent(PATCHES[i]) && !targetPresent(PATCHES[i])) return true;
-    }
-    for (var j = 0; j < MARKERS.length; j++) {
-      if (!document.querySelector('[data-section-id="' + MARKERS[j].id + '"]')) return true;
+      var p = PATCHES[i];
+      var scope = patchScope(p);
+      if (!scope) continue;
+      if (anchorLeaks(scope, p.anchor)) return true;
     }
     return false;
   }
@@ -217,12 +242,13 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
     safeRun();
   }
 
-  // Framer hydrates asynchronously; sweep aggressively for the first seconds.
-  [50, 150, 300, 600, 1000, 1500, 2500, 4000, 6000, 9000].forEach(function (ms) {
-    setTimeout(safeRun, ms);
+  // Framer may re-render on resize/route changes; re-check a few times, then stop.
+  [50, 300, 1000, 2500, 5000].forEach(function (ms) {
+    setTimeout(function () {
+      if (needsWork()) safeRun();
+    }, ms);
   });
 
-  // Then keep watching: any mutation that restores baseline copy gets repatched.
   var debounce;
   var observer = new MutationObserver(function () {
     clearTimeout(debounce);
@@ -232,7 +258,7 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
         return;
       }
       safeRun();
-    }, 40);
+    }, 80);
   });
   observer.observe(document.documentElement, {
     subtree: true,
