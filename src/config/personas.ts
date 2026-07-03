@@ -7,11 +7,13 @@ import type { PersonaSet } from "@/lib/schema/persona";
  * PostHog / GTM traffic (see lib/calibration).
  *
  * Source key:
- *  [TalentLMS26]  TalentLMS 2026 L&D Benchmark Report
- *  [G2-LMS25]     G2 "Corporate LMS in 2025" review analysis
- *  [RiseUp]       Rise Up State of Learning Report (via TrainingZone, 2025)
- *  [ELI25]        eLearning Industry survey of 1,700+ L&D professionals (2025)
- *  [Docebo26]     Docebo AI Readiness Gap Report 2026
+ *  [McKinsey25]   McKinsey Superagency in the Workplace (2025)
+ *  [OECD25]       OECD Bridging the AI Skills Gap (2025)
+ *  [WEF25]        World Economic Forum Future of Jobs Report (2025)
+ *  [Gallup25]     Gallup Workforce Panel — AI use & manager support (2025)
+ *  [LinkedIn25]   LinkedIn 2025 Workplace Learning Report
+ *  [TrainingMag25] Training Magazine 2025 Training Industry Report
+ *  [Fosway25]     Fosway Digital Learning Realities (2025, independent analyst)
  *  [EUAIAct]      EU AI Act, Article 4 (AI literacy obligation, in force Feb 2025)
  *  [NNG]          Nielsen Norman Group scroll-behavior research
  */
@@ -19,7 +21,7 @@ export const PERSONA_SET_V1: PersonaSet = {
   version: 1,
   createdAt: "2026-07-01",
   changelog:
-    "v1: priors grounded in published 2025-2026 buyer research (TalentLMS, G2, Rise Up, eLearning Industry, Docebo). Awaiting calibration from real Clarity traffic.",
+    "v1: priors grounded in McKinsey, OECD, WEF, Gallup, LinkedIn, Training Magazine, Fosway, and EUR-Lex. Awaiting calibration from live traffic.",
   personas: [
     {
       id: "ld_director",
@@ -39,14 +41,14 @@ export const PERSONA_SET_V1: PersonaSet = {
           text: "Can I put a number in front of my CFO, or is this another 'engagement' story?",
           critical: true,
           groundedIn:
-            "[Docebo26] Fewer than half of learning leaders feel confident connecting learning to business results; [ELI25] 78% of L&D teams excluded from budget decisions.",
+            "[McKinsey25] 46% of leaders cite workforce skill gaps as a major AI barrier; [WEF25] 63% of employers name skill gaps the top barrier to business transformation.",
         },
         {
           id: "employee_adoption",
           text: "Our current LMS has a 30% completion rate. Why would this be different?",
           critical: true,
           groundedIn:
-            "[G2-LMS25] Low completion driven by content disconnected from daily work and lengthy modules.",
+            "[OECD25] Training supply focuses on specialists while most workers need role-relevant AI literacy; [WEF25] employers still lean on completion over capability metrics.",
         },
       ],
       patienceSeconds: { mean: 75, stdDev: 20 },
@@ -55,8 +57,8 @@ export const PERSONA_SET_V1: PersonaSet = {
       ctaPropensity: 0.55,
       trafficWeight: 0.22,
       groundedIn: [
-        "[ELI25] 78% of L&D teams say they aren't in the room when budgets get decided",
-        "[Docebo26] <50% of learning leaders confident connecting learning to business results",
+        "[TrainingMag25] Only 25% of training respondents set the budget; 64% influence purchasing decisions",
+        "[LinkedIn25] L&D must prove business impact to win executive sponsorship",
       ],
     },
     {
@@ -76,21 +78,21 @@ export const PERSONA_SET_V1: PersonaSet = {
           text: "We already run AI training. My dashboards say it's fine.",
           critical: true,
           groundedIn:
-            "[TalentLMS26] 83% of HR managers believe their company supports AI learning; only 64% of employees agree - a 19-point perception gap.",
+            "[Gallup25] 23% of employees don't know whether their organization has an AI strategy; [McKinsey25] employees use gen AI more than leaders expect.",
         },
         {
           id: "roi_proof",
           text: "How do I see who's actually applying this, not just completing it?",
           critical: true,
           groundedIn:
-            "[RiseUp] Outdated KPIs (completion rates) cited as a core barrier; 'time to skill' recommended instead.",
+            "[WEF25] 39% of core worker skills expected to change by 2030; shift from completion rates to time-to-skill outcomes.",
         },
         {
           id: "implementation_burden",
           text: "I don't have headcount for another platform rollout.",
           critical: false,
           groundedIn:
-            "[RiseUp] 55% of L&D leaders say they lack skilled people to implement AI-driven learning.",
+            "[WEF25] 85% of employers prioritize upskilling but teams lack capacity to implement at pace.",
         },
       ],
       patienceSeconds: { mean: 60, stdDev: 15 },
@@ -99,7 +101,7 @@ export const PERSONA_SET_V1: PersonaSet = {
       ctaPropensity: 0.5,
       trafficWeight: 0.2,
       groundedIn: [
-        "[TalentLMS26] 19-point perception gap between HR managers and employees on AI learning support",
+        "[Gallup25] Manager support is the strongest predictor of employee AI adoption",
       ],
     },
     {
@@ -119,21 +121,21 @@ export const PERSONA_SET_V1: PersonaSet = {
           text: "I don't have 45 minutes for a course. I barely have 5.",
           critical: true,
           groundedIn:
-            "[TalentLMS26] ~50% of employees and leaders say high workloads leave little room for training.",
+            "[McKinsey25] More than a fifth of employees report minimal to no employer AI training support.",
         },
         {
           id: "automation_anxiety",
           text: "Is this training me, or training my replacement?",
           critical: true,
           groundedIn:
-            "[TalentLMS26] 47% of leaders say AI training is designed partly to make jobs easier to automate; [ELI25] employees resist adoption that feels imposed on them.",
+            "[WEF25] 41% of employers expect to reduce headcount as AI automates tasks; [OECD25] workers need literacy on risks and responsible use, not just tool access.",
         },
         {
           id: "relevance_to_role",
           text: "Generic AI courses have nothing to do with my daily work.",
           critical: true,
           groundedIn:
-            "[G2-LMS25] Unclear relevance to daily work is a top driver of learner disengagement.",
+            "[OECD25] Most workers need general AI literacy tied to their role, not generic tool training; [McKinsey25] upskilling must be role-specific to stick.",
         },
       ],
       patienceSeconds: { mean: 35, stdDev: 12 },
@@ -142,7 +144,7 @@ export const PERSONA_SET_V1: PersonaSet = {
       ctaPropensity: 0.45,
       trafficWeight: 0.18,
       groundedIn: [
-        "[TalentLMS26] workload pressure + automation-anxiety findings",
+        "[McKinsey25] employees want training but often don't receive it",
         "[NNG] Short attention: ~57% of viewing time above the fold",
       ],
     },
@@ -163,21 +165,21 @@ export const PERSONA_SET_V1: PersonaSet = {
           text: "Does this plug into our LMS, HRIS, and SSO, or is it another silo?",
           critical: true,
           groundedIn:
-            "[G2-LMS25] Integration friction with organizational tools among top LMS complaints; [TalentLMS26] 24% of HR managers cite tech-integration difficulty.",
+            "[Fosway25] Integration friction and platform sprawl remain top enterprise learning pain points; [TrainingMag25] buyers expect rapid implementation cycles.",
         },
         {
           id: "content_quality",
           text: "AI-generated lessons? Who checks them for accuracy?",
           critical: true,
           groundedIn:
-            "[TalentLMS26] 22% cite unreliable AI-generated content as an adoption blocker.",
+            "[OECD25] AI literacy includes evaluating outputs, risks, and ethics — not just accepting generated content.",
         },
         {
           id: "implementation_burden",
           text: "What's the real go-live time - weeks or quarters?",
           critical: false,
           groundedIn:
-            "[G2-LMS25] Buyers now expect ~2.8-month go-live and ~10-month ROI.",
+            "[Fosway25] Enterprise buyers expect platforms live in weeks, not quarters, amid static L&D budgets.",
         },
       ],
       patienceSeconds: { mean: 55, stdDev: 15 },
@@ -186,7 +188,7 @@ export const PERSONA_SET_V1: PersonaSet = {
       ctaPropensity: 0.4,
       trafficWeight: 0.15,
       groundedIn: [
-        "[G2-LMS25] integration friction + admin burden are dominant complaint themes",
+        "[Fosway25] integration friction + admin burden dominate practitioner complaints",
       ],
     },
     {
@@ -206,21 +208,21 @@ export const PERSONA_SET_V1: PersonaSet = {
           text: "We can't implement AI-driven learning - we don't have the people.",
           critical: true,
           groundedIn:
-            "[RiseUp] 62% of L&D leaders cite lack of AI knowledge as their biggest barrier; 55% lack skilled people.",
+            "[OECD25] Training supply insufficient for general AI literacy; [WEF25] reskilling capacity is the binding constraint for most employers.",
         },
         {
           id: "roi_proof",
           text: "Reporting on our current platform eats my week. Will this make that worse?",
           critical: true,
           groundedIn:
-            "[G2-LMS25] Time-consuming reporting and module setup among most-cited pain points (71 mentions).",
+            "[Fosway25] Reporting and admin overhead cited among the top reasons platforms fail practitioner fit tests.",
         },
         {
           id: "credibility",
           text: "Every vendor slapped 'AI' on their homepage this year. Why trust this one?",
           critical: false,
           groundedIn:
-            "[Docebo26] Learning leaders under pressure to separate real AI capability from rebranding.",
+            "[McKinsey25] Only 1% of companies believe they have reached AI maturity despite near-universal investment.",
         },
       ],
       patienceSeconds: { mean: 70, stdDev: 18 },
@@ -229,7 +231,7 @@ export const PERSONA_SET_V1: PersonaSet = {
       ctaPropensity: 0.6,
       trafficWeight: 0.15,
       groundedIn: [
-        "[RiseUp] AI knowledge gap + talent shortage findings",
+        "[OECD25] Governments expanding AI literacy programmes as supply lags demand",
       ],
     },
     {
@@ -256,13 +258,13 @@ export const PERSONA_SET_V1: PersonaSet = {
           text: "I need audit-ready reporting per employee, not a completion certificate.",
           critical: true,
           groundedIn:
-            "[G2-LMS25] Compliance dashboards adequate but advanced analytics depth a common gap.",
+            "[Fosway25] Compliance reporting exists but advanced, audit-grade analytics remain a common platform gap.",
         },
         {
           id: "implementation_burden",
           text: "This quarter. Can it be live this quarter?",
           critical: false,
-          groundedIn: "[G2-LMS25] go-live time expectations (~2.8 months avg).",
+          groundedIn: "[TrainingMag25] U.S. corporate training buyers expect compressed implementation timelines.",
         },
       ],
       patienceSeconds: { mean: 50, stdDev: 12 },

@@ -10,8 +10,8 @@ export function PersonaResearchLinks({ className = "" }: { className?: string })
         Research sources
       </p>
       <p className="mt-1 text-xs text-slate-600">
-        Persona priors and objection ledgers cite primary publisher research — not invented
-        profiles. Each source links to the original report or regulation.
+        Persona priors cite independent research — McKinsey, OECD, World Economic Forum, Gallup,
+        LinkedIn Learning, Training Magazine, Fosway, EUR-Lex, and Nielsen Norman Group.
       </p>
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">
         {PERSONA_RESEARCH_SOURCES.map((source) => (
