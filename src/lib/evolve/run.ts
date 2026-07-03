@@ -171,13 +171,15 @@ async function breedAllOffspring(
   log(`  breeding ${count} offspring across ${angleCount} angles (${parallel} parallel KIE calls)...`);
   progress?.breedingStart(count);
 
-  let bredDone = 0;
-  const draft = await mapPool(
+  const offspring: PageVariant[] = [];
+  // Serialize accept + persist so previews land as each KIE call returns.
+  let acceptChain = Promise.resolve();
+
+  await mapPool(
     Array.from({ length: count }, (_, i) => i),
     parallel,
     async (childIndex) => {
       const angle = angleForChild(childIndex);
-      // Parallel first pass: no siblings visible yet — angles keep them distinct.
       const child = await breedDistinctOffspring(
         childIndex,
         top,
@@ -189,38 +191,40 @@ async function breedAllOffspring(
         verdictBlock,
         log
       );
-      bredDone++;
-      log(`  bred ${angle.name} (${bredDone}/${count})`);
-      return { childIndex, child };
+      log(`  ${angle.name} LLM returned (child ${childIndex})`);
+
+      await new Promise<void>((resolve, reject) => {
+        acceptChain = acceptChain.then(async () => {
+          try {
+            let accepted = child;
+            if (isDuplicateOffspring(accepted, offspring)) {
+              log(`  ${angle.name} duplicate; retrying against siblings...`);
+              accepted = await breedDistinctOffspring(
+                childIndex,
+                top,
+                metrics,
+                report,
+                generation,
+                offspring,
+                angle,
+                verdictBlock,
+                log
+              );
+            }
+            offspring.push(accepted);
+            progress?.breedingProgress(offspring.length, count);
+            progress?.addBredVariant(accepted);
+            writeVariantHtml(accepted, baselineHtml, baselineVariant);
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        });
+      });
     }
   );
 
-  draft.sort((a, b) => a.childIndex - b.childIndex);
-  const offspring: PageVariant[] = [];
-
-  for (const { childIndex, child } of draft) {
-    let accepted = child;
-    if (isDuplicateOffspring(accepted, offspring)) {
-      const angle = angleForChild(childIndex);
-      log(`  ${angle.name} duplicate after parallel batch; retrying against siblings...`);
-      accepted = await breedDistinctOffspring(
-        childIndex,
-        top,
-        metrics,
-        report,
-        generation,
-        offspring,
-        angle,
-        verdictBlock,
-        log
-      );
-    }
-    offspring.push(accepted);
-    progress?.breedingProgress(offspring.length, count);
-    progress?.addBredVariant(accepted);
-    writeVariantHtml(accepted, baselineHtml, baselineVariant);
-  }
-
+  await acceptChain;
   return offspring;
 }
 

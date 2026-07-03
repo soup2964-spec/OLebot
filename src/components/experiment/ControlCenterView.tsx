@@ -180,6 +180,13 @@ export function ControlCenterView({
         throw new Error(body.error ?? "Experiment failed");
       }
 
+      if (res.status === 202 || body.started) {
+        setMessage("Experiment started — pages appear in the dashboard as each one is bred.");
+        await pollProgress();
+        onExperimentComplete?.();
+        return;
+      }
+
       await pollProgress();
 
       const modeLabel =

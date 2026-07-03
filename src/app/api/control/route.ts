@@ -1,13 +1,15 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import {
   isLlmExperimentAvailable,
   llmExperimentProviderLabel,
   manualExperimentMode,
   runManualExperiment,
 } from "@/lib/loop/manual-experiment";
+import { isProgressActivelyRunning, loadExperimentProgress } from "@/lib/loop/experiment-progress";
 import { isAutonomousMode, loadLoopState, saveLoopState } from "@/lib/loop/state";
 
-export const maxDuration = 300;
+/** Background experiment via after() — allow long LLM breeding on Vercel. */
+export const maxDuration = 800;
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -61,11 +63,29 @@ export async function POST() {
     );
   }
 
-  try {
-    const result = await runManualExperiment();
-    return NextResponse.json({ ok: true, ...result });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Experiment failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+  const existing = await loadExperimentProgress();
+  if (isProgressActivelyRunning(existing)) {
+    return NextResponse.json(
+      { error: "An experiment is already running — wait for it to finish or dismiss the progress bar." },
+      { status: 409 }
+    );
   }
+
+  after(async () => {
+    try {
+      await runManualExperiment();
+    } catch (err) {
+      console.error("[experiment]", err);
+    }
+  });
+
+  return NextResponse.json(
+    {
+      ok: true,
+      started: true,
+      experimentMode: manualExperimentMode(state),
+      llmProvider: llmExperimentProviderLabel(),
+    },
+    { status: 202 }
+  );
 }
