@@ -1,5 +1,5 @@
 import type { PageVariant } from "@/lib/schema/page";
-import { getLabDocument, LAB_DOC, setLabDocument } from "@/lib/supabase/lab-documents";
+import { getLabDocument, invalidateLabDocumentCache, LAB_DOC, setLabDocument } from "@/lib/supabase/lab-documents";
 
 export interface LoopState {
   autonomous: boolean;
@@ -34,8 +34,6 @@ const DEFAULT_STATE: LoopState = {
   experimentHistory: [],
 };
 
-let loopCache: LoopState | undefined;
-
 export function normalizeExperimentHistory(
   history: ExperimentHistoryEntry[] = []
 ): ExperimentHistoryEntry[] {
@@ -54,14 +52,12 @@ export function nextExperimentNumber(history: ExperimentHistoryEntry[] = []): nu
 }
 
 export async function loadLoopState(): Promise<LoopState> {
-  if (loopCache) return loopCache;
   const raw = await getLabDocument<Partial<LoopState>>(LAB_DOC.LOOP_STATE);
-  loopCache = {
+  return {
     ...DEFAULT_STATE,
     ...raw,
     experimentHistory: normalizeExperimentHistory(raw?.experimentHistory ?? []),
   };
-  return loopCache;
 }
 
 export function isAutonomousMode(state?: LoopState): boolean {
@@ -69,11 +65,10 @@ export function isAutonomousMode(state?: LoopState): boolean {
 }
 
 export async function saveLoopState(state: LoopState) {
-  loopCache = {
+  await setLabDocument(LAB_DOC.LOOP_STATE, {
     ...state,
     experimentHistory: normalizeExperimentHistory(state.experimentHistory ?? []),
-  };
-  await setLabDocument(LAB_DOC.LOOP_STATE, loopCache);
+  });
 }
 
 export async function recordHeartbeat() {
@@ -92,5 +87,5 @@ export function minSyncIntervalMs() {
 }
 
 export function invalidateLoopCache() {
-  loopCache = undefined;
+  invalidateLabDocumentCache(LAB_DOC.LOOP_STATE);
 }

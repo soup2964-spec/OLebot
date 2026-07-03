@@ -8,7 +8,7 @@ config({ path: ".env.local" });
 import fs from "fs";
 import path from "path";
 import { GENERATION_0 } from "../src/config/variants";
-import { LAB_DOC, setLabDocument } from "../src/lib/supabase/lab-documents";
+import { LAB_DOC, invalidateLabDocumentCache, setLabDocument } from "../src/lib/supabase/lab-documents";
 import { getSupabaseAdmin } from "../src/lib/supabase/server";
 
 const ROOT = process.cwd();
@@ -131,6 +131,8 @@ async function clearSupabase() {
   const { error: sessErr } = await sb.from("lab_sessions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   if (sessErr) console.warn(`  lab_sessions clear: ${sessErr.message}`);
   else console.log("  cleared lab_sessions");
+
+  invalidateLabDocumentCache();
 }
 
 async function main() {
