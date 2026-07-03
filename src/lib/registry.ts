@@ -8,6 +8,8 @@ import {
   listExperimentNumbers,
   setLabDocument,
 } from "@/lib/supabase/lab-documents";
+import { normalizeExperimentHistory, type LoopState } from "@/lib/loop/state";
+import { sortBredVariants } from "@/lib/comparison/snapshots";
 import type { ExperimentRun } from "@/lib/schema/experiment";
 import type { ExperimentProgress } from "@/lib/schema/experiment-progress";
 import type { PageVariant } from "@/lib/schema/page";
@@ -32,6 +34,30 @@ export async function saveRun(run: ExperimentRun) {
 
 export function invalidateRunCache() {
   cachedRun = undefined;
+}
+
+function bredVariantsFromHistorySync(): PageVariant[] {
+  const loop = getLabDocumentSync<LoopState>(LAB_DOC.LOOP_STATE);
+  const history = normalizeExperimentHistory(loop?.experimentHistory ?? []);
+  const byId = new Map<string, PageVariant>();
+  for (const entry of history) {
+    for (const v of entry.currentVariants) {
+      byId.set(v.id, v);
+    }
+  }
+  return sortBredVariants([...byId.values()]);
+}
+
+async function bredVariantsFromHistory(): Promise<PageVariant[]> {
+  const loop = await getLabDocument<LoopState>(LAB_DOC.LOOP_STATE);
+  const history = normalizeExperimentHistory(loop?.experimentHistory ?? []);
+  const byId = new Map<string, PageVariant>();
+  for (const entry of history) {
+    for (const v of entry.currentVariants) {
+      byId.set(v.id, v);
+    }
+  }
+  return sortBredVariants([...byId.values()]);
 }
 
 function deploySnapshotSync(): DeployState | null {
@@ -60,7 +86,12 @@ export async function allVariants(): Promise<PageVariant[]> {
   const run = await loadRun();
   const gen0 = getGen0Variants();
   const gen0Ids = new Set(gen0.map((v) => v.id));
-  const bred = run?.variants.filter((v) => !gen0Ids.has(v.id)) ?? [];
+  const fromRun = run?.variants.filter((v) => !gen0Ids.has(v.id)) ?? [];
+  const fromHistory = await bredVariantsFromHistory();
+  const byId = new Map<string, PageVariant>();
+  for (const v of fromHistory) byId.set(v.id, v);
+  for (const v of fromRun) byId.set(v.id, v);
+  const bred = sortBredVariants([...byId.values()]);
   const production = getProductionVariant();
   return [...gen0, ...bred, ...(production ? [production] : [])];
 }
@@ -69,7 +100,12 @@ export function allVariantsSync(): PageVariant[] {
   const run = loadRunSync();
   const gen0 = getGen0Variants();
   const gen0Ids = new Set(gen0.map((v) => v.id));
-  const bred = run?.variants.filter((v) => !gen0Ids.has(v.id)) ?? [];
+  const fromRun = run?.variants.filter((v) => !gen0Ids.has(v.id)) ?? [];
+  const fromHistory = bredVariantsFromHistorySync();
+  const byId = new Map<string, PageVariant>();
+  for (const v of fromHistory) byId.set(v.id, v);
+  for (const v of fromRun) byId.set(v.id, v);
+  const bred = sortBredVariants([...byId.values()]);
   const production = getProductionVariant();
   return [...gen0, ...bred, ...(production ? [production] : [])];
 }
@@ -89,6 +125,13 @@ export async function findVariant(id: string): Promise<PageVariant | undefined> 
   const progress = await getLabDocument<ExperimentProgress>(LAB_DOC.EXPERIMENT_PROGRESS);
   const fromProgress = progress?.bredVariants?.find((v) => v.id === id);
   if (fromProgress) return fromProgress;
+
+  const loop = await getLabDocument<LoopState>(LAB_DOC.LOOP_STATE);
+  const history = normalizeExperimentHistory(loop?.experimentHistory ?? []);
+  for (let i = history.length - 1; i >= 0; i--) {
+    const found = history[i]!.currentVariants.find((v) => v.id === id);
+    if (found) return found;
+  }
 
   const numbers = await listExperimentNumbers();
   for (let i = numbers.length - 1; i >= 0; i--) {

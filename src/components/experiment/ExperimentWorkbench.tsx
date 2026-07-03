@@ -100,14 +100,19 @@ export function ExperimentWorkbench({
   const [llmPersonas, setLlmPersonas] = useState(false);
 
   const isRunning = isProgressActivelyRunning(progress);
+  const activeProgressExperiment =
+    isRunning || progress?.status === "error" ? progress?.experimentNumber : null;
   const experimentOptions = useMemo(
-    () =>
-      experimentNumbersFromHistory(
-        experimentHistory,
-        isRunning ? progress?.experimentNumber : null
-      ),
-    [experimentHistory, isRunning, progress?.experimentNumber]
+    () => experimentNumbersFromHistory(experimentHistory, activeProgressExperiment),
+    [experimentHistory, activeProgressExperiment]
   );
+  const partialExperimentNumbers = useMemo(() => {
+    const partial = new Set<number>();
+    for (const entry of experimentHistory) {
+      if (entry.partial) partial.add(entry.experimentNumber);
+    }
+    return partial;
+  }, [experimentHistory]);
   const maxIteration = experimentOptions[experimentOptions.length - 1] ?? 1;
   const showProgressBar =
     progress != null &&
@@ -278,6 +283,7 @@ export function ExperimentWorkbench({
         iteration={iteration}
         experimentOptions={experimentOptions}
         runningExperimentNumber={isRunning ? progress?.experimentNumber : null}
+        partialExperimentNumbers={partialExperimentNumbers}
         onPrevIteration={() => {
           const idx = experimentOptions.indexOf(iteration);
           if (idx > 0) goToExperiment(experimentOptions[idx - 1]!);
@@ -335,7 +341,10 @@ export function ExperimentWorkbench({
               currentVariants={currentVariants}
               selectedVariantId={selectedVariantId}
               onSelectVariant={setSelectedVariantId}
-              isRunning={isRunning && iteration === progressExperiment}
+              isRunning={
+                (isRunning || progress?.status === "error") &&
+                iteration === progressExperiment
+              }
               experimentMode={experimentMode}
               llmPersonas={llmPersonas}
             />

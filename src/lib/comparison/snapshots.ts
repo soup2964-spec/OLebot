@@ -65,6 +65,35 @@ export function experimentNumbersFromHistory(
   return nums.length > 0 ? nums : [1];
 }
 
+function mergeCurrentVariants(
+  historyEntry: ExperimentHistoryEntry | undefined,
+  progress: ExperimentProgress | null | undefined,
+  iteration: number
+): PageVariant[] {
+  const fromHistory = historyEntry ? sortBredVariants(historyEntry.currentVariants) : [];
+  const progressActive =
+    progress &&
+    progress.experimentNumber === iteration &&
+    (progress.status === "running" || progress.status === "error");
+  const fromProgress = progressActive
+    ? sortBredVariants(progress.bredVariants ?? [])
+    : [];
+  const byId = new Map<string, PageVariant>();
+  for (const v of fromHistory) byId.set(v.id, v);
+  for (const v of fromProgress) byId.set(v.id, v);
+  return sortBredVariants([...byId.values()]);
+}
+
+function previousForIteration(
+  iteration: number,
+  experimentHistory: ExperimentHistoryEntry[]
+): PageVariant[] {
+  if (iteration === 1) return originalGen0Variants();
+  return sortBredVariants(
+    experimentHistory.find((e) => e.experimentNumber === iteration - 1)?.currentVariants ?? []
+  );
+}
+
 export function comparisonSnapshotsForIteration(
   iteration: number,
   opts: {
@@ -75,18 +104,14 @@ export function comparisonSnapshotsForIteration(
 ): { previous: PageVariant[]; current: PageVariant[] } {
   const { run, experimentHistory, progress } = opts;
   const isRunning = progress?.status === "running";
+  const isActiveProgress =
+    progress?.status === "running" || progress?.status === "error";
   const historyEntry = experimentHistory.find((e) => e.experimentNumber === iteration);
 
   if (historyEntry) {
     return {
-      previous:
-        iteration === 1
-          ? originalGen0Variants()
-          : sortBredVariants(
-              experimentHistory.find((e) => e.experimentNumber === iteration - 1)
-                ?.currentVariants ?? []
-            ),
-      current: sortBredVariants(historyEntry.currentVariants),
+      previous: previousForIteration(iteration, experimentHistory),
+      current: mergeCurrentVariants(historyEntry, progress, iteration),
     };
   }
 
@@ -95,29 +120,17 @@ export function comparisonSnapshotsForIteration(
     isRunning ? progress?.experimentNumber : null
   );
 
-  if (iteration === activeExperiment && isRunning) {
+  if (iteration === activeExperiment && isActiveProgress) {
     return {
-      previous:
-        iteration === 1
-          ? originalGen0Variants()
-          : sortBredVariants(
-              experimentHistory.find((e) => e.experimentNumber === iteration - 1)
-                ?.currentVariants ?? []
-            ),
-      current: sortBredVariants(progress?.bredVariants ?? []),
+      previous: previousForIteration(iteration, experimentHistory),
+      current: mergeCurrentVariants(undefined, progress, iteration),
     };
   }
 
   const bredFromRun = bredVariantsFromRun(run);
   if (bredFromRun.length > 0) {
     return {
-      previous:
-        iteration === 1
-          ? originalGen0Variants()
-          : sortBredVariants(
-              experimentHistory.find((e) => e.experimentNumber === iteration - 1)
-                ?.currentVariants ?? []
-            ),
+      previous: previousForIteration(iteration, experimentHistory),
       current: bredFromRun,
     };
   }

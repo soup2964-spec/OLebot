@@ -12,6 +12,7 @@ import {
 } from "./experiment-progress";
 import { isProgressActivelyRunning } from "./experiment-progress-utils";
 import { saveExperimentRun } from "@/lib/experiments/store";
+import { sortBredVariants } from "@/lib/comparison/snapshots";
 import { invalidateLoopCache, loadLoopState, nextExperimentNumber, normalizeExperimentHistory, saveLoopState, type LoopState } from "./state";
 
 export type { ExperimentMode };
@@ -51,9 +52,10 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
   const experimentNumber = nextExperimentNumber(history);
 
   const seed = Date.now() % 1_000_000_000;
+  const runId = `run-${seed}`;
   const generations = Number(process.env.LLM_GENERATIONS ?? 2);
   await clearExperimentProgress();
-  const progress = new ExperimentProgressReporter(mode, generations, experimentNumber);
+  const progress = new ExperimentProgressReporter(mode, generations, experimentNumber, runId);
 
   try {
     const run = await runExperiment({
@@ -84,9 +86,11 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
             ...(historyAfter.find((e) => e.experimentNumber === experimentNumber - 1)
               ?.currentVariants ?? GENERATION_0),
           ];
-    const currentVariants = offspringIds
-      .map((id) => run.variants.find((v) => v.id === id))
-      .filter((v): v is NonNullable<typeof v> => Boolean(v));
+    const currentVariants = sortBredVariants(
+      offspringIds
+        .map((id) => run.variants.find((v) => v.id === id))
+        .filter((v): v is NonNullable<typeof v> => Boolean(v))
+    );
 
     const next = {
       ...loopStateAfter,
@@ -100,15 +104,15 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
         },
         ...loopStateAfter.syncHistory.slice(0, 19),
       ],
-      experimentHistory: [
-        ...historyAfter,
+      experimentHistory: normalizeExperimentHistory([
+        ...historyAfter.filter((e) => e.experimentNumber !== experimentNumber),
         {
           experimentNumber,
           runId: run.id,
           previousVariants,
           currentVariants,
         },
-      ],
+      ]),
     };
     await saveLoopState(next);
     invalidateLoopCache();

@@ -9,6 +9,7 @@ import {
   isProgressActivelyRunning,
   reconcileExperimentProgress,
 } from "./experiment-progress-utils";
+import { mergeProgressBredVariantsIntoHistory, persistBredVariantToHistory } from "./persist-bred-variant";
 
 export type { ExperimentMode, ExperimentProgress, ExperimentStage };
 export { isProgressActivelyRunning, isProgressStale, reconcileExperimentProgress } from "./experiment-progress-utils";
@@ -84,6 +85,9 @@ export async function loadExperimentProgress(): Promise<ExperimentProgress> {
       const merged = { ...IDLE, ...stored };
       const reconciled = reconcileExperimentProgress(merged);
       if (reconciled.status !== merged.status || reconciled.stage !== merged.stage) {
+        if (reconciled.status === "error" && reconciled.bredVariants?.length) {
+          await mergeProgressBredVariantsIntoHistory(reconciled);
+        }
         await persist(reconciled);
         return reconciled;
       }
@@ -101,6 +105,19 @@ export function loadExperimentProgressSync(): ExperimentProgress {
 }
 
 export async function clearExperimentProgress() {
+  const toMerge = pendingPersist ?? current;
+  if (toMerge.bredVariants?.length && toMerge.experimentNumber != null) {
+    await mergeProgressBredVariantsIntoHistory(toMerge);
+  } else {
+    try {
+      const stored = await getLabDocument<ExperimentProgress>(LAB_DOC.EXPERIMENT_PROGRESS);
+      if (stored?.bredVariants?.length && stored.experimentNumber != null) {
+        await mergeProgressBredVariantsIntoHistory(stored);
+      }
+    } catch {
+      /* non-fatal */
+    }
+  }
   await persist({ ...IDLE });
 }
 
@@ -122,11 +139,18 @@ export class ExperimentProgressReporter {
   private startedAt: string;
   private bredVariants: PageVariant[] = [];
   private experimentNumber: number;
+  private runId: string;
 
-  constructor(mode: ExperimentMode, totalGenerations: number, experimentNumber: number) {
+  constructor(
+    mode: ExperimentMode,
+    totalGenerations: number,
+    experimentNumber: number,
+    runId: string
+  ) {
     this.mode = mode;
     this.totalGenerations = totalGenerations;
     this.experimentNumber = experimentNumber;
+    this.runId = runId;
     this.genSpan = 92 / Math.max(1, totalGenerations);
     this.startedAt = new Date().toISOString();
     this.publish("starting", 0, "Starting experiment…", null);
@@ -228,6 +252,13 @@ export class ExperimentProgressReporter {
       },
       true
     );
+    void persistBredVariantToHistory({
+      experimentNumber: this.experimentNumber,
+      runId: this.runId,
+      variant,
+    }).catch(() => {
+      /* non-fatal — progress UI still shows bredVariants */
+    });
   }
 
   saving(label: string) {

@@ -19,6 +19,8 @@ export interface ExperimentHistoryEntry {
   runId: string;
   previousVariants: PageVariant[];
   currentVariants: PageVariant[];
+  /** True while the run is still in progress or ended before full save. */
+  partial?: boolean;
 }
 
 const DEFAULT_STATE: LoopState = {
