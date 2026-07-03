@@ -8,8 +8,8 @@ import {
 import { isProgressActivelyRunning, loadExperimentProgress } from "@/lib/loop/experiment-progress";
 import { isAutonomousMode, loadLoopState, saveLoopState } from "@/lib/loop/state";
 
-/** Background experiment via after() — allow long LLM breeding on Vercel. */
-export const maxDuration = 800;
+/** Background experiment via after() — Hobby plan caps at 300s. */
+export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 export async function GET() {
