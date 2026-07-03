@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { PERSONA_SET_V1 } from "@/config/personas";
 import type { Persona } from "@/lib/schema/persona";
 import { PersonaResearchLinks } from "./PersonaResearchLinks";
-
 /**
  * User personas — who simulates visits and what must be true for them to convert.
  */

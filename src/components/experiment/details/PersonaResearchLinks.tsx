@@ -10,17 +10,17 @@ export function PersonaResearchLinks({ className = "" }: { className?: string })
         Research sources
       </p>
       <p className="mt-1 text-xs text-slate-600">
-        Persona priors and objection ledgers cite published 2025–26 L&D buyer research — not invented
-        profiles.
+        Persona priors and objection ledgers cite primary publisher research — not invented
+        profiles. Each source links to the original report or regulation.
       </p>
-      <ul className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+      <ul className="mt-3 grid gap-2 sm:grid-cols-2">
         {PERSONA_RESEARCH_SOURCES.map((source) => (
-          <li key={source.id} className="min-w-[14rem] flex-1">
+          <li key={source.id}>
             <a
               href={source.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group block rounded-lg border border-slate-200 bg-white px-3 py-2 transition hover:border-schole-primary/40 hover:shadow-sm"
+              className="group flex h-full flex-col rounded-lg border border-slate-200 bg-white px-3 py-2.5 transition hover:border-schole-primary/40 hover:shadow-sm"
             >
               <span className="text-xs font-semibold text-slate-900 group-hover:text-schole-primary">
                 {source.label}
@@ -28,8 +28,14 @@ export function PersonaResearchLinks({ className = "" }: { className?: string })
                   ↗
                 </span>
               </span>
-              <span className="mt-0.5 block text-[11px] leading-snug text-slate-500">
+              <span className="mt-0.5 text-[10px] font-medium text-slate-500">
+                {source.publisher} · {source.year} · [{source.citeKey}]
+              </span>
+              <span className="mt-1.5 flex-1 text-[11px] leading-snug text-slate-600">
                 {source.note}
+              </span>
+              <span className="mt-2 text-[10px] text-slate-400">
+                Supports: {source.personas.join(", ")}
               </span>
             </a>
           </li>

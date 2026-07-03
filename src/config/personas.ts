@@ -48,13 +48,6 @@ export const PERSONA_SET_V1: PersonaSet = {
           groundedIn:
             "[G2-LMS25] Low completion driven by content disconnected from daily work and lengthy modules.",
         },
-        {
-          id: "price_clarity",
-          text: "If I have to 'book a demo' to learn the price, I assume it's expensive.",
-          critical: false,
-          groundedIn:
-            "[G2-LMS25] Price clarity is a recurring concern in LMS directory reviews.",
-        },
       ],
       patienceSeconds: { mean: 75, stdDev: 20 },
       skepticism: 0.65,
