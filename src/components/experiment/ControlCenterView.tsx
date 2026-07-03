@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CRITERIA } from "@/config/criteria";
 import type { ExperimentProgress } from "@/lib/schema/experiment-progress";
+import { isProgressActivelyRunning } from "@/lib/loop/experiment-progress-utils";
 import { LiveStatusPanel } from "@/components/experiment/LiveStatusPanel";
 
 interface ControlState {
@@ -51,10 +52,12 @@ export function ControlCenterView({
   progress,
   pollProgress,
   onExperimentComplete,
+  onDismissProgress,
 }: {
   progress: ExperimentProgress | null;
   pollProgress: () => Promise<void>;
   onExperimentComplete?: () => void;
+  onDismissProgress?: () => void;
 }) {
   const meta = CRITERIA.find((c) => c.id === "0");
   const [state, setState] = useState<ControlState | null>(null);
@@ -78,16 +81,36 @@ export function ControlCenterView({
     }
   }, []);
 
+  const defaultControl = useCallback(
+    (): ControlState => ({
+      autonomous: false,
+      llmPersonas: false,
+      runVersion: 0,
+      lastRunId: null,
+      experimentMode: "hybrid",
+      llmExperimentAvailable: false,
+      llmProvider: null,
+    }),
+    []
+  );
+
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // If the server-side run ended (complete/error/stale) but the POST is still open, unlock the button.
+  useEffect(() => {
+    if (!isProgressActivelyRunning(progress)) {
+      setRunning(false);
+    }
+  }, [progress]);
 
   const patchControl = async (patch: Partial<Pick<ControlState, "autonomous" | "llmPersonas">>) => {
     setError(null);
     setMessage(null);
 
-    const prev = state;
-    setState((s) => (s ? { ...s, ...patch } : s));
+    const prev = state ?? defaultControl();
+    setState({ ...prev, ...patch });
 
     try {
       const res = await fetch("/api/control", {
@@ -100,16 +123,15 @@ export function ControlCenterView({
         throw new Error(body.error ?? "Failed to update settings");
       }
       const body = await res.json();
-      setState((s) =>
-        s
-          ? {
-              ...s,
-              autonomous: body.autonomous ?? s.autonomous,
-              llmPersonas: body.llmPersonas ?? s.llmPersonas,
-              experimentMode: body.experimentMode ?? s.experimentMode,
-            }
-          : s
-      );
+      setState((s) => {
+        const base = s ?? defaultControl();
+        return {
+          ...base,
+          autonomous: body.autonomous ?? base.autonomous,
+          llmPersonas: body.llmPersonas ?? base.llmPersonas,
+          experimentMode: body.experimentMode ?? base.experimentMode,
+        };
+      });
       if (typeof patch.autonomous === "boolean") {
         setLiveActive(patch.autonomous);
         if (patch.autonomous) {
@@ -118,7 +140,7 @@ export function ControlCenterView({
         }
       }
     } catch (e) {
-      if (prev) setState(prev);
+      setState(prev);
       setError(e instanceof Error ? e.message : "Failed to update settings");
     }
   };
@@ -130,8 +152,8 @@ export function ControlCenterView({
     const llmMode = state?.llmPersonas ?? false;
     setMessage(
       llmMode
-        ? "LLM personas are reading pages, evaluating results, and breeding new copy."
-        : "Heuristic readings and traffic simulation, then LLM evaluator and copywriter."
+        ? "LLM personas are reading pages, then the optimizer breeds six angled variants."
+        : "Heuristic traffic simulation, behavior report, then optimizer breeds six angled variants."
     );
 
     try {
@@ -170,9 +192,10 @@ export function ControlCenterView({
   const autonomous = state?.autonomous ?? false;
   const llmPersonas = state?.llmPersonas ?? false;
   const llmAvailable = state?.llmExperimentAvailable ?? false;
-  const experimentRunning =
-    running || progress?.status === "running" || progress?.status === "complete";
-  const runBlocked = running || (!autonomous && !llmAvailable);
+  const progressRunning = isProgressActivelyRunning(progress);
+  const runBlocked = running || progressRunning || (!autonomous && !llmAvailable);
+  // Toggles stay usable unless the initial settings fetch is in flight.
+  const settingsLocked = loading;
 
   return (
     <div className="flex min-h-[calc(100vh-65px)] items-start justify-center p-6">
@@ -196,7 +219,7 @@ export function ControlCenterView({
             </div>
             <Toggle
               checked={autonomous}
-              disabled={loading}
+              disabled={settingsLocked}
               label="Autonomous mode"
               onChange={(autonomous) => patchControl({ autonomous })}
             />
@@ -208,12 +231,12 @@ export function ControlCenterView({
               <p className="mt-1 text-xs leading-relaxed text-slate-500">
                 {llmPersonas
                   ? "Each persona reads pages via LLM — richest signal, slowest (~20 min)."
-                  : "Heuristic persona readings + simulated traffic, then LLM evaluator and copywriter (~2–5 min)."}
+                  : "Heuristic persona readings + simulated traffic, then optimizer breeds six angled pages (~2–5 min)."}
               </p>
             </div>
             <Toggle
               checked={llmPersonas}
-              disabled={loading}
+              disabled={settingsLocked}
               label="LLM personas"
               onChange={(llmPersonas) => patchControl({ llmPersonas })}
             />
@@ -226,7 +249,7 @@ export function ControlCenterView({
               disabled={runBlocked}
               className="w-full rounded-xl bg-schole-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-schole-primary-hover disabled:opacity-50"
             >
-              {running
+              {running || progressRunning
                 ? llmPersonas
                   ? "Running LLM experiment…"
                   : "Running experiment…"
@@ -238,9 +261,18 @@ export function ControlCenterView({
               {autonomous
                 ? "Real visitors on variant pages feed the loop. Click Live to confirm status and share pages for people to run."
                 : llmPersonas
-                  ? "LLM personas read each page, traffic is simulated, the LLM evaluator reports, and the optimizer breeds six new landing pages."
-                  : "Rule-based persona readings and Monte Carlo visits, then the LLM evaluator diagnoses results and the optimizer writes six new pages."}
+                  ? "LLM personas read each page, traffic is simulated, a behavior report is built, and the optimizer breeds six distinct landing pages."
+                  : "Simulated user behavior drives a behavior report; the optimizer then breeds six distinct pages (one per base angle)."}
             </p>
+            {progress?.status === "error" && onDismissProgress && (
+              <button
+                type="button"
+                onClick={onDismissProgress}
+                className="mt-3 w-full rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-medium text-rose-800 hover:bg-rose-50"
+              >
+                Dismiss interrupted run and unlock controls
+              </button>
+            )}
             {!autonomous && !llmAvailable && !loading && (
               <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
                 Evaluator and optimizer need an API key — add{" "}
@@ -252,7 +284,7 @@ export function ControlCenterView({
           </div>
         </section>
 
-        {autonomous && liveActive && !experimentRunning && (
+        {autonomous && liveActive && !progressRunning && (
           <LiveStatusPanel onSync={() => refresh()} />
         )}
 

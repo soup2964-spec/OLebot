@@ -5,8 +5,13 @@ import type {
 } from "@/lib/schema/experiment-progress";
 import type { PageVariant } from "@/lib/schema/page";
 import { getLabDocument, LAB_DOC, setLabDocument } from "@/lib/supabase/lab-documents";
+import {
+  isProgressActivelyRunning,
+  reconcileExperimentProgress,
+} from "./experiment-progress-utils";
 
 export type { ExperimentMode, ExperimentProgress, ExperimentStage };
+export { isProgressActivelyRunning, isProgressStale, reconcileExperimentProgress } from "./experiment-progress-utils";
 
 const IDLE: ExperimentProgress = {
   status: "idle",
@@ -44,7 +49,14 @@ export async function loadExperimentProgress(): Promise<ExperimentProgress> {
   try {
     const stored = await getLabDocument<ExperimentProgress>(LAB_DOC.EXPERIMENT_PROGRESS);
     if (stored) {
-      current = { ...IDLE, ...stored };
+      const merged = { ...IDLE, ...stored };
+      const reconciled = reconcileExperimentProgress(merged);
+      if (reconciled.status !== merged.status || reconciled.stage !== merged.stage) {
+        await persist(reconciled);
+      } else {
+        current = merged;
+      }
+      return current;
     }
   } catch {
     /* use memory */
@@ -145,7 +157,7 @@ export class ExperimentProgressReporter {
     this.publish(
       "evaluating",
       this.stageBase + this.stageSpan * 0.2,
-      "LLM evaluator analyzing results",
+      "Building behavior report",
       `Generation ${this.gen + 1}`
     );
   }

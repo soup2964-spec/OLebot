@@ -8,7 +8,9 @@ import type { ExperimentMode } from "@/lib/schema/experiment-progress";
 import {
   ExperimentProgressReporter,
   clearExperimentProgress,
+  loadExperimentProgress,
 } from "./experiment-progress";
+import { isProgressActivelyRunning } from "./experiment-progress-utils";
 import { saveExperimentRun } from "@/lib/experiments/store";
 import {
   loadLoopState,
@@ -42,8 +44,13 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
 
   if (!isLlmConfigured()) {
     throw new Error(
-      "LLM API key required — add KIE_API_KEY or OPENAI_API_KEY to .env.local (evaluator and optimizer always use LLM)"
+      "LLM API key required — add KIE_API_KEY or OPENAI_API_KEY to .env.local (optimizer uses LLM)"
     );
+  }
+
+  const existing = await loadExperimentProgress();
+  if (isProgressActivelyRunning(existing)) {
+    throw new Error("An experiment is already running — wait for it to finish or dismiss the progress bar.");
   }
 
   const history = normalizeExperimentHistory(loopState.experimentHistory);

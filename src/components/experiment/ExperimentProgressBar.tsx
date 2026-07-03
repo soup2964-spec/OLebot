@@ -6,19 +6,26 @@ const STAGE_LABELS: Record<ExperimentProgress["stage"], string> = {
   starting: "Starting",
   readings: "Persona readings",
   simulating: "Simulating traffic",
-  evaluating: "Evaluator",
+  evaluating: "Behavior report",
   breeding: "Optimizer",
   saving: "Saving",
   done: "Complete",
   error: "Failed",
 };
 
-export function ExperimentProgressBar({ progress }: { progress: ExperimentProgress | null }) {
+export function ExperimentProgressBar({
+  progress,
+  onDismiss,
+}: {
+  progress: ExperimentProgress | null;
+  onDismiss?: () => void;
+}) {
   if (!progress || progress.status === "idle") return null;
 
   const percent = progress.percent;
   const isError = progress.status === "error";
   const isComplete = progress.status === "complete";
+  const canDismiss = Boolean(onDismiss) && (isError || isComplete);
 
   return (
     <div
@@ -40,9 +47,20 @@ export function ExperimentProgressBar({ progress }: { progress: ExperimentProgre
         <p className={`font-medium ${isError ? "text-rose-800" : "text-slate-900"}`}>
           {progress.label}
         </p>
-        <p className={`tabular-nums ${isError ? "text-rose-700" : "text-slate-600"}`}>
-          {percent}%
-        </p>
+        <div className="flex items-center gap-2">
+          <p className={`tabular-nums ${isError ? "text-rose-700" : "text-slate-600"}`}>
+            {percent}%
+          </p>
+          {canDismiss && onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Dismiss
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80">
@@ -57,9 +75,7 @@ export function ExperimentProgressBar({ progress }: { progress: ExperimentProgre
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
         <span
           className={`rounded-full px-2 py-0.5 font-medium ${
-            isError
-              ? "bg-rose-100 text-rose-800"
-              : "bg-white/80 text-slate-700"
+            isError ? "bg-rose-100 text-rose-800" : "bg-white/80 text-slate-700"
           }`}
         >
           {STAGE_LABELS[progress.stage]}

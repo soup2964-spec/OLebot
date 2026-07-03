@@ -9,6 +9,7 @@ import type { ExperimentHistoryEntry } from "@/lib/loop/state";
 import { CRITERIA } from "@/config/criteria";
 import { buildJudgmentsFromMetrics } from "@/lib/judgment/criteria";
 import { comparisonSnapshotsForIteration, maxExperimentIteration } from "@/lib/comparison/snapshots";
+import { isProgressActivelyRunning } from "@/lib/loop/experiment-progress-utils";
 import { ControlCenterView } from "@/components/experiment/ControlCenterView";
 import { ExperimentDetailPanel } from "@/components/experiment/ExperimentDetailPanel";
 import { ExperimentProgressBar } from "@/components/experiment/ExperimentProgressBar";
@@ -96,10 +97,21 @@ export function ExperimentWorkbench({
   const [progress, setProgress] = useState<ExperimentProgress | null>(null);
   const [iteration, setIteration] = useState(1);
 
-  const isRunning = progress?.status === "running";
+  const isRunning = isProgressActivelyRunning(progress);
   const maxIteration = maxExperimentIteration(experimentHistory, isRunning);
-  const experimentActive =
-    isRunning || progress?.status === "complete" || progress?.status === "error";
+  const showProgressBar =
+    progress != null &&
+    progress.status !== "idle" &&
+    (isRunning || progress.status === "complete" || progress.status === "error");
+
+  const dismissProgress = useCallback(async () => {
+    try {
+      await fetch("/api/control/progress", { method: "DELETE" });
+    } catch {
+      /* ignore */
+    }
+    setProgress(null);
+  }, []);
 
   const pollProgress = useCallback(async () => {
     try {
@@ -132,10 +144,18 @@ export function ExperimentWorkbench({
     const data = await loadIteration(iteration);
     if (!data) return null;
     const hist = data.experimentHistory ?? [];
-    const running = data.experimentProgress?.status === "running";
+    const running = isProgressActivelyRunning(data.experimentProgress ?? null);
     setIteration((i) => Math.min(Math.max(1, i), maxExperimentIteration(hist, running)));
     return data;
   }, [iteration, loadIteration]);
+
+  useEffect(() => {
+    if (progress?.status !== "complete" && progress?.status !== "error") return;
+    const t = setTimeout(() => {
+      void dismissProgress();
+    }, 8000);
+    return () => clearTimeout(t);
+  }, [progress?.status, dismissProgress]);
 
   useEffect(() => {
     void pollProgress();
@@ -197,10 +217,10 @@ export function ExperimentWorkbench({
       />
 
       <div className="min-w-0 flex-1 overflow-y-auto lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)]">
-        {experimentActive && progress && progress.status !== "idle" && (
+        {showProgressBar && progress && (
           <div className="sticky top-0 z-10 border-b border-slate-200 bg-slate-100/95 p-4 backdrop-blur">
-            <ExperimentProgressBar progress={progress} />
-            {progress.experimentNumber != null && (
+            <ExperimentProgressBar progress={progress} onDismiss={() => void dismissProgress()} />
+            {isRunning && progress.experimentNumber != null && (
               <p className="mt-2 text-center text-xs text-slate-500">
                 Experiment {progress.experimentNumber} · progress saved — switch tabs freely
               </p>
@@ -212,6 +232,7 @@ export function ExperimentWorkbench({
           <ControlCenterView
             progress={progress}
             pollProgress={pollProgress}
+            onDismissProgress={() => void dismissProgress()}
             onExperimentComplete={async () => {
               const data = await refresh();
               await pollProgress();
