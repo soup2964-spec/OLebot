@@ -737,9 +737,35 @@
 (function () {
   var MARKERS = [{"anchor":"Faster competency. Higher engagement.","id":"hero","alt":"See how"},{"anchor":"Learn the new way with","id":"how","alt":""},{"anchor":"The adoption gap is real.","id":"problem","alt":"83% of HR leaders believe their company supports AI learning. Only 64% of employees agree. Half of your workforce says workload leaves no room for training at all. Meanwhile the licenses renew, and the productivity gains stay theoretical."},{"anchor":"adapts to each person","id":"features","alt":""},{"anchor":"What your","id":"tour","alt":""},{"anchor":"Teams at these organizations are already learning on","id":"proof","alt":""},{"anchor":"Backed by the best.","id":"press","alt":""},{"anchor":"How is Scholé different from platforms like Coursera","id":"faq","alt":""},{"anchor":"Ready to turn AI tools","id":"cta","alt":"20 minutes with a founder. Bring your adoption numbers if you have them and we will show you what closing the gap looks like."}];
   var PATCHES = [{"sectionId":"hero","anchor":"Faster competency. Higher engagement.","to":"Most companies have AI."},{"sectionId":"hero","anchor":"Agentic Learning with Scholé.","to":"Very few turn it into measurable impact."},{"sectionId":"hero","anchor":"Scholé uses the best of AI to construct ","to":"You bought ChatGPT, Copilot, Gemini, Claude. The subscriptions are active. Ask most employees what changed in their daily work, and the answer is: not much. Scholé closes that gap."},{"sectionId":"hero","anchor":"Book a demo","to":"See how"},{"sectionId":"how","anchor":"Learn the new way with","to":"The fix: meet employees where they already are"},{"sectionId":"how","anchor":"Scholé is a multi-agent pedagogical engi","to":"Scholé's multi-agent engine builds each employee's path around their actual role and daily tools like Notion, Excel, PowerPoint, and Slack. 2 minute micro-lessons that fit inside the workday."},{"sectionId":"how","anchor":"No more one-size-fits-all courses.","to":""},{"sectionId":"problem","anchor":"The adoption gap is real.","to":"The adoption gap, in your own numbers."},{"sectionId":"problem","anchor":"Scholé closes it.","to":""},{"sectionId":"problem","anchor":"Scholé helps every employee understand w","to":"83% of HR leaders believe their company supports AI learning. Only 64% of employees agree. Half of your workforce says workload leaves no room for training at all. Meanwhile the licenses renew, and the productivity gains stay theoretical."},{"sectionId":"cta","anchor":"Ready to turn AI tools","to":"Your licenses renew either way"},{"sectionId":"cta","anchor":"Whether you're preparing for the EU AI A","to":"20 minutes with a founder. Bring your adoption numbers if you have them and we will show you what closing the gap looks like."}];
+  var START = Date.now();
+  var STABLE_AFTER_MS = 30000;
 
   function needle(s) {
     return s ? s.slice(0, Math.min(s.length, 28)) : "";
+  }
+
+  // Skip our own script (whose JSON contains every anchor), styles, etc.
+  function skippedNode(node) {
+    var p = node.parentElement;
+    var tag = p && p.tagName;
+    return tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT" || tag === "TEMPLATE";
+  }
+
+  function mainRoot() {
+    return document.getElementById("main") || document.body;
+  }
+
+  // All visible text concatenated (no separators, so text split across styled
+  // spans still matches the full anchor).
+  function visibleText(root) {
+    var out = "";
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var node;
+    while ((node = walker.nextNode())) {
+      if (skippedNode(node)) continue;
+      if (node.data) out += node.data;
+    }
+    return out;
   }
 
   function findTextNode(root, text) {
@@ -747,6 +773,7 @@
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
     var node;
     while ((node = walker.nextNode())) {
+      if (skippedNode(node)) continue;
       if (node.data && node.data.indexOf(text) >= 0) return node;
     }
     return null;
@@ -816,6 +843,7 @@
       var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
       var node;
       while ((node = walker.nextNode())) {
+        if (skippedNode(node)) continue;
         if (!node.data || node.data.indexOf(suffix) < 0) continue;
         var prev = node.previousSibling;
         while (prev && prev.nodeType !== Node.TEXT_NODE && prev.nodeType !== Node.ELEMENT_NODE) {
@@ -836,35 +864,34 @@
     return changed;
   }
 
+  // Patch within the marked section when it survives; fall back to the whole
+  // main content root when hydration destroyed the marker.
   function applyPatch(p) {
     if (!p.anchor) return;
-    var scope = patchScope(p);
+    var scope = patchScope(p) || mainRoot();
     if (!scope) return;
     var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
     var node;
     var changed = false;
     while ((node = walker.nextNode())) {
+      if (skippedNode(node)) continue;
       if (replaceInTextNode(node, p.anchor, p.to)) changed = true;
     }
     if (!changed) replaceSplitHeadline(scope, p.anchor, p.to);
   }
 
-  function anchorLeaks(scope, anchor) {
-    if (!anchor) return false;
-    var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
-    var node;
-    while ((node = walker.nextNode())) {
-      if (node.data && node.data.indexOf(anchor) >= 0) return true;
-      var esc = anchor.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      if (esc !== anchor && node.data && node.data.indexOf(esc) >= 0) return true;
-    }
-    for (var cut = anchor.length - 1; cut >= 4; cut--) {
-      var suffix = anchor.slice(cut);
-      if (suffix.length < 4) continue;
-      walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
-      while ((node = walker.nextNode())) {
-        if (node.data && node.data.indexOf(suffix) >= 0) return true;
-      }
+  // Global leak scan: baseline anchor text anywhere in visible content means
+  // hydration restored original copy. Independent of section markers.
+  function needsWork() {
+    if (!document.body) return false;
+    var text = visibleText(mainRoot());
+    if (!text) return false;
+    for (var i = 0; i < PATCHES.length; i++) {
+      var a = PATCHES[i].anchor;
+      if (!a) continue;
+      if (text.indexOf(a) >= 0) return true;
+      var nd = needle(a);
+      if (nd && nd !== a && text.indexOf(nd) >= 0) return true;
     }
     return false;
   }
@@ -872,17 +899,6 @@
   function run() {
     markSections();
     for (var i = 0; i < PATCHES.length; i++) applyPatch(PATCHES[i]);
-  }
-
-  function needsWork() {
-    if (!document.body) return false;
-    for (var i = 0; i < PATCHES.length; i++) {
-      var p = PATCHES[i];
-      var scope = patchScope(p);
-      if (!scope) continue;
-      if (anchorLeaks(scope, p.anchor)) return true;
-    }
-    return false;
   }
 
   function safeRun() {
@@ -895,8 +911,9 @@
     safeRun();
   }
 
-  // Framer may re-render on resize/route changes; re-check a few times, then stop.
-  [50, 300, 1000, 2500, 5000].forEach(function (ms) {
+  // Framer hydrates late and can re-render several times; re-check well past
+  // the initial load.
+  [50, 300, 1000, 2500, 5000, 8000, 15000, 25000].forEach(function (ms) {
     setTimeout(function () {
       if (needsWork()) safeRun();
     }, ms);
@@ -906,11 +923,12 @@
   var observer = new MutationObserver(function () {
     clearTimeout(debounce);
     debounce = setTimeout(function () {
-      if (!needsWork()) {
-        observer.disconnect();
+      if (needsWork()) {
+        safeRun();
         return;
       }
-      safeRun();
+      // Only stop watching once the page has been stable well past hydration.
+      if (Date.now() - START > STABLE_AFTER_MS) observer.disconnect();
     }, 80);
   });
   observer.observe(document.documentElement, {

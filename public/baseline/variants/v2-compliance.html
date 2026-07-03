@@ -737,9 +737,35 @@
 (function () {
   var MARKERS = [{"anchor":"Faster competency. Higher engagement.","id":"hero","alt":"Get compliant this quarter"},{"anchor":"Learn the new way with","id":"how","alt":""},{"anchor":"The adoption gap is real.","id":"problem","alt":"Providers and deployers must ensure sufficient AI literacy that accounts for technical knowledge, experience, and context of use. A one-size-fits-all webinar does not meet that bar."},{"anchor":"adapts to each person","id":"features","alt":""},{"anchor":"What your","id":"tour","alt":""},{"anchor":"Teams at these organizations are already learning on","id":"proof","alt":""},{"anchor":"Backed by the best.","id":"press","alt":""},{"anchor":"How is Scholé different from platforms like Coursera","id":"faq","alt":"Scholé maps role-specific learning paths to Article 4, with per-employee mastery records you can export for audit."},{"anchor":"Ready to turn AI tools","id":"cta","alt":"Book a compliance walkthrough"}];
   var PATCHES = [{"sectionId":"hero","anchor":"Faster competency. Higher engagement.","to":"The EU AI Act made AI literacy mandatory."},{"sectionId":"hero","anchor":"Agentic Learning with Scholé.","to":"Scholé makes it auditable."},{"sectionId":"hero","anchor":"Scholé uses the best of AI to construct ","to":"Role-specific AI literacy for your entire workforce, live this quarter, with per-employee evidence that regulators and boards can read."},{"sectionId":"hero","anchor":"Book a demo","to":"Get compliant this quarter"},{"sectionId":"problem","anchor":"The adoption gap is real.","to":"Article 4 requires AI literacy."},{"sectionId":"problem","anchor":"Scholé closes it.","to":"Generic training won't pass audit."},{"sectionId":"problem","anchor":"Scholé helps every employee understand w","to":"Providers and deployers must ensure sufficient AI literacy that accounts for technical knowledge, experience, and context of use. A one-size-fits-all webinar does not meet that bar."},{"sectionId":"faq","anchor":"How is Scholé different from platforms like Coursera or LinkedIn Learning?","to":"What does EU AI Act compliance cover?"},{"sectionId":"faq","anchor":"How is Scholé different from platforms l","to":"Scholé maps role-specific learning paths to Article 4, with per-employee mastery records you can export for audit."},{"sectionId":"cta","anchor":"Ready to turn AI tools","to":"The deadline isn't moving. Neither is your board."},{"sectionId":"cta","anchor":"Whether you're preparing for the EU AI A","to":"A 20 minute call: we map Article 4 requirements to your org and show you the audit trail live."},{"sectionId":"cta","anchor":"Book a demo","to":"Book a compliance walkthrough"}];
+  var START = Date.now();
+  var STABLE_AFTER_MS = 30000;
 
   function needle(s) {
     return s ? s.slice(0, Math.min(s.length, 28)) : "";
+  }
+
+  // Skip our own script (whose JSON contains every anchor), styles, etc.
+  function skippedNode(node) {
+    var p = node.parentElement;
+    var tag = p && p.tagName;
+    return tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT" || tag === "TEMPLATE";
+  }
+
+  function mainRoot() {
+    return document.getElementById("main") || document.body;
+  }
+
+  // All visible text concatenated (no separators, so text split across styled
+  // spans still matches the full anchor).
+  function visibleText(root) {
+    var out = "";
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var node;
+    while ((node = walker.nextNode())) {
+      if (skippedNode(node)) continue;
+      if (node.data) out += node.data;
+    }
+    return out;
   }
 
   function findTextNode(root, text) {
@@ -747,6 +773,7 @@
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
     var node;
     while ((node = walker.nextNode())) {
+      if (skippedNode(node)) continue;
       if (node.data && node.data.indexOf(text) >= 0) return node;
     }
     return null;
@@ -816,6 +843,7 @@
       var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
       var node;
       while ((node = walker.nextNode())) {
+        if (skippedNode(node)) continue;
         if (!node.data || node.data.indexOf(suffix) < 0) continue;
         var prev = node.previousSibling;
         while (prev && prev.nodeType !== Node.TEXT_NODE && prev.nodeType !== Node.ELEMENT_NODE) {
@@ -836,35 +864,34 @@
     return changed;
   }
 
+  // Patch within the marked section when it survives; fall back to the whole
+  // main content root when hydration destroyed the marker.
   function applyPatch(p) {
     if (!p.anchor) return;
-    var scope = patchScope(p);
+    var scope = patchScope(p) || mainRoot();
     if (!scope) return;
     var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
     var node;
     var changed = false;
     while ((node = walker.nextNode())) {
+      if (skippedNode(node)) continue;
       if (replaceInTextNode(node, p.anchor, p.to)) changed = true;
     }
     if (!changed) replaceSplitHeadline(scope, p.anchor, p.to);
   }
 
-  function anchorLeaks(scope, anchor) {
-    if (!anchor) return false;
-    var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
-    var node;
-    while ((node = walker.nextNode())) {
-      if (node.data && node.data.indexOf(anchor) >= 0) return true;
-      var esc = anchor.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      if (esc !== anchor && node.data && node.data.indexOf(esc) >= 0) return true;
-    }
-    for (var cut = anchor.length - 1; cut >= 4; cut--) {
-      var suffix = anchor.slice(cut);
-      if (suffix.length < 4) continue;
-      walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
-      while ((node = walker.nextNode())) {
-        if (node.data && node.data.indexOf(suffix) >= 0) return true;
-      }
+  // Global leak scan: baseline anchor text anywhere in visible content means
+  // hydration restored original copy. Independent of section markers.
+  function needsWork() {
+    if (!document.body) return false;
+    var text = visibleText(mainRoot());
+    if (!text) return false;
+    for (var i = 0; i < PATCHES.length; i++) {
+      var a = PATCHES[i].anchor;
+      if (!a) continue;
+      if (text.indexOf(a) >= 0) return true;
+      var nd = needle(a);
+      if (nd && nd !== a && text.indexOf(nd) >= 0) return true;
     }
     return false;
   }
@@ -872,17 +899,6 @@
   function run() {
     markSections();
     for (var i = 0; i < PATCHES.length; i++) applyPatch(PATCHES[i]);
-  }
-
-  function needsWork() {
-    if (!document.body) return false;
-    for (var i = 0; i < PATCHES.length; i++) {
-      var p = PATCHES[i];
-      var scope = patchScope(p);
-      if (!scope) continue;
-      if (anchorLeaks(scope, p.anchor)) return true;
-    }
-    return false;
   }
 
   function safeRun() {
@@ -895,8 +911,9 @@
     safeRun();
   }
 
-  // Framer may re-render on resize/route changes; re-check a few times, then stop.
-  [50, 300, 1000, 2500, 5000].forEach(function (ms) {
+  // Framer hydrates late and can re-render several times; re-check well past
+  // the initial load.
+  [50, 300, 1000, 2500, 5000, 8000, 15000, 25000].forEach(function (ms) {
     setTimeout(function () {
       if (needsWork()) safeRun();
     }, ms);
@@ -906,11 +923,12 @@
   var observer = new MutationObserver(function () {
     clearTimeout(debounce);
     debounce = setTimeout(function () {
-      if (!needsWork()) {
-        observer.disconnect();
+      if (needsWork()) {
+        safeRun();
         return;
       }
-      safeRun();
+      // Only stop watching once the page has been stable well past hydration.
+      if (Date.now() - START > STABLE_AFTER_MS) observer.disconnect();
     }, 80);
   });
   observer.observe(document.documentElement, {

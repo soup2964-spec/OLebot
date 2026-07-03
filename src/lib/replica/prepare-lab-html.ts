@@ -59,14 +59,16 @@ export function stripLabGuard(html: string): string {
 /**
  * In-page safety net, injected into every replica page.
  *
- * The page copy lives in static framer-text elements (h1/h2/p/span) and is
- * patched server-side before this script runs. Framer's hydration JSON carries
- * only route/breakpoint metadata, not copy, so hydration does NOT rebuild text
- * and the static patches persist. This guard is a safety net only: if any
- * baseline anchor text leaks back into a section (e.g. a Framer re-render
- * restores CMS copy from its remote bundle), it re-applies the variant text
- * surgically — replacing just the matching text node, never wiping whole
- * containers and never touching other sections.
+ * Copy is patched server-side into static framer-text elements, but Framer's
+ * runtime (loaded from framerusercontent.com) hydrates after first paint and
+ * re-renders the ORIGINAL baseline copy from its JS bundle, destroying both
+ * the patched text and any data-section-id markers we set. This guard:
+ *  - detects baseline leaks with a global text scan (never depends on section
+ *    markers surviving hydration),
+ *  - re-marks sections and re-applies patches surgically (text nodes only,
+ *    never wiping containers),
+ *  - keeps its MutationObserver alive through the whole hydration window and
+ *    only disconnects after the page has been stable for 30s.
  */
 export function injectLabGuard(html: string, patches: HtmlReplacement[]): string {
   const patchesBySection = new Map<string, string>(
@@ -84,9 +86,35 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
 (function () {
   var MARKERS = ${JSON.stringify(markers)};
   var PATCHES = ${JSON.stringify(patches)};
+  var START = Date.now();
+  var STABLE_AFTER_MS = 30000;
 
   function needle(s) {
     return s ? s.slice(0, Math.min(s.length, 28)) : "";
+  }
+
+  // Skip our own script (whose JSON contains every anchor), styles, etc.
+  function skippedNode(node) {
+    var p = node.parentElement;
+    var tag = p && p.tagName;
+    return tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT" || tag === "TEMPLATE";
+  }
+
+  function mainRoot() {
+    return document.getElementById("main") || document.body;
+  }
+
+  // All visible text concatenated (no separators, so text split across styled
+  // spans still matches the full anchor).
+  function visibleText(root) {
+    var out = "";
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var node;
+    while ((node = walker.nextNode())) {
+      if (skippedNode(node)) continue;
+      if (node.data) out += node.data;
+    }
+    return out;
   }
 
   function findTextNode(root, text) {
@@ -94,6 +122,7 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
     var node;
     while ((node = walker.nextNode())) {
+      if (skippedNode(node)) continue;
       if (node.data && node.data.indexOf(text) >= 0) return node;
     }
     return null;
@@ -163,6 +192,7 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
       var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
       var node;
       while ((node = walker.nextNode())) {
+        if (skippedNode(node)) continue;
         if (!node.data || node.data.indexOf(suffix) < 0) continue;
         var prev = node.previousSibling;
         while (prev && prev.nodeType !== Node.TEXT_NODE && prev.nodeType !== Node.ELEMENT_NODE) {
@@ -183,35 +213,34 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
     return changed;
   }
 
+  // Patch within the marked section when it survives; fall back to the whole
+  // main content root when hydration destroyed the marker.
   function applyPatch(p) {
     if (!p.anchor) return;
-    var scope = patchScope(p);
+    var scope = patchScope(p) || mainRoot();
     if (!scope) return;
     var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
     var node;
     var changed = false;
     while ((node = walker.nextNode())) {
+      if (skippedNode(node)) continue;
       if (replaceInTextNode(node, p.anchor, p.to)) changed = true;
     }
     if (!changed) replaceSplitHeadline(scope, p.anchor, p.to);
   }
 
-  function anchorLeaks(scope, anchor) {
-    if (!anchor) return false;
-    var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
-    var node;
-    while ((node = walker.nextNode())) {
-      if (node.data && node.data.indexOf(anchor) >= 0) return true;
-      var esc = anchor.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      if (esc !== anchor && node.data && node.data.indexOf(esc) >= 0) return true;
-    }
-    for (var cut = anchor.length - 1; cut >= 4; cut--) {
-      var suffix = anchor.slice(cut);
-      if (suffix.length < 4) continue;
-      walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
-      while ((node = walker.nextNode())) {
-        if (node.data && node.data.indexOf(suffix) >= 0) return true;
-      }
+  // Global leak scan: baseline anchor text anywhere in visible content means
+  // hydration restored original copy. Independent of section markers.
+  function needsWork() {
+    if (!document.body) return false;
+    var text = visibleText(mainRoot());
+    if (!text) return false;
+    for (var i = 0; i < PATCHES.length; i++) {
+      var a = PATCHES[i].anchor;
+      if (!a) continue;
+      if (text.indexOf(a) >= 0) return true;
+      var nd = needle(a);
+      if (nd && nd !== a && text.indexOf(nd) >= 0) return true;
     }
     return false;
   }
@@ -219,17 +248,6 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
   function run() {
     markSections();
     for (var i = 0; i < PATCHES.length; i++) applyPatch(PATCHES[i]);
-  }
-
-  function needsWork() {
-    if (!document.body) return false;
-    for (var i = 0; i < PATCHES.length; i++) {
-      var p = PATCHES[i];
-      var scope = patchScope(p);
-      if (!scope) continue;
-      if (anchorLeaks(scope, p.anchor)) return true;
-    }
-    return false;
   }
 
   function safeRun() {
@@ -242,8 +260,9 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
     safeRun();
   }
 
-  // Framer may re-render on resize/route changes; re-check a few times, then stop.
-  [50, 300, 1000, 2500, 5000].forEach(function (ms) {
+  // Framer hydrates late and can re-render several times; re-check well past
+  // the initial load.
+  [50, 300, 1000, 2500, 5000, 8000, 15000, 25000].forEach(function (ms) {
     setTimeout(function () {
       if (needsWork()) safeRun();
     }, ms);
@@ -253,11 +272,12 @@ export function injectLabGuard(html: string, patches: HtmlReplacement[]): string
   var observer = new MutationObserver(function () {
     clearTimeout(debounce);
     debounce = setTimeout(function () {
-      if (!needsWork()) {
-        observer.disconnect();
+      if (needsWork()) {
+        safeRun();
         return;
       }
-      safeRun();
+      // Only stop watching once the page has been stable well past hydration.
+      if (Date.now() - START > STABLE_AFTER_MS) observer.disconnect();
     }, 80);
   });
   observer.observe(document.documentElement, {
