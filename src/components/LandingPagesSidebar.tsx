@@ -6,6 +6,7 @@ import { GENERATION_0 } from "@/config/variants";
 import { staticReplicaPath } from "@/lib/replica/paths";
 import type { PageVariant } from "@/lib/schema/page";
 import { LandingPagePreview } from "@/components/LandingPagePreview";
+import { variantPageTitle } from "@/lib/variants/display-name";
 
 const PREVIEWS_PER_PAGE = 3;
 
@@ -20,6 +21,7 @@ function PageTile({
 }) {
   const src = staticReplicaPath(variant.id);
   const pageHref = `/v/${variant.id}`;
+  const title = variantPageTitle(variant);
 
   return (
     <article
@@ -41,7 +43,7 @@ function PageTile({
       tabIndex={onSelect ? 0 : undefined}
     >
       {src ? (
-        <LandingPagePreview src={src} title={variant.name} />
+        <LandingPagePreview src={src} title={title} />
       ) : (
         <div className="flex aspect-[4/3] items-center justify-center bg-slate-50 text-xs text-slate-400">
           {variant.id}
@@ -49,7 +51,7 @@ function PageTile({
       )}
       <div className="flex flex-1 flex-col gap-3 border-t border-slate-100 px-4 py-3">
         <div>
-          <h2 className="text-sm font-semibold leading-snug text-slate-900">{variant.name}</h2>
+          <h2 className="text-sm font-semibold leading-snug text-slate-900">{title}</h2>
           <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-slate-600">
             {variant.thesis}
           </p>

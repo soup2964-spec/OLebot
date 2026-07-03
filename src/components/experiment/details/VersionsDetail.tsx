@@ -1,4 +1,5 @@
 import type { PageVariant } from "@/lib/schema/page";
+import { variantPageTitle } from "@/lib/variants/display-name";
 
 export function VersionsDetail({ variants }: { variants: PageVariant[] }) {
   const gen0 = variants.filter((v) => v.generation === 0);
@@ -15,7 +16,7 @@ export function VersionsDetail({ variants }: { variants: PageVariant[] }) {
             key={v.id}
             className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
           >
-            <span className="font-semibold text-slate-900">{v.name}</span>
+            <span className="font-semibold text-slate-900">{variantPageTitle(v)}</span>
             <span className="ml-2 font-mono text-xs text-slate-500">{v.id}</span>
           </li>
         ))}

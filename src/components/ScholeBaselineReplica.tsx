@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PageVariant } from "@/lib/schema/page";
 import { replicaHtmlWithGuard, staticReplicaPath } from "@/lib/replica/paths";
+import { variantPageTitle } from "@/lib/variants/display-name";
 import { trackCtaClick } from "./Clarity";
 import { useVariantTrackingContext } from "@/lib/analytics/variant-context";
 import { useVariantAnalytics } from "./useVariantAnalytics";
@@ -98,7 +99,7 @@ export function ScholeBaselineReplica({
   }, [highlightSectionId, variant.id, staticSrc, srcdoc]);
 
   const chromeLabel =
-    variant.id === "v0-baseline" ? "Baseline replica" : variant.name;
+    variant.id === "v0-baseline" ? "Baseline replica" : variantPageTitle(variant);
 
   return (
     <div className="relative min-h-screen bg-white">
@@ -120,7 +121,7 @@ export function ScholeBaselineReplica({
         ref={iframeRef}
         src={staticSrc ?? undefined}
         srcDoc={srcdoc}
-        title={`Scholé AI — ${variant.name}`}
+        title={`Scholé AI — ${variantPageTitle(variant)}`}
         className={iframeClassName}
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
       />

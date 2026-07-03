@@ -29,16 +29,40 @@ function injectSectionMarker(html: string, anchor: string, sectionId: string): s
     return html;
   }
 
-  const windowStart = Math.max(0, idx - 2500);
+  const windowStart = Math.max(0, idx - 5000);
   const window = html.slice(windowStart, idx);
   const tags = [...window.matchAll(/<(section|div|header)(\s[^>]*)?>/g)];
   if (tags.length === 0) {
     const marker = `<div data-section-id="${sectionId}" id="section-${sectionId}" aria-hidden="true" style="scroll-margin-top:80px"></div>`;
     return html.slice(0, idx) + marker + html.slice(idx);
   }
-  const lastTag = tags[tags.length - 1];
-  const tagStart = windowStart + (lastTag.index ?? 0);
-  const fullTag = lastTag[0];
+
+  const framerName = (tag: string) => {
+    const m = /data-framer-name="([^"]+)"/.exec(tag);
+    return m?.[1] ?? "";
+  };
+
+  let chosen = tags[tags.length - 1]!;
+  for (let i = tags.length - 1; i >= 0; i--) {
+    const fullTag = tags[i]![0];
+    if (fullTag.includes("data-section-id")) continue;
+    const name = framerName(fullTag);
+    if (name === "Heading" || name === "Left" || name === "Description") {
+      chosen = tags[i]!;
+      break;
+    }
+  }
+  if (/RichTextContainer/i.test(chosen[0])) {
+    for (let i = tags.length - 1; i >= 0; i--) {
+      const fullTag = tags[i]![0];
+      if (fullTag.includes("data-section-id") || /RichTextContainer/i.test(fullTag)) continue;
+      chosen = tags[i]!;
+      break;
+    }
+  }
+
+  const tagStart = windowStart + (chosen.index ?? 0);
+  const fullTag = chosen[0];
   if (fullTag.includes("data-section-id")) return html;
 
   const injected = fullTag.replace(

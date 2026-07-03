@@ -10,6 +10,7 @@ import type { VariantJudgment } from "@/lib/judgment/criteria";
 import { formatLiftPp } from "@/lib/judgment/criteria";
 import { formatFunnelPct } from "@/lib/analytics/funnel-metrics";
 import { staticReplicaPath } from "@/lib/replica/paths";
+import { variantPageTitle } from "@/lib/variants/display-name";
 import { LandingPagePreview } from "@/components/LandingPagePreview";
 import { DecisionChip } from "@/components/experiment/DecisionChip";
 
@@ -118,6 +119,7 @@ function WinnerRow({
   isTop: boolean;
 }) {
   const src = staticReplicaPath(variant.id);
+  const title = variantPageTitle(variant);
   const liftPp =
     judgment?.liftPp ?? (variant.id === "v0-baseline" ? null : (metrics.conversionRate - baselineRate) * 100);
   const funnel = metrics.funnel;
@@ -135,7 +137,7 @@ function WinnerRow({
         {/* Page preview */}
         <div className="border-b border-slate-100 lg:border-b-0 lg:border-r">
           {src ? (
-            <LandingPagePreview src={src} title={variant.name} />
+            <LandingPagePreview src={src} title={title} />
           ) : (
             <div className="flex aspect-[4/3] items-center justify-center bg-slate-50 text-sm text-slate-400">
               Preview unavailable
@@ -158,7 +160,7 @@ function WinnerRow({
                 </span>
                 {decision && <DecisionChip decision={decision} />}
               </div>
-              <h3 className="mt-2 text-lg font-semibold text-slate-900">{variant.name}</h3>
+              <h3 className="mt-2 text-lg font-semibold text-slate-900">{title}</h3>
               <p className="font-mono text-xs text-slate-500">
                 {variant.id} · {variant.strategy}
               </p>

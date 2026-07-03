@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { PageVariant } from "@/lib/schema/page";
+import { variantPageTitle } from "@/lib/variants/display-name";
 
 export function ChangelogDetail({
   variants,
@@ -28,7 +29,7 @@ export function ChangelogDetail({
       {bred.map((v) => (
         <div key={v.id}>
           <h3 className="text-sm font-semibold text-slate-900">
-            {v.name}{" "}
+            {variantPageTitle(v)}{" "}
             <code className="ml-1 text-xs font-normal text-slate-500">{v.id}</code>
           </h3>
           <ol className="mt-3 space-y-3">

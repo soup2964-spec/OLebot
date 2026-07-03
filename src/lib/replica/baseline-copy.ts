@@ -45,6 +45,7 @@ export const BASELINE_HTML_COPY: Record<
     headline: ["Learning that adapts to each person"],
     body: [
       "Every employee follows a path built around their tools, skills, and pace. The lesson content adjusts in real time as they progress.",
+      "You bought the tools",
     ],
     items: [
       "Content tied to daily work",

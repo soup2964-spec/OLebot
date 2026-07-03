@@ -2,6 +2,7 @@ import type { PageVariant, Section, ChangelogEntry } from "@/lib/schema/page";
 import type { VariantMetrics } from "@/lib/schema/events";
 import type { GenerationReport } from "@/lib/schema/experiment";
 import { chatJSONRetry, breederProvider } from "@/lib/llm";
+import { variantNameForBreeding } from "@/lib/variants/display-name";
 
 /**
  * Optimizer agent: breeds the next generation from the evaluator's report.
@@ -212,7 +213,7 @@ Produce the JSON for the new variant.`;
   const id = `g${generation + 1}-${mode === "mutation" ? "mut" : "x"}${childIndex}`;
   return {
     id,
-    name: angle ? angle.name : stripDashesFromCopy(out.name),
+    name: angle ? variantNameForBreeding(angle, generation, childIndex) : stripDashesFromCopy(out.name),
     strategy: angle ? angle.strategy : "generated",
     generation: generation + 1,
     parentIds: parents.map((p) => p.id),

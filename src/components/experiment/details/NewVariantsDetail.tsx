@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { ExperimentRun } from "@/lib/schema/experiment";
 import type { PageVariant } from "@/lib/schema/page";
 import { NineVariantGrid } from "@/components/experiment/PageTile";
+import { variantPageTitle } from "@/lib/variants/display-name";
 
 const NEW_VARIANT_GRID_SIZE = 6;
 
@@ -84,7 +85,7 @@ export function NewVariantsDetail({
           <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
             Selected · {selected.id}
           </p>
-          <h4 className="mt-1 text-base font-semibold text-slate-900">{selected.name}</h4>
+          <h4 className="mt-1 text-base font-semibold text-slate-900">{variantPageTitle(selected)}</h4>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">{selected.thesis}</p>
           {selected.parentIds.length > 0 && (
             <p className="mt-2 text-xs text-slate-500">

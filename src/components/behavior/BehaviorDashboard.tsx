@@ -11,6 +11,7 @@ import {
   VariantSectionHeatmap,
   VisitPathStrip,
 } from "@/components/behavior/VisitVisuals";
+import { variantPageTitle } from "@/lib/variants/display-name";
 
 type OutcomeFilter = "all" | "converted" | "lost" | "bounced";
 
@@ -196,7 +197,7 @@ export function BehaviorDashboard({
           }}
           options={(gen?.variantIds ?? []).map((id) => {
             const v = variants.find((x) => x.id === id);
-            return { value: id, label: v?.name ?? id };
+            return { value: id, label: v ? variantPageTitle(v) : id };
           })}
         />
         <FilterSelect
@@ -272,7 +273,7 @@ export function BehaviorDashboard({
           {variant && metrics && (
             <section className="rounded-2xl border border-slate-200 bg-schole-surface p-5">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Section engagement · {variant.name}
+                Section engagement · {variantPageTitle(variant)}
               </h2>
               <p className="mt-1 text-xs text-slate-600">
                 Aggregate read rate and exit rate across all{" "}
@@ -373,7 +374,7 @@ function SelectedVisitHeader({
         <div>
           <div className="text-xs uppercase tracking-wide text-slate-500">Selected visit</div>
           <h2 className="mt-1 text-lg font-semibold text-slate-900">
-            {persona?.name} on {variant.name}
+            {persona?.name} on {variantPageTitle(variant)}
           </h2>
           <p className="text-sm text-slate-400">{persona?.role}</p>
         </div>

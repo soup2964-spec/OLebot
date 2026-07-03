@@ -29,7 +29,47 @@ export function getSectionBounds(
   return { start, end };
 }
 
-/** Replace the HTML text node that contains `anchor` inside one section. */
+function isInsideScriptOrStyle(html: string, idx: number): boolean {
+  const before = html.slice(0, idx);
+  const lastOpen = Math.max(before.lastIndexOf("<script"), before.lastIndexOf("<style"));
+  const lastClose = Math.max(before.lastIndexOf("</script>"), before.lastIndexOf("</style>"));
+  return lastOpen > lastClose;
+}
+
+/** Replace every matching text node in the page (Framer duplicates copy per breakpoint). */
+export function replaceAllTextAnchors(html: string, anchor: string, to: string): string {
+  if (!anchor || anchor === to) return html;
+  const needle = anchor.slice(0, Math.min(anchor.length, 28));
+  let out = html;
+  let pos = 0;
+  let wrotePrimary = false;
+  let applied = false;
+
+  while (pos < out.length) {
+    const idx = out.indexOf(needle, pos);
+    if (idx < 0) break;
+    if (isInsideScriptOrStyle(out, idx)) {
+      pos = idx + needle.length;
+      continue;
+    }
+
+    const textStart = out.lastIndexOf(">", idx) + 1;
+    const textEnd = out.indexOf("<", idx);
+    if (textStart <= 0 || textEnd < 0) break;
+
+    let replacement = to;
+    if (to && wrotePrimary) replacement = "";
+    else if (to) wrotePrimary = true;
+
+    out = out.slice(0, textStart) + replacement + out.slice(textEnd);
+    applied = true;
+    pos = textStart + Math.max(replacement.length, 1);
+  }
+
+  return applied ? out : html;
+}
+
+/** Replace every matching text node in a section (Framer duplicates copy per breakpoint). */
 export function replaceTextNodeInSection(
   html: string,
   sectionId: ReplicaSectionId,
@@ -40,24 +80,41 @@ export function replaceTextNodeInSection(
   const bounds = getSectionBounds(html, sectionId);
   if (!bounds) return html;
 
-  const chunk = html.slice(bounds.start, bounds.end);
   const needle = anchor.slice(0, Math.min(anchor.length, 28));
-  const idx = chunk.indexOf(needle);
-  if (idx < 0) return html;
+  let chunk = html.slice(bounds.start, bounds.end);
+  let pos = 0;
+  let applied = false;
+  let wrotePrimary = false;
 
-  const textStart = chunk.lastIndexOf(">", idx) + 1;
-  const textEnd = chunk.indexOf("<", idx);
-  if (textStart <= 0 || textEnd < 0) return html;
+  while (pos < chunk.length) {
+    const idx = chunk.indexOf(needle, pos);
+    if (idx < 0) break;
 
-  const updated =
-    chunk.slice(0, textStart) + to + chunk.slice(textEnd);
-  return html.slice(0, bounds.start) + updated + html.slice(bounds.end);
+    const textStart = chunk.lastIndexOf(">", idx) + 1;
+    const textEnd = chunk.indexOf("<", idx);
+    if (textStart <= 0 || textEnd < 0) break;
+
+    let replacement = to;
+    if (to && wrotePrimary) replacement = "";
+    else if (to) wrotePrimary = true;
+
+    chunk = chunk.slice(0, textStart) + replacement + chunk.slice(textEnd);
+    applied = true;
+    pos = textStart + Math.max(replacement.length, 1);
+  }
+
+  if (!applied) return html;
+  return html.slice(0, bounds.start) + chunk + html.slice(bounds.end);
 }
 
 export function applyReplacements(html: string, replacements: HtmlReplacement[]): string {
   let out = html;
   for (const r of replacements) {
     out = replaceTextNodeInSection(out, r.sectionId, r.anchor, r.to);
+    const needle = r.anchor.slice(0, Math.min(r.anchor.length, 28));
+    if (needle && out.includes(needle)) {
+      out = replaceAllTextAnchors(out, r.anchor, r.to);
+    }
   }
   return out;
 }
@@ -131,17 +188,23 @@ export function buildReplacementsForSection(
         primary.slice(0, Math.min(primary.length, 40)),
         variant.body
       );
-      for (let i = 1; i < htmlBodies.length; i++) {
-        const extra = htmlBodies[i];
-        pushIfChanged(
-          out,
-          sectionId,
-          extra.slice(0, Math.min(extra.length, 40)),
-          ""
-        );
-      }
     } else {
       pushIfChanged(out, sectionId, baseline.body.slice(0, 40), variant.body);
+    }
+  }
+
+  const htmlBodies = BASELINE_HTML_COPY[sectionId]?.body;
+  if (htmlBodies?.length) {
+    for (let i = 1; i < htmlBodies.length; i++) {
+      const extra = htmlBodies[i];
+      if (!extra) continue;
+      if (variant.body.includes(extra.slice(0, Math.min(extra.length, 20)))) continue;
+      pushIfChanged(
+        out,
+        sectionId,
+        extra.slice(0, Math.min(extra.length, 40)),
+        ""
+      );
     }
   }
 

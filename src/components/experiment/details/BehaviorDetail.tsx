@@ -6,6 +6,7 @@ import { ScrollDepthBar, VisitPathStrip } from "@/components/behavior/VisitVisua
 import type { VisitIndex } from "@/lib/registry";
 import type { Visit } from "@/lib/schema/events";
 import type { PageVariant } from "@/lib/schema/page";
+import { variantPageTitle } from "@/lib/variants/display-name";
 
 type OutcomeFilter = "all" | "converted" | "lost" | "bounced";
 
@@ -98,7 +99,7 @@ export function BehaviorDetail({
             const v = variants.find((x) => x.id === id);
             return (
               <option key={id} value={id}>
-                {v?.name ?? id}
+                {v ? variantPageTitle(v) : id}
               </option>
             );
           })}
@@ -124,7 +125,7 @@ export function BehaviorDetail({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-sm font-semibold text-slate-900">{persona?.name ?? selected.personaId}</p>
-              <p className="text-xs text-slate-500">{variant.name}</p>
+              <p className="text-xs text-slate-500">{variantPageTitle(variant)}</p>
             </div>
             <OutcomeBadge converted={selected.converted} bounced={selected.bounced} />
           </div>

@@ -8,6 +8,7 @@ import type { LiveBehaviorSnapshot } from "@/lib/supabase/live-store";
 import { BehaviorDashboard } from "@/components/behavior/BehaviorDashboard";
 import { VariantSectionHeatmap } from "@/components/behavior/VisitVisuals";
 import { formatFunnelPct } from "@/lib/analytics/funnel-metrics";
+import { variantPageTitle } from "@/lib/variants/display-name";
 
 type DataMode = "live" | "simulated" | "loading";
 
@@ -138,7 +139,7 @@ function LiveBehaviorSummary({
 }) {
   const [activeId, setActiveId] = useState(live.metrics[0]?.variantId ?? "");
   const nameById = useMemo(
-    () => new Map(variants.map((v) => [v.id, v.name])),
+    () => new Map(variants.map((v) => [v.id, variantPageTitle(v)])),
     [variants]
   );
 
@@ -188,7 +189,7 @@ function LiveBehaviorSummary({
       {activeVariant && activeMetrics && (
         <div className="rounded-xl border border-white bg-white p-4">
           <h4 className="text-sm font-semibold text-slate-900">
-            Section engagement · {activeVariant.name}
+            Section engagement · {variantPageTitle(activeVariant)}
           </h4>
           <div className="mt-3">
             <VariantSectionHeatmap

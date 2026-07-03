@@ -6,6 +6,7 @@ import { ChallengeBehaviorPreview } from "@/components/challenge/ChallengeBehavi
 import { ChallengeResultsBlock } from "@/components/challenge/ChallengeResultsBlock";
 import { PersonaResearchLinks } from "@/components/experiment/details/PersonaResearchLinks";
 import { allVariantsSync, loadRunSync, visitIndex } from "@/lib/registry";
+import { variantPageTitle } from "@/lib/variants/display-name";
 
 export function ChallengeDashboard() {
   const run = loadRunSync();
@@ -72,7 +73,7 @@ export function ChallengeDashboard() {
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
               >
                 <div>
-                  <p className="font-semibold text-slate-900">{v.name}</p>
+                  <p className="font-semibold text-slate-900">{variantPageTitle(v)}</p>
                   <p className="text-xs text-slate-500">
                     {v.id} · {v.strategy} · {v.thesis.slice(0, 80)}…
                   </p>
@@ -156,7 +157,7 @@ export function ChallengeDashboard() {
                 <div className="text-xs font-bold uppercase tracking-wide text-emerald-700">
                   Gen {v.generation} · bred variant
                 </div>
-                <h3 className="mt-1 text-lg font-semibold text-slate-900">{v.name}</h3>
+                <h3 className="mt-1 text-lg font-semibold text-slate-900">{variantPageTitle(v)}</h3>
                 <p className="font-mono text-xs text-slate-500">{v.id}</p>
                 <p className="mt-2 text-sm text-slate-600">{v.thesis}</p>
                 {v.parentIds.length > 0 && (
@@ -184,7 +185,7 @@ export function ChallengeDashboard() {
               v.changelog?.length ? (
                 <div key={v.id} className="rounded-xl border border-slate-200 bg-slate-50 p-5">
                   <h3 className="font-semibold text-slate-900">
-                    {v.name}{" "}
+                    {variantPageTitle(v)}{" "}
                     <code className="ml-1 text-xs font-normal text-slate-500">{v.id}</code>
                   </h3>
                   <ol className="mt-3 space-y-3">

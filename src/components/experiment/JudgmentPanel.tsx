@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { PageVariant } from "@/lib/schema/page";
 import type { VariantJudgment } from "@/lib/judgment/criteria";
 import { formatLiftPp } from "@/lib/judgment/criteria";
+import { variantPageTitle } from "@/lib/variants/display-name";
 import { DecisionChip } from "@/components/experiment/DecisionChip";
 
 export function JudgmentPanel({
@@ -20,7 +21,7 @@ export function JudgmentPanel({
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Judgment</p>
-          <h3 className="mt-1 text-lg font-semibold text-slate-900">{variant.name}</h3>
+          <h3 className="mt-1 text-lg font-semibold text-slate-900">{variantPageTitle(variant)}</h3>
           <p className="mt-0.5 font-mono text-xs text-slate-400">{variant.id}</p>
         </div>
         {judgment.status && <DecisionChip decision={{ status: judgment.status }} />}

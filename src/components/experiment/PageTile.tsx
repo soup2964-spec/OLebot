@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { staticReplicaPath } from "@/lib/replica/paths";
 import type { PageVariant } from "@/lib/schema/page";
+import { variantPageTitle } from "@/lib/variants/display-name";
 import type { VariantJudgment } from "@/lib/judgment/criteria";
 import { formatLiftPp } from "@/lib/judgment/criteria";
 import { LandingPagePreview } from "@/components/LandingPagePreview";
@@ -29,6 +30,7 @@ export function PageTile({
 }) {
   const src = staticReplicaPath(variant.id);
   const pageHref = `/v/${variant.id}`;
+  const title = variantPageTitle(variant);
 
   return (
     <article
@@ -50,7 +52,7 @@ export function PageTile({
       tabIndex={onSelect ? 0 : undefined}
     >
       {src ? (
-        <LandingPagePreview src={src} title={variant.name} className="shrink-0" />
+        <LandingPagePreview src={src} title={title} className="shrink-0" />
       ) : (
         <div className="flex aspect-[4/3] shrink-0 items-center justify-center bg-slate-50 text-xs text-slate-400">
           {variant.id}
@@ -69,7 +71,7 @@ export function PageTile({
               compact || uniformSize ? "line-clamp-1 text-xs" : "text-sm"
             }`}
           >
-            {variant.name}
+            {title}
           </h2>
           {uniformSize ? (
             <div className="min-h-[3.25rem]">
