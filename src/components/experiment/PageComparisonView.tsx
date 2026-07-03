@@ -11,6 +11,8 @@ function ComparisonSection({
   variants,
   emptyMessage,
   slotCount = BRED_GRID_SIZE,
+  selectedVariantId,
+  onSelectVariant,
 }: {
   label?: string;
   title?: string;
@@ -18,6 +20,8 @@ function ComparisonSection({
   variants: PageVariant[];
   emptyMessage?: string;
   slotCount?: number;
+  selectedVariantId?: string | null;
+  onSelectVariant?: (variantId: string) => void;
 }) {
   const hasAny = variants.length > 0;
   const heading =
@@ -35,7 +39,14 @@ function ComparisonSection({
       </div>
 
       {hasAny ? (
-        <NineVariantGrid variants={variants} compact uniformSize slotCount={slotCount} />
+        <NineVariantGrid
+          variants={variants}
+          compact
+          uniformSize
+          slotCount={slotCount}
+          selectedVariantId={selectedVariantId}
+          onSelectVariant={onSelectVariant}
+        />
       ) : (
         <div className="grid grid-cols-3 grid-rows-2 gap-3">
           {Array.from({ length: slotCount }, (_, i) => (
@@ -59,22 +70,41 @@ export function PageComparisonView({
   experimentNumber,
   previousVariants,
   currentVariants,
+  selectedVariantId,
+  onSelectVariant,
   isRunning,
+  experimentMode = "hybrid",
+  llmPersonas = false,
 }: {
   experimentNumber: number;
   previousVariants: PageVariant[];
   currentVariants: PageVariant[];
+  selectedVariantId?: string | null;
+  onSelectVariant?: (variantId: string) => void;
   isRunning?: boolean;
+  experimentMode?: "hybrid" | "full";
+  llmPersonas?: boolean;
 }) {
   const previousNumber = Math.max(1, experimentNumber - 1);
+  const modeLabel =
+    experimentMode === "full" || llmPersonas
+      ? "LLM persona readings"
+      : "Heuristic persona readings";
 
   return (
-    <div className="grid gap-6 xl:grid-cols-2">
+    <div className="space-y-6">
+      <p className="text-xs text-slate-500">
+        Viewing Experiment {experimentNumber} · {modeLabel} · click a page to highlight it across
+        behavior and winners tabs
+      </p>
+      <div className="grid gap-6 xl:grid-cols-2">
       <ComparisonSection
         title={experimentNumber === 1 ? "Base" : undefined}
         label={experimentNumber === 1 ? undefined : "Previous experiment"}
         experimentNumber={experimentNumber === 1 ? undefined : previousNumber}
         variants={previousVariants}
+        selectedVariantId={selectedVariantId}
+        onSelectVariant={onSelectVariant}
         emptyMessage={
           experimentNumber === 1 ? undefined : "No previous experiment — this is Experiment 1."
         }
@@ -84,12 +114,15 @@ export function PageComparisonView({
         label="Current experiment results"
         experimentNumber={experimentNumber}
         variants={currentVariants}
+        selectedVariantId={selectedVariantId}
+        onSelectVariant={onSelectVariant}
         emptyMessage={
           isRunning
             ? "New pages appear here as the optimizer finishes…"
             : "Run an experiment to breed new landing pages."
         }
       />
+      </div>
     </div>
   );
 }

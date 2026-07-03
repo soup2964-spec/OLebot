@@ -41,13 +41,28 @@ export function bredVariantsFromRun(run: ExperimentRun | null): PageVariant[] {
 
 export function maxExperimentIteration(
   experimentHistory: ExperimentHistoryEntry[],
-  isRunning: boolean
+  runningExperimentNumber?: number | null
 ): number {
   const completed = experimentHistory.reduce(
     (max, e) => Math.max(max, e.experimentNumber),
     0
   );
-  return Math.max(1, completed + (isRunning ? 1 : 0));
+  if (runningExperimentNumber && runningExperimentNumber > completed) {
+    return runningExperimentNumber;
+  }
+  return Math.max(1, completed);
+}
+
+/** Experiment numbers for the left-menu selector (client-safe). */
+export function experimentNumbersFromHistory(
+  history: ExperimentHistoryEntry[],
+  runningExperimentNumber?: number | null
+): number[] {
+  const nums = [...new Set(history.map((e) => e.experimentNumber))].sort((a, b) => a - b);
+  if (runningExperimentNumber && !nums.includes(runningExperimentNumber)) {
+    return [...nums, runningExperimentNumber];
+  }
+  return nums.length > 0 ? nums : [1];
 }
 
 export function comparisonSnapshotsForIteration(
@@ -75,7 +90,10 @@ export function comparisonSnapshotsForIteration(
     };
   }
 
-  const activeExperiment = maxExperimentIteration(experimentHistory, isRunning);
+  const activeExperiment = maxExperimentIteration(
+    experimentHistory,
+    isRunning ? progress?.experimentNumber : null
+  );
 
   if (iteration === activeExperiment && isRunning) {
     return {
@@ -87,6 +105,20 @@ export function comparisonSnapshotsForIteration(
                 ?.currentVariants ?? []
             ),
       current: sortBredVariants(progress?.bredVariants ?? []),
+    };
+  }
+
+  const bredFromRun = bredVariantsFromRun(run);
+  if (bredFromRun.length > 0) {
+    return {
+      previous:
+        iteration === 1
+          ? originalGen0Variants()
+          : sortBredVariants(
+              experimentHistory.find((e) => e.experimentNumber === iteration - 1)
+                ?.currentVariants ?? []
+            ),
+      current: bredFromRun,
     };
   }
 

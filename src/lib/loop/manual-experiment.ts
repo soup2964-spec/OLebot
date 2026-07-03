@@ -12,13 +12,7 @@ import {
 } from "./experiment-progress";
 import { isProgressActivelyRunning } from "./experiment-progress-utils";
 import { saveExperimentRun } from "@/lib/experiments/store";
-import {
-  loadLoopState,
-  nextExperimentNumber,
-  normalizeExperimentHistory,
-  saveLoopState,
-  type LoopState,
-} from "./state";
+import { invalidateLoopCache, loadLoopState, nextExperimentNumber, normalizeExperimentHistory, saveLoopState, type LoopState } from "./state";
 
 export type { ExperimentMode };
 
@@ -117,6 +111,7 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
       ],
     };
     await saveLoopState(next);
+    invalidateLoopCache();
 
     const deploy =
       process.env.AUTO_DEPLOY_BEST === "1"

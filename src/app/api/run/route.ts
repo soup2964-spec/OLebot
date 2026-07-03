@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { allVariants, loadRun, visitIndex } from "@/lib/registry";
 import { getComparisonVariants } from "@/lib/deploy/promote";
 import { loadDeployState } from "@/lib/deploy/state";
-import { ensureExperimentSnapshots, loadRunForExperiment } from "@/lib/experiments/store";
-import { loadLoopState } from "@/lib/loop/state";
+import { ensureExperimentSnapshots, loadRunForExperiment, buildExperimentCatalog, buildExperimentCatalogLite } from "@/lib/experiments/store";
+import { loadLoopState, saveLoopState, normalizeExperimentHistory } from "@/lib/loop/state";
 import { loadExperimentProgress } from "@/lib/loop/experiment-progress";
 import type { ExperimentRun } from "@/lib/schema/experiment";
 
@@ -47,13 +47,29 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const experimentParam = searchParams.get("experiment");
   const experimentNumber = experimentParam ? Number(experimentParam) : null;
+  const lite = searchParams.get("lite") === "1";
 
   const state = await loadLoopState();
-  const history = await ensureExperimentSnapshots(state.experimentHistory ?? []);
+  const loopHistory = state.experimentHistory ?? [];
+
+  const history = lite
+    ? await buildExperimentCatalogLite(loopHistory)
+    : await buildExperimentCatalog(loopHistory, { reconcileSnapshots: true });
+
+  if (
+    !lite &&
+    history.length > normalizeExperimentHistory(loopHistory).length
+  ) {
+    await saveLoopState({ ...state, experimentHistory: history });
+  }
+  if (!lite) {
+    await ensureExperimentSnapshots(history);
+  }
+
   const deploy = await loadDeployState();
-  const comparison = await getComparisonVariants();
+  const comparison = lite ? null : await getComparisonVariants();
   const progress = await loadExperimentProgress();
-  const variants = await allVariants();
+  const variants = lite ? null : await allVariants();
 
   const base = {
     runVersion: state.runVersion,
@@ -61,16 +77,25 @@ export async function GET(request: Request) {
     experimentProgress: progress,
     deployVersion: deploy.deployVersion,
     lastPromotedVariantId: deploy.lastPromotedVariantId,
-    deploy,
-    comparison,
-    variants,
+    ...(lite
+      ? {}
+      : {
+          deploy,
+          comparison,
+          variants,
+        }),
     experimentNumber: experimentNumber ?? progress.experimentNumber ?? null,
   };
 
   const run =
     experimentNumber != null && Number.isFinite(experimentNumber)
-      ? (await loadRunForExperiment(experimentNumber, history, progress)) ?? (await loadRun())
-      : await loadRun();
+      ? (await loadRunForExperiment(experimentNumber, history, progress, {
+          catalog: history,
+          skipSnapshotSync: lite,
+        })) ?? (lite ? null : await loadRun())
+      : lite
+        ? null
+        : await loadRun();
 
   if (!run) {
     return NextResponse.json({
@@ -80,7 +105,7 @@ export async function GET(request: Request) {
       generations: [],
       totalVisits: 0,
       generationCount: 0,
-      variantCount: variants.length,
+      variantCount: variants?.length ?? 0,
       lastGenBest: null,
     });
   }

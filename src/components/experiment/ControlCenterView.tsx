@@ -53,11 +53,17 @@ export function ControlCenterView({
   pollProgress,
   onExperimentComplete,
   onDismissProgress,
+  onSettingsChange,
 }: {
   progress: ExperimentProgress | null;
   pollProgress: () => Promise<void>;
   onExperimentComplete?: () => void;
   onDismissProgress?: () => void;
+  onSettingsChange?: (settings: {
+    autonomous: boolean;
+    llmPersonas: boolean;
+    experimentMode: "hybrid" | "full";
+  }) => void;
 }) {
   const meta = CRITERIA.find((c) => c.id === "0");
   const [state, setState] = useState<ControlState | null>(null);
@@ -73,13 +79,18 @@ export function ControlCenterView({
       if (!res.ok) return;
       const data = (await res.json()) as ControlState;
       setState(data);
+      onSettingsChange?.({
+        autonomous: Boolean(data.autonomous),
+        llmPersonas: Boolean(data.llmPersonas),
+        experimentMode: data.experimentMode ?? "hybrid",
+      });
       if (data.autonomous) setLiveActive(true);
     } catch {
       /* ignore */
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [onSettingsChange]);
 
   const defaultControl = useCallback(
     (): ControlState => ({
@@ -125,12 +136,18 @@ export function ControlCenterView({
       const body = await res.json();
       setState((s) => {
         const base = s ?? defaultControl();
-        return {
+        const next = {
           ...base,
           autonomous: body.autonomous ?? base.autonomous,
           llmPersonas: body.llmPersonas ?? base.llmPersonas,
           experimentMode: body.experimentMode ?? base.experimentMode,
         };
+        onSettingsChange?.({
+          autonomous: next.autonomous,
+          llmPersonas: next.llmPersonas,
+          experimentMode: next.experimentMode ?? "hybrid",
+        });
+        return next;
       });
       if (typeof patch.autonomous === "boolean") {
         setLiveActive(patch.autonomous);
@@ -194,8 +211,6 @@ export function ControlCenterView({
   const llmAvailable = state?.llmExperimentAvailable ?? false;
   const progressRunning = isProgressActivelyRunning(progress);
   const runBlocked = running || progressRunning || (!autonomous && !llmAvailable);
-  // Toggles stay usable unless the initial settings fetch is in flight.
-  const settingsLocked = loading;
 
   return (
     <div className="flex min-h-[calc(100vh-65px)] items-start justify-center p-6">
@@ -219,7 +234,6 @@ export function ControlCenterView({
             </div>
             <Toggle
               checked={autonomous}
-              disabled={settingsLocked}
               label="Autonomous mode"
               onChange={(autonomous) => patchControl({ autonomous })}
             />
@@ -236,7 +250,6 @@ export function ControlCenterView({
             </div>
             <Toggle
               checked={llmPersonas}
-              disabled={settingsLocked}
               label="LLM personas"
               onChange={(llmPersonas) => patchControl({ llmPersonas })}
             />

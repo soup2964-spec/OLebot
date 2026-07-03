@@ -82,7 +82,7 @@ export function BehaviorDetail({
         >
           {index.map((g, i) => (
             <option key={g.generation} value={i}>
-              Gen {g.generation} · {g.visits.length} visits
+              Gen {g.generation} · {(g.totalVisits ?? g.visits.length).toLocaleString()} visits
             </option>
           ))}
         </select>

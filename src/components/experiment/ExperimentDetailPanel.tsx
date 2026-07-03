@@ -36,6 +36,8 @@ export function ExperimentDetailPanel({
   experimentNumber,
   bredVariants = [],
   judgmentsByVariant = {},
+  experimentMode = "hybrid",
+  llmPersonas = false,
 }: {
   activeView: WorkbenchView;
   run: ExperimentRun | null;
@@ -45,6 +47,8 @@ export function ExperimentDetailPanel({
   experimentNumber?: number;
   bredVariants?: PageVariant[];
   judgmentsByVariant?: Record<string, VariantJudgment>;
+  experimentMode?: "hybrid" | "full";
+  llmPersonas?: boolean;
 }) {
   const meta = CRITERIA.find((c) => c.id === VIEW_CRITERION[activeView]);
 
@@ -53,7 +57,10 @@ export function ExperimentDetailPanel({
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
         {meta && (
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">{meta.title}</h2>
+            <p className="text-xs font-semibold uppercase tracking-wide text-schole-primary">
+              Experiment {experimentNumber ?? 1}
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">{meta.title}</h2>
             <p className="mt-1 text-sm text-slate-500">{meta.question}</p>
           </div>
         )}
@@ -67,6 +74,8 @@ export function ExperimentDetailPanel({
             index={visitIndex}
             variants={variants}
             selectedVariantId={selectedVariantId}
+            experimentMode={experimentMode}
+            llmPersonas={llmPersonas}
           />
         )}
         {activeView === "winners" && (

@@ -36,7 +36,7 @@ export function LiveStatusPanel({ onSync }: { onSync?: () => void }) {
 
   useEffect(() => {
     void poll();
-    const t = setInterval(poll, 2000);
+    const t = setInterval(poll, 15000);
     return () => clearInterval(t);
   }, [poll]);
 

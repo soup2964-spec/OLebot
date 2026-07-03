@@ -21,11 +21,15 @@ export function BehaviorReport({
   index,
   variants,
   selectedVariantId,
+  experimentMode = "hybrid",
+  llmPersonas = false,
 }: {
   run: ExperimentRun | null;
   index: VisitIndex | null;
   variants: PageVariant[];
   selectedVariantId?: string | null;
+  experimentMode?: "hybrid" | "full";
+  llmPersonas?: boolean;
 }) {
   const [live, setLive] = useState<LiveBehaviorSnapshot | null>(null);
   const [liveConfigured, setLiveConfigured] = useState<boolean | null>(null);
@@ -95,9 +99,19 @@ export function BehaviorReport({
   return (
     <div className="space-y-6">
       <p className="text-sm leading-relaxed text-slate-600">
-        LLM persona agents simulate real buyer visits — scroll depth, section reads, objections,
-        and demo clicks. Pick a persona and visit below to replay what happened on each page and
-        why they converted or left.
+        {experimentMode === "full" || llmPersonas
+          ? "LLM persona agents read each page and simulate buyer visits — scroll depth, section reads, objections, and demo clicks."
+          : "Heuristic persona models simulate buyer visits — scroll depth, section reads, objections, and demo clicks."}{" "}
+        Pick a persona and visit below to replay what happened on each page and why they converted
+        or left.
+        {selectedVariantId ? (
+          <>
+            {" "}
+            Highlighting{" "}
+            <code className="rounded bg-slate-100 px-1">{selectedVariantId}</code> from page
+            comparison.
+          </>
+        ) : null}
       </p>
 
       {hasSimData && index && (

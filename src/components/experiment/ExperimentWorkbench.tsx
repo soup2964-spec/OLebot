@@ -8,7 +8,7 @@ import type { ExperimentProgress } from "@/lib/schema/experiment-progress";
 import type { ExperimentHistoryEntry } from "@/lib/loop/state";
 import { CRITERIA } from "@/config/criteria";
 import { buildJudgmentsFromMetrics } from "@/lib/judgment/criteria";
-import { comparisonSnapshotsForIteration, maxExperimentIteration } from "@/lib/comparison/snapshots";
+import { comparisonSnapshotsForIteration, experimentNumbersFromHistory } from "@/lib/comparison/snapshots";
 import { isProgressActivelyRunning } from "@/lib/loop/experiment-progress-utils";
 import { ControlCenterView } from "@/components/experiment/ControlCenterView";
 import { ExperimentDetailPanel } from "@/components/experiment/ExperimentDetailPanel";
@@ -96,9 +96,19 @@ export function ExperimentWorkbench({
   const [experimentHistory, setExperimentHistory] = useState<ExperimentHistoryEntry[]>([]);
   const [progress, setProgress] = useState<ExperimentProgress | null>(null);
   const [iteration, setIteration] = useState(1);
+  const [experimentMode, setExperimentMode] = useState<"hybrid" | "full">("hybrid");
+  const [llmPersonas, setLlmPersonas] = useState(false);
 
   const isRunning = isProgressActivelyRunning(progress);
-  const maxIteration = maxExperimentIteration(experimentHistory, isRunning);
+  const experimentOptions = useMemo(
+    () =>
+      experimentNumbersFromHistory(
+        experimentHistory,
+        isRunning ? progress?.experimentNumber : null
+      ),
+    [experimentHistory, isRunning, progress?.experimentNumber]
+  );
+  const maxIteration = experimentOptions[experimentOptions.length - 1] ?? 1;
   const showProgressBar =
     progress != null &&
     progress.status !== "idle" &&
@@ -123,9 +133,24 @@ export function ExperimentWorkbench({
     }
   }, []);
 
-  const loadIteration = useCallback(async (experimentNumber: number) => {
+  /** Lite catalog refresh — history/progress only, no full run payloads. */
+  const pollCatalogLite = useCallback(async () => {
     try {
-      const res = await fetch(`/api/run?experiment=${experimentNumber}`, { cache: "no-store" });
+      const res = await fetch("/api/run?lite=1", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = (await res.json()) as RunPayload;
+      setExperimentHistory(data.experimentHistory ?? []);
+      if (data.experimentProgress) setProgress(data.experimentProgress);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const loadIteration = useCallback(async (experimentNumber: number, options?: { lite?: boolean }) => {
+    try {
+      const qs = new URLSearchParams({ experiment: String(experimentNumber) });
+      if (options?.lite) qs.set("lite", "1");
+      const res = await fetch(`/api/run?${qs}`, { cache: "no-store" });
       if (!res.ok) return null;
       const data = (await res.json()) as RunPayload;
       setExperimentHistory(data.experimentHistory ?? []);
@@ -140,14 +165,34 @@ export function ExperimentWorkbench({
     }
   }, []);
 
-  const refresh = useCallback(async () => {
-    const data = await loadIteration(iteration);
-    if (!data) return null;
+  const handleSettingsChange = useCallback(
+    (settings: { autonomous: boolean; llmPersonas: boolean; experimentMode: "hybrid" | "full" }) => {
+      setLlmPersonas(settings.llmPersonas);
+      setExperimentMode(settings.experimentMode);
+    },
+    []
+  );
+
+  const goToExperiment = useCallback(
+    (experimentNumber: number) => {
+      if (!experimentOptions.includes(experimentNumber)) return;
+      setIteration(experimentNumber);
+    },
+    [experimentOptions]
+  );
+
+  const goToLatestExperiment = useCallback(async () => {
+    const res = await fetch("/api/run?lite=1", { cache: "no-store" });
+    if (!res.ok) return 1;
+    const data = (await res.json()) as RunPayload;
     const hist = data.experimentHistory ?? [];
-    const running = isProgressActivelyRunning(data.experimentProgress ?? null);
-    setIteration((i) => Math.min(Math.max(1, i), maxExperimentIteration(hist, running)));
-    return data;
-  }, [iteration, loadIteration]);
+    setExperimentHistory(hist);
+    const options = experimentNumbersFromHistory(hist, null);
+    const latest = options[options.length - 1] ?? 1;
+    setIteration(latest);
+    await loadIteration(latest);
+    return latest;
+  }, [loadIteration]);
 
   useEffect(() => {
     if (progress?.status !== "complete" && progress?.status !== "error") return;
@@ -160,29 +205,49 @@ export function ExperimentWorkbench({
   useEffect(() => {
     void pollProgress();
     void loadIteration(1);
-  }, [loadIteration, pollProgress]);
+    void fetch("/api/control")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        handleSettingsChange({
+          autonomous: Boolean(data.autonomous),
+          llmPersonas: Boolean(data.llmPersonas),
+          experimentMode: data.experimentMode ?? "hybrid",
+        });
+      })
+      .catch(() => undefined);
+  }, [loadIteration, pollProgress, handleSettingsChange]);
 
   useEffect(() => {
     void loadIteration(iteration);
+    setSelectedVariantId(null);
   }, [iteration, loadIteration]);
 
   useEffect(() => {
-    const ms = isRunning ? 800 : 5000;
     void pollProgress();
-    const t = setInterval(pollProgress, ms);
+    const t = setInterval(pollProgress, 15_000);
     return () => clearInterval(t);
-  }, [isRunning, pollProgress]);
+  }, [pollProgress]);
+
+  useEffect(() => {
+    if (!isRunning) return;
+    void pollCatalogLite();
+    const t = setInterval(pollCatalogLite, 15_000);
+    return () => clearInterval(t);
+  }, [isRunning, pollCatalogLite]);
 
   useEffect(() => {
     if (!isRunning || iteration !== maxIteration) return;
-    void loadIteration(iteration);
-    const t = setInterval(() => loadIteration(iteration), 5000);
+    void loadIteration(iteration, { lite: true });
+    const t = setInterval(() => loadIteration(iteration, { lite: true }), 30_000);
     return () => clearInterval(t);
   }, [isRunning, iteration, maxIteration, loadIteration]);
 
   useEffect(() => {
-    setIteration((i) => Math.min(Math.max(1, i), maxIteration));
-  }, [maxIteration]);
+    if (!experimentOptions.includes(iteration)) {
+      setIteration(maxIteration);
+    }
+  }, [experimentOptions, iteration, maxIteration]);
 
   const judgmentsByVariant = useMemo(() => {
     const lastGen = iterationRun?.generations[iterationRun.generations.length - 1];
@@ -211,12 +276,25 @@ export function ExperimentWorkbench({
         activeView={activeView}
         onViewChange={setActiveView}
         iteration={iteration}
-        maxIteration={maxIteration}
-        onPrevIteration={() => setIteration((i) => Math.max(1, i - 1))}
-        onNextIteration={() => setIteration((i) => Math.min(maxIteration, i + 1))}
+        experimentOptions={experimentOptions}
+        runningExperimentNumber={isRunning ? progress?.experimentNumber : null}
+        onPrevIteration={() => {
+          const idx = experimentOptions.indexOf(iteration);
+          if (idx > 0) goToExperiment(experimentOptions[idx - 1]!);
+        }}
+        onNextIteration={() => {
+          const idx = experimentOptions.indexOf(iteration);
+          if (idx >= 0 && idx < experimentOptions.length - 1) {
+            goToExperiment(experimentOptions[idx + 1]!);
+          }
+        }}
+        onSelectIteration={goToExperiment}
       />
 
-      <div className="min-w-0 flex-1 overflow-y-auto lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)]">
+      <div
+        key={`experiment-${iteration}-${iterationRun?.id ?? "none"}`}
+        className="min-w-0 flex-1 overflow-y-auto lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)]"
+      >
         {showProgressBar && progress && (
           <div className="sticky top-0 z-10 border-b border-slate-200 bg-slate-100/95 p-4 backdrop-blur">
             <ExperimentProgressBar progress={progress} onDismiss={() => void dismissProgress()} />
@@ -233,13 +311,10 @@ export function ExperimentWorkbench({
             progress={progress}
             pollProgress={pollProgress}
             onDismissProgress={() => void dismissProgress()}
+            onSettingsChange={handleSettingsChange}
             onExperimentComplete={async () => {
-              const data = await refresh();
               await pollProgress();
-              const hist = data?.experimentHistory ?? [];
-              const next = maxExperimentIteration(hist, false);
-              setIteration(next);
-              await loadIteration(next);
+              await goToLatestExperiment();
               setActiveView("versions");
             }}
           />
@@ -247,7 +322,10 @@ export function ExperimentWorkbench({
           <div className="p-6">
             {comparisonMeta && (
               <div className="mb-6">
-                <h2 className="text-lg font-semibold text-slate-900">{comparisonMeta.title}</h2>
+                <p className="text-xs font-semibold uppercase tracking-wide text-schole-primary">
+                  Experiment {iteration}
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-slate-900">{comparisonMeta.title}</h2>
                 <p className="mt-1 text-sm text-slate-500">{comparisonMeta.question}</p>
               </div>
             )}
@@ -255,7 +333,11 @@ export function ExperimentWorkbench({
               experimentNumber={iteration}
               previousVariants={previousVariants}
               currentVariants={currentVariants}
+              selectedVariantId={selectedVariantId}
+              onSelectVariant={setSelectedVariantId}
               isRunning={isRunning && iteration === progressExperiment}
+              experimentMode={experimentMode}
+              llmPersonas={llmPersonas}
             />
           </div>
         ) : (
@@ -270,6 +352,8 @@ export function ExperimentWorkbench({
               experimentNumber={iteration}
               bredVariants={currentVariants}
               judgmentsByVariant={judgmentsByVariant}
+              experimentMode={experimentMode}
+              llmPersonas={llmPersonas}
             />
           </div>
         )}

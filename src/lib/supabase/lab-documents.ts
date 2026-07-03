@@ -31,6 +31,32 @@ export function labDocumentsEnabled(): boolean {
   return supabaseConfigured();
 }
 
+/** In-memory read cache — reduces Supabase disk IO on hot docs. */
+const CACHE_TTL_MS = 60_000;
+const docCache = new Map<string, { value: unknown; expiresAt: number }>();
+
+export function invalidateLabDocumentCache(id?: string) {
+  if (id) {
+    docCache.delete(id);
+    return;
+  }
+  docCache.clear();
+}
+
+function readCached<T>(id: string): T | null | undefined {
+  const hit = docCache.get(id);
+  if (!hit) return undefined;
+  if (Date.now() > hit.expiresAt) {
+    docCache.delete(id);
+    return undefined;
+  }
+  return hit.value as T;
+}
+
+function writeCached<T>(id: string, value: T) {
+  docCache.set(id, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+}
+
 function readFs<T>(id: string): T | null {
   const rel = fsPathForId(id);
   if (!rel) return null;
@@ -51,6 +77,9 @@ function writeFs<T>(id: string, doc: T) {
 }
 
 export async function getLabDocument<T>(id: string): Promise<T | null> {
+  const cached = readCached<T>(id);
+  if (cached !== undefined) return cached;
+
   const sb = getSupabaseAdmin();
   if (sb) {
     const { data, error } = await sb
@@ -59,13 +88,17 @@ export async function getLabDocument<T>(id: string): Promise<T | null> {
       .eq("id", id)
       .maybeSingle();
     if (!error && data?.doc != null) {
+      writeCached(id, data.doc);
       return data.doc as T;
     }
   }
-  return readFs<T>(id);
+  const fromFs = readFs<T>(id);
+  if (fromFs != null) writeCached(id, fromFs);
+  return fromFs;
 }
 
 export async function setLabDocument<T>(id: string, doc: T): Promise<void> {
+  writeCached(id, doc);
   const sb = getSupabaseAdmin();
   if (sb) {
     const { error } = await sb.from("lab_documents").upsert({
@@ -74,6 +107,7 @@ export async function setLabDocument<T>(id: string, doc: T): Promise<void> {
       updated_at: new Date().toISOString(),
     });
     if (error) {
+      invalidateLabDocumentCache(id);
       throw new Error(`lab_documents upsert failed (${id}): ${error.message}`);
     }
   }
@@ -83,4 +117,37 @@ export async function setLabDocument<T>(id: string, doc: T): Promise<void> {
 /** Sync read — filesystem only (build scripts / static generation). */
 export function getLabDocumentSync<T>(id: string): T | null {
   return readFs<T>(id);
+}
+
+function listExperimentNumbersFs(): number[] {
+  const dir = path.join(process.cwd(), "data/experiments");
+  try {
+    return fs
+      .readdirSync(dir)
+      .map((file) => /^experiment-(\d+)\.json$/.exec(file)?.[1])
+      .filter((n): n is string => Boolean(n))
+      .map((n) => Number(n))
+      .filter((n) => Number.isFinite(n))
+      .sort((a, b) => a - b);
+  } catch {
+    return [];
+  }
+}
+
+/** List saved experiment:N document ids without loading full JSON payloads. */
+export async function listExperimentNumbers(): Promise<number[]> {
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data, error } = await sb
+      .from("lab_documents")
+      .select("id")
+      .like("id", "experiment:%");
+    if (!error && data?.length) {
+      return data
+        .map((row) => Number(/^experiment:(\d+)$/.exec(row.id)?.[1]))
+        .filter((n) => Number.isFinite(n))
+        .sort((a, b) => a - b);
+    }
+  }
+  return listExperimentNumbersFs();
 }

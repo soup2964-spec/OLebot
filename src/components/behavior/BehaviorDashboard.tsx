@@ -52,6 +52,15 @@ export function BehaviorDashboard({
   }, [gen, variantId, personaFilter, outcomeFilter]);
 
   const stats = useMemo(() => {
+    if (metrics) {
+      return {
+        visits: metrics.visits,
+        conversionRate: metrics.conversionRate,
+        bounceRate: metrics.bounceRate,
+        avgScroll: metrics.avgScrollDepth,
+        avgDwell: metrics.avgDwellMs,
+      };
+    }
     const visits = gen?.visits.filter((v) => v.variantId === variantId) ?? [];
     const n = visits.length || 1;
     return {
@@ -61,26 +70,37 @@ export function BehaviorDashboard({
       avgScroll: visits.reduce((s, v) => s + v.scrollDepth, 0) / n,
       avgDwell: visits.reduce((s, v) => s + v.totalDwellMs, 0) / n,
     };
-  }, [gen, variantId]);
+  }, [metrics, gen, variantId]);
 
   const personaStats = useMemo(() => {
-    const visits = gen?.visits.filter((v) => v.variantId === variantId) ?? [];
     return new Map(
       PERSONA_SET_V1.personas.map((p) => {
-        const mine = visits.filter((v) => v.personaId === p.id);
-        const n = mine.length || 1;
+        const row = metrics?.byPersona[p.id];
+        if (row?.visits) {
+          return [
+            p.id,
+            {
+              visits: row.visits,
+              conversionRate: row.conversions / row.visits,
+              bounceRate: 0,
+              avgScroll: 0,
+            },
+          ] as const;
+        }
+        const visits = gen?.visits.filter((v) => v.variantId === variantId && v.personaId === p.id) ?? [];
+        const n = visits.length || 1;
         return [
           p.id,
           {
-            visits: mine.length,
-            conversionRate: mine.filter((v) => v.converted).length / n,
-            bounceRate: mine.filter((v) => v.bounced).length / n,
-            avgScroll: mine.reduce((s, v) => s + v.scrollDepth, 0) / n,
+            visits: visits.length,
+            conversionRate: visits.filter((v) => v.converted).length / n,
+            bounceRate: visits.filter((v) => v.bounced).length / n,
+            avgScroll: visits.reduce((s, v) => s + v.scrollDepth, 0) / n,
           },
         ] as const;
       })
     );
-  }, [gen, variantId]);
+  }, [metrics, gen, variantId]);
 
   const fetchVisit = useCallback(async (id: string, generation: number) => {
     setLoading(true);
@@ -164,7 +184,7 @@ export function BehaviorDashboard({
           }}
           options={index.map((g, i) => ({
             value: String(i),
-            label: `Gen ${g.generation} · ${g.visits.length} visits`,
+            label: `Gen ${g.generation} · ${(g.totalVisits ?? g.visits.length).toLocaleString()} visits`,
           }))}
         />
         <FilterSelect
@@ -255,7 +275,8 @@ export function BehaviorDashboard({
                 Section engagement · {variant.name}
               </h2>
               <p className="mt-1 text-xs text-slate-600">
-                Aggregate read rate and exit rate across all {stats.visits} simulated visits on this
+                Aggregate read rate and exit rate across all{" "}
+                {(metrics?.visits ?? stats.visits).toLocaleString()} simulated visits on this
                 variant.
               </p>
               <div className="mt-4">

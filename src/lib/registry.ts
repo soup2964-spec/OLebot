@@ -4,6 +4,7 @@ import type { DeployState } from "@/lib/deploy/state";
 import { getLabDocumentSync, LAB_DOC } from "@/lib/supabase/lab-documents";
 import type { ExperimentRun } from "@/lib/schema/experiment";
 import type { PageVariant } from "@/lib/schema/page";
+import { compactRunForStorage } from "@/lib/evolve/compact-run";
 import { getLabDocument, setLabDocument } from "@/lib/supabase/lab-documents";
 
 let cachedRun: ExperimentRun | null | undefined;
@@ -20,7 +21,7 @@ export function loadRunSync(): ExperimentRun | null {
 
 export async function saveRun(run: ExperimentRun) {
   cachedRun = run;
-  await setLabDocument(LAB_DOC.ACTIVE_RUN, run);
+  await setLabDocument(LAB_DOC.ACTIVE_RUN, compactRunForStorage(run));
 }
 
 export function invalidateRunCache() {
@@ -93,6 +94,7 @@ export interface VisitSummary {
 export function visitIndex(run: ExperimentRun) {
   return run.generations.map((g) => ({
     generation: g.generation,
+    totalVisits: g.totalVisits ?? g.visits.length,
     variantIds: g.variantIds,
     metrics: g.metrics,
     visits: g.visits.map((v) => ({

@@ -31,8 +31,42 @@ const IDLE: ExperimentProgress = {
 
 let current: ExperimentProgress = { ...IDLE };
 
+const PERSIST_DEBOUNCE_MS = 2000;
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingPersist: ExperimentProgress | null = null;
+
+function flushPersistSync() {
+  if (!pendingPersist) return;
+  const state = pendingPersist;
+  pendingPersist = null;
+  void setLabDocument(LAB_DOC.EXPERIMENT_PROGRESS, state);
+}
+
+function persistSync(state: ExperimentProgress, immediate = false) {
+  current = state;
+  pendingPersist = state;
+  if (immediate) {
+    if (persistTimer) {
+      clearTimeout(persistTimer);
+      persistTimer = null;
+    }
+    flushPersistSync();
+    return;
+  }
+  if (persistTimer) return;
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    flushPersistSync();
+  }, PERSIST_DEBOUNCE_MS);
+}
+
 async function persist(state: ExperimentProgress) {
   current = state;
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+  pendingPersist = null;
   try {
     await setLabDocument(LAB_DOC.EXPERIMENT_PROGRESS, state);
   } catch {
@@ -40,12 +74,10 @@ async function persist(state: ExperimentProgress) {
   }
 }
 
-function persistSync(state: ExperimentProgress) {
-  current = state;
-  void setLabDocument(LAB_DOC.EXPERIMENT_PROGRESS, state);
-}
-
 export async function loadExperimentProgress(): Promise<ExperimentProgress> {
+  if (pendingPersist) return pendingPersist;
+  if (isProgressActivelyRunning(current)) return current;
+
   try {
     const stored = await getLabDocument<ExperimentProgress>(LAB_DOC.EXPERIMENT_PROGRESS);
     if (stored) {
@@ -53,9 +85,9 @@ export async function loadExperimentProgress(): Promise<ExperimentProgress> {
       const reconciled = reconcileExperimentProgress(merged);
       if (reconciled.status !== merged.status || reconciled.stage !== merged.stage) {
         await persist(reconciled);
-      } else {
-        current = merged;
+        return reconciled;
       }
+      current = merged;
       return current;
     }
   } catch {
@@ -187,12 +219,15 @@ export class ExperimentProgressReporter {
 
   addBredVariant(variant: PageVariant) {
     this.bredVariants = [...this.bredVariants, variant];
-    persistSync({
-      ...current,
-      bredVariants: [...this.bredVariants],
-      detail: `${this.bredVariants.length} page${this.bredVariants.length === 1 ? "" : "s"} ready`,
-      updatedAt: new Date().toISOString(),
-    });
+    persistSync(
+      {
+        ...current,
+        bredVariants: [...this.bredVariants],
+        detail: `${this.bredVariants.length} page${this.bredVariants.length === 1 ? "" : "s"} ready`,
+        updatedAt: new Date().toISOString(),
+      },
+      true
+    );
   }
 
   saving(label: string) {
@@ -205,16 +240,19 @@ export class ExperimentProgressReporter {
   }
 
   fail(error: string) {
-    persistSync({
-      ...current,
-      status: "error",
-      stage: "error",
-      label: "Experiment failed",
-      detail: error,
-      error,
-      percent: current.percent,
-      updatedAt: new Date().toISOString(),
-    });
+    persistSync(
+      {
+        ...current,
+        status: "error",
+        stage: "error",
+        label: "Experiment failed",
+        detail: error,
+        error,
+        percent: current.percent,
+        updatedAt: new Date().toISOString(),
+      },
+      true
+    );
   }
 
   private publish(
@@ -225,20 +263,23 @@ export class ExperimentProgressReporter {
     status: ExperimentProgress["status"] = "running"
   ) {
     this.stage = stage;
-    persistSync({
-      status,
-      stage,
-      mode: this.mode,
-      generation: this.gen,
-      totalGenerations: this.totalGenerations,
-      label,
-      detail,
-      percent: Math.min(100, Math.max(0, Math.round(percent))),
-      startedAt: this.startedAt,
-      updatedAt: new Date().toISOString(),
-      error: null,
-      experimentNumber: this.experimentNumber,
-      bredVariants: [...this.bredVariants],
-    });
+    persistSync(
+      {
+        status,
+        stage,
+        mode: this.mode,
+        generation: this.gen,
+        totalGenerations: this.totalGenerations,
+        label,
+        detail,
+        percent: Math.min(100, Math.max(0, Math.round(percent))),
+        startedAt: this.startedAt,
+        updatedAt: new Date().toISOString(),
+        error: null,
+        experimentNumber: this.experimentNumber,
+        bredVariants: [...this.bredVariants],
+      },
+      status === "complete" || status === "error"
+    );
   }
 }

@@ -13,7 +13,8 @@ export function ChallengeDashboard() {
   const gen0 = variants.filter((v) => v.generation === 0);
   const bred = variants.filter((v) => v.generation > 0);
   const lastGen = run?.generations[run.generations.length - 1];
-  const totalVisits = run?.generations.reduce((s, g) => s + g.visits.length, 0) ?? 0;
+  const totalVisits =
+    run?.generations.reduce((s, g) => s + (g.totalVisits ?? g.visits.length), 0) ?? 0;
   const latestMetrics = new Map(
     run?.generations.flatMap((g) => g.metrics.map((m) => [m.variantId, m] as const)) ?? []
   );
