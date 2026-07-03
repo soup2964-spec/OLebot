@@ -4,6 +4,12 @@ import type { GenerationReport } from "@/lib/schema/experiment";
 import { GENERATION_0 } from "@/config/variants";
 import { chatJSONRetry, breederProvider } from "@/lib/llm";
 import { variantNameForBreeding } from "@/lib/variants/display-name";
+import {
+  copyBudgetPromptBlock,
+  ensureFullSentence,
+  findReferenceSection,
+  formatSectionCopy,
+} from "./copy-constraints";
 
 /**
  * Optimizer agent: breeds the next generation from the evaluator's report.
@@ -112,7 +118,15 @@ export function angleForChild(childIndex: number): BreedingAngle {
   return BREEDING_ANGLES[childIndex % BREEDING_ANGLES.length];
 }
 
-/** Remove em/en dashes and hyphens from customer-facing copy. */
+function formatThesis(text: string): string {
+  return text
+    .split(/\.\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => ensureFullSentence(s))
+    .join(" ");
+}
+
 function stripDashesFromCopy(text: string): string {
   return text
     .replace(/[—–]/g, ", ")
@@ -134,6 +148,8 @@ Hard rules:
 - Keep what worked (high dwell, high sentiment, sections cited in conversions). Cut or rewrite what didn't (high exit rate, low read rate, negative sentiment).
 - Stay truthful to the product. Do not invent case studies, customers, or statistics that weren't in the parent pages. You may restructure, reframe, and reprioritize freely.
 - Never use dashes in customer-facing copy: no hyphens (-), en dashes (–), or em dashes (—) in name, thesis, headlines, body, item titles, item details, or ctaLabel. Rephrase with commas, periods, or separate sentences instead (e.g. write "one size fits all" not "one-size-fits-all", "built for teams" not "built for teams — fast").
+- COPY LENGTH: For every section you rewrite, match the exact sentence-line count shown in COPY LENGTH for that parent section. A "line" is one complete sentence ending in a period. Headlines with 2 lines must be exactly two full sentences joined with ". " (e.g. "First sentence. Second sentence."). Bodies with 2 lines must be exactly two full sentences. Never use fragments, bullet phrases, or trailing clauses without a verb. Never add extra sentences or merge lines.
+- FULL SENTENCES ONLY: Every headline, body line, item title, item detail, thesis sentence, and changelog entry must be a grammatical complete sentence with a subject and verb, ending in . ! or ?. No labels, no colon-led fragments, no "Built for X" stubs unless they include a verb phrase.
 - Each offspring in a batch of six must be visually distinct: unique hero headline, unique strategic angle, and at least three sections meaningfully different from every sibling. Never clone a parent's hero or repeat the same headline as another offspring.
 - 4-5 sections only: hero, problem, how_it_works, features, and/or outcomes. Do NOT write product_tour, social_proof, credibility, compliance, faq, cta, pricing, or integration sections. The live page keeps the baseline Framer blocks from "What your Employees Get" downward unchanged.
 - Do not supply ctaLabel on bred pages. Primary/secondary buttons, "20 minutes. Live session with a founder.", trust badges, and animated hero widgets stay exactly as on schole.ai.
@@ -168,11 +184,13 @@ export async function breedVariant(
     .map((p) => {
       const m = metrics.find((x) => x.variantId === p.id);
       const sections = p.sections
+        .filter((s) => BRED_OWNED_SECTION_TYPES.has(s.type))
         .map((s) => {
           const ps = m?.perSection.find((x) => x.sectionId === s.id);
           const items = s.items?.map((it) => `      * ${it.title}: ${it.detail}`).join("\n") ?? "";
           return `  [${s.id}] (${s.type}, addresses: ${s.addresses.join("/") || "none"}) "${s.headline}"
     ${s.body}${items ? "\n" + items : ""}${s.ctaLabel ? `\n    [BUTTON: ${s.ctaLabel}]` : ""}
+${copyBudgetPromptBlock(s)}
     METRICS: readRate=${ps ? (ps.reads / Math.max(1, ps.views)).toFixed(2) : "?"} sentiment=${ps?.avgSentiment.toFixed(2) ?? "?"} exitRate=${ps ? (ps.exitRate * 100).toFixed(0) + "%" : "?"}`;
         })
         .join("\n");
@@ -237,18 +255,23 @@ Produce the JSON for the new variant.`;
     generation: generation + 1,
     parentIds: parents.map((p) => p.id),
     ctaGoal: stripDashesFromCopy(out.ctaGoal || parents[0].ctaGoal),
-    thesis: stripDashesFromCopy(out.thesis),
+    thesis: formatThesis(stripDashesFromCopy(out.thesis)),
     changelog: (out.changelog ?? []).map((c) => ({
       ...c,
       what: stripDashesFromCopy(String(c.what)),
       why: stripDashesFromCopy(String(c.why)),
       evidence: stripDashesFromCopy(String(c.evidence)),
     })),
-    sections: finalizeBredSections(sanitizeSections(out.sections, id)),
+    sections: finalizeBredSections(sanitizeSections(out.sections, id, parents)),
   };
 }
 
-function sanitizeSections(sections: Section[], variantId: string): Section[] {
+function sanitizeSections(
+  sections: Section[],
+  variantId: string,
+  references: PageVariant[]
+): Section[] {
+  const refSections = references.flatMap((p) => p.sections);
   const seen = new Set<string>();
   return (sections ?? [])
     .filter((s) => s && s.headline && s.body)
@@ -256,19 +279,32 @@ function sanitizeSections(sections: Section[], variantId: string): Section[] {
       let id = (s.id || `s${i}`).toLowerCase().replace(/[^a-z0-9-]/g, "-").slice(0, 24) || `s${i}`;
       while (seen.has(id)) id = `${id}-${i}`;
       seen.add(id);
-      return {
-        id,
-        type: VALID_SECTION_TYPES.includes(s.type) ? s.type : "features",
-        headline: stripDashesFromCopy(String(s.headline)),
-        body: stripDashesFromCopy(String(s.body)),
-        items: s.items?.slice(0, 6).map((it) => ({
-          title: stripDashesFromCopy(String(it.title)),
-          detail: stripDashesFromCopy(String(it.detail)),
-        })),
-        ctaLabel: s.ctaLabel ? stripDashesFromCopy(String(s.ctaLabel)) : undefined,
-        addresses: (s.addresses ?? []).filter((a) => VALID_OBJECTIONS.includes(a)),
-        readSeconds: Math.min(25, Math.max(8, Number(s.readSeconds) || 12)),
-      } as Section;
+      return formatSectionCopy(
+        {
+          id,
+          type: VALID_SECTION_TYPES.includes(s.type) ? s.type : "features",
+          headline: stripDashesFromCopy(String(s.headline)),
+          body: stripDashesFromCopy(String(s.body)),
+          items: s.items?.slice(0, 6).map((it) => ({
+            title: stripDashesFromCopy(String(it.title)),
+            detail: stripDashesFromCopy(String(it.detail)),
+          })),
+          ctaLabel: s.ctaLabel ? stripDashesFromCopy(String(s.ctaLabel)) : undefined,
+          addresses: (s.addresses ?? []).filter((a) => VALID_OBJECTIONS.includes(a)),
+          readSeconds: Math.min(25, Math.max(8, Number(s.readSeconds) || 12)),
+        } as Section,
+        findReferenceSection(refSections, s) ??
+          refSections.find((r) => r.type === s.type) ??
+          GENERATION_0[0].sections.find((r) => r.type === s.type) ?? {
+          id: s.id || "hero",
+          type: (VALID_SECTION_TYPES.includes(s.type) ? s.type : "features") as Section["type"],
+          headline: String(s.headline),
+          body: String(s.body),
+          items: s.items,
+          addresses: [],
+          readSeconds: 12,
+        }
+      );
     });
 }
 
