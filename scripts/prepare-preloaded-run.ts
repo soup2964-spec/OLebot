@@ -7,39 +7,20 @@ config({ path: ".env.local" });
 
 import fs from "fs";
 import path from "path";
-import { GENERATION_0 } from "../src/config/variants";
-import { loadDemoPreloadSnapshot } from "../src/lib/evolve/demo-preload";
 import { compactRunForStorage } from "../src/lib/evolve/compact-run";
-import type { ExperimentRun } from "../src/lib/schema/experiment";
+import { buildGen0PreloadRun } from "../src/lib/lab/gen0-preload-run";
 
 const OUT = path.join(process.cwd(), "data", "run.json");
 
 async function main() {
-  const snap = loadDemoPreloadSnapshot();
-  const run: ExperimentRun = {
-    id: `run-${snap.seed}`,
-    createdAt: new Date().toISOString(),
-    personaSetVersion: 1,
-    variants: [...GENERATION_0],
-    generations: [
-      {
-        generation: 0,
-        variantIds: snap.pool.map((v) => v.id),
-        visits: snap.visits,
-        totalVisits: snap.totalVisits,
-        metrics: snap.metrics,
-        allocationHistory: snap.allocationHistory,
-        report: snap.report,
-        decisions: snap.decisions,
-        offspringIds: [],
-      },
-    ],
-  };
-
+  const run = buildGen0PreloadRun();
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify(compactRunForStorage(run), null, 2), "utf8");
+  const top = run.generations[0]?.metrics[0];
   console.log(`Wrote ${OUT} (gen-0 preload only — no bred variants)`);
-  console.log(`  top variant: ${snap.metrics[0]?.variantId} fitness=${snap.metrics[0]?.fitness.toFixed(1)}`);
+  if (top) {
+    console.log(`  top variant: ${top.variantId} fitness=${top.fitness.toFixed(1)}`);
+  }
 }
 
 main().catch((err) => {

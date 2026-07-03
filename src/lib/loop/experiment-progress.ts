@@ -121,6 +121,17 @@ export async function clearExperimentProgress() {
   await persist({ ...IDLE });
 }
 
+/** Hard reset — does not merge partial bred variants into experiment history. */
+export async function resetExperimentProgress() {
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+  pendingPersist = null;
+  current = { ...IDLE };
+  await setLabDocument(LAB_DOC.EXPERIMENT_PROGRESS, { ...IDLE });
+}
+
 function stageWeights(mode: ExperimentMode) {
   if (mode === "full") {
     return { readings: 0.72, simulating: 0.03, evaluating: 0.1, breeding: 0.15 };

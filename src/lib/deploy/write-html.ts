@@ -11,6 +11,7 @@ const ROOT = process.cwd();
 const BASELINE_HTML_PATH = path.join(ROOT, "public", "baseline", "index.html");
 const LAB_SOURCE_HTML_PATH = path.join(ROOT, "public", "baseline", "lab-source.html");
 const VARIANTS_DIR = path.join(ROOT, "public", "baseline", "variants");
+const GEN0_IDS = new Set(GENERATION_0.map((v) => v.id));
 
 export interface HtmlWriteResult {
   variantId: string;
@@ -103,6 +104,22 @@ export function writeLabBaselineVariantHtml(): HtmlWriteResult {
     relativePath: path.relative(ROOT, outPath),
     patchCount: 0,
   };
+}
+
+export function removeBredVariantHtml(): string[] {
+  if (!labFsWritable()) return [];
+
+  const removed: string[] = [];
+  if (!fs.existsSync(VARIANTS_DIR)) return removed;
+
+  for (const f of fs.readdirSync(VARIANTS_DIR)) {
+    if (!f.endsWith(".html")) continue;
+    const id = f.replace(/\.html$/, "");
+    if (GEN0_IDS.has(id) || id === "production") continue;
+    fs.unlinkSync(path.join(VARIANTS_DIR, f));
+    removed.push(f);
+  }
+  return removed;
 }
 
 /** Regenerate static HTML for every variant in the run plus gen-0 challengers. */

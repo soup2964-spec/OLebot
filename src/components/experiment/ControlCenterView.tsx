@@ -55,6 +55,7 @@ export function ControlCenterView({
   onExperimentComplete,
   onDismissProgress,
   onSettingsChange,
+  onDemoReset,
 }: {
   progress: ExperimentProgress | null;
   pollProgress: () => Promise<void>;
@@ -65,11 +66,13 @@ export function ControlCenterView({
     llmPersonas: boolean;
     experimentMode: "hybrid" | "full";
   }) => void;
+  onDemoReset?: () => void | Promise<void>;
 }) {
   const meta = CRITERIA.find((c) => c.id === "0");
   const [state, setState] = useState<ControlState | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [liveActive, setLiveActive] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -219,6 +222,41 @@ export function ControlCenterView({
   const llmAvailable = state?.llmExperimentAvailable ?? false;
   const progressRunning = isProgressActivelyRunning(progress);
   const runBlocked = running || progressRunning || (!autonomous && !llmAvailable);
+  const resetBlocked = resetting || running || progressRunning || autonomous;
+
+  const resetDemo = async () => {
+    if (
+      !window.confirm(
+        "Reset the demo? This removes bred pages, clears experiment history, and restores Experiment 1 to the gen-0 starting state."
+      )
+    ) {
+      return;
+    }
+
+    setResetting(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const res = await fetch("/api/control/reset", { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error ?? "Demo reset failed");
+      }
+
+      setMessage(
+        body.restoredPreload
+          ? "Demo reset — bred pages cleared, gen-0 preload restored."
+          : "Demo reset — bred pages and experiment history cleared."
+      );
+      await refresh();
+      await onDemoReset?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Demo reset failed");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   return (
     <div className="flex min-h-[calc(100vh-65px)] items-start justify-center p-6">
@@ -302,6 +340,22 @@ export function ControlCenterView({
               >
                 Dismiss interrupted run and unlock controls
               </button>
+            )}
+            {!autonomous && (
+              <button
+                type="button"
+                onClick={() => void resetDemo()}
+                disabled={resetBlocked}
+                className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                {resetting ? "Resetting demo…" : "Reset demo"}
+              </button>
+            )}
+            {!autonomous && !resetBlocked && (
+              <p className="mt-2 text-center text-xs text-slate-500">
+                Clears bred pages and experiment history. With demo preload on, restores gen-0
+                behavior and winners.
+              </p>
             )}
             {!autonomous && !llmAvailable && !loading && (
               <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
