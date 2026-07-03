@@ -1,15 +1,15 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { JellyHeader } from "./JellyHeader";
+import { OlebotHeader } from "./OlebotHeader";
 
-export function JellyShell({ children }: { children: React.ReactNode }) {
+export function OlebotShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const showHeader = !path.startsWith("/v/");
 
   return (
     <>
-      {showHeader && <JellyHeader />}
+      {showHeader && <OlebotHeader />}
       {children}
     </>
   );

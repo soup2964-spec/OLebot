@@ -312,111 +312,111 @@ export async function runExperiment(cfg: RunConfig = DEFAULT_CONFIG): Promise<Ex
       allocationHistory = snapshot.allocationHistory;
       totalVisits = snapshot.totalVisits ?? snapshot.visits.length;
     } else {
-    // 1. Persona readings for every (persona, variant) pair.
-    const readings = new Map<string, PersonaReading[]>();
+      // 1. Persona readings for every (persona, variant) pair.
+      const readings = new Map<string, PersonaReading[]>();
 
-    if (readingMode === "heuristic") {
-      const total = pool.length * personas.length;
-      log(`  ${total} heuristic persona readings...`);
-      progress?.readingsStart(total);
-      let done = 0;
-      for (const variant of pool) {
-        for (const persona of personas) {
-          const key = `${variant.id}|${persona.id}`;
-          readings.set(key, [
-            heuristicReadPage(persona, variant, cfg.seed + gen * 100 + persona.id.length),
-          ]);
-          done++;
-          if (done % 6 === 0 || done === total) progress?.readingsProgress(done, total);
-        }
-      }
-      progress?.readingsDone();
-    } else {
-      const readingTasks: ReadingTask[] = [];
-      for (const variant of pool) {
-        for (const persona of personas) {
-          for (let i = 0; i < readingsPerPair; i++) {
-            readingTasks.push({ variant, persona, readIndex: i });
+      if (readingMode === "heuristic") {
+        const total = pool.length * personas.length;
+        log(`  ${total} heuristic persona readings...`);
+        progress?.readingsStart(total);
+        let done = 0;
+        for (const variant of pool) {
+          for (const persona of personas) {
+            const key = `${variant.id}|${persona.id}`;
+            readings.set(key, [
+              heuristicReadPage(persona, variant, cfg.seed + gen * 100 + persona.id.length),
+            ]);
+            done++;
+            if (done % 6 === 0 || done === total) progress?.readingsProgress(done, total);
           }
         }
-      }
-
-      const parallel = readConcurrency();
-      log(
-        `  ${readingTasks.length} LLM persona readings (${parallel} parallel, ${readingsPerPair} per pair)...`
-      );
-      progress?.readingsStart(readingTasks.length);
-
-      let readingsDone = 0;
-      const completed = await mapPool(readingTasks, parallel, async (task) => {
-        const reading = await readPage(
-          task.persona,
-          task.variant,
-          cfg.seed + gen * 1000 + task.readIndex
-        );
-        readingsDone++;
-        progress?.readingsProgress(readingsDone, readingTasks.length);
-        if (readingsDone % parallel === 0 || readingsDone === readingTasks.length) {
-          log(`  readings ${readingsDone}/${readingTasks.length}`);
+        progress?.readingsDone();
+      } else {
+        const readingTasks: ReadingTask[] = [];
+        for (const variant of pool) {
+          for (const persona of personas) {
+            for (let i = 0; i < readingsPerPair; i++) {
+              readingTasks.push({ variant, persona, readIndex: i });
+            }
+          }
         }
-        return { ...task, reading };
-      });
 
-      progress?.readingsDone();
+        const parallel = readConcurrency();
+        log(
+          `  ${readingTasks.length} LLM persona readings (${parallel} parallel, ${readingsPerPair} per pair)...`
+        );
+        progress?.readingsStart(readingTasks.length);
 
-      for (const { variant, persona, readIndex, reading } of completed) {
-        const key = `${variant.id}|${persona.id}`;
-        if (!readings.has(key)) readings.set(key, []);
-        readings.get(key)![readIndex] = reading;
+        let readingsDone = 0;
+        const completed = await mapPool(readingTasks, parallel, async (task) => {
+          const reading = await readPage(
+            task.persona,
+            task.variant,
+            cfg.seed + gen * 1000 + task.readIndex
+          );
+          readingsDone++;
+          progress?.readingsProgress(readingsDone, readingTasks.length);
+          if (readingsDone % parallel === 0 || readingsDone === readingTasks.length) {
+            log(`  readings ${readingsDone}/${readingTasks.length}`);
+          }
+          return { ...task, reading };
+        });
+
+        progress?.readingsDone();
+
+        for (const { variant, persona, readIndex, reading } of completed) {
+          const key = `${variant.id}|${persona.id}`;
+          if (!readings.has(key)) readings.set(key, []);
+          readings.get(key)![readIndex] = reading;
+        }
       }
-    }
 
-    // 2. Monte Carlo visits with bandit allocation.
-    progress?.simulating();
-    const bandit = new ThompsonBandit(pool.map((v) => v.id));
-    visits = [];
-    allocationHistory = [];
-    const snapshotEvery = Math.max(1, Math.floor(cfg.visitsPerGeneration / 20));
+      // 2. Monte Carlo visits with bandit allocation.
+      progress?.simulating();
+      const bandit = new ThompsonBandit(pool.map((v) => v.id));
+      visits = [];
+      allocationHistory = [];
+      const snapshotEvery = Math.max(1, Math.floor(cfg.visitsPerGeneration / 20));
 
-    for (let i = 0; i < cfg.visitsPerGeneration; i++) {
-      const variantId = bandit.pick(rng);
-      const variant = pool.find((v) => v.id === variantId)!;
-      const persona = pickWeighted(rng, personas, (p) => p.trafficWeight);
-      const rs = readings.get(`${variant.id}|${persona.id}`)!;
-      const reading = rs[Math.floor(rng() * rs.length)];
-      const visit = sampleVisit(rng, persona, variant, reading, gen, i);
-      visits.push(visit);
-      bandit.record(variantId, visit.converted);
-      if ((i + 1) % snapshotEvery === 0) {
-        allocationHistory.push({ afterVisits: i + 1, shares: bandit.shares() });
+      for (let i = 0; i < cfg.visitsPerGeneration; i++) {
+        const variantId = bandit.pick(rng);
+        const variant = pool.find((v) => v.id === variantId)!;
+        const persona = pickWeighted(rng, personas, (p) => p.trafficWeight);
+        const rs = readings.get(`${variant.id}|${persona.id}`)!;
+        const reading = rs[Math.floor(rng() * rs.length)];
+        const visit = sampleVisit(rng, persona, variant, reading, gen, i);
+        visits.push(visit);
+        bandit.record(variantId, visit.converted);
+        if ((i + 1) % snapshotEvery === 0) {
+          allocationHistory.push({ afterVisits: i + 1, shares: bandit.shares() });
+        }
       }
-    }
 
-    // 3. Metrics + Bayesian decisions + evaluator report.
-    metrics = pool.map((v) => computeMetrics(v, visits));
-    metrics.sort((a, b) => b.fitness - a.fitness);
-    const baselineId = pool.some((v) => v.id === "v0-baseline")
-      ? "v0-baseline"
-      : metrics[metrics.length - 1].variantId;
-    const independentReadings =
-      readingMode === "heuristic"
-        ? personas.length
-        : personas.length * readingsPerPair;
-    decisions = analyzeGeneration(
-      metrics.map((m) => ({
-        id: m.variantId,
-        conversions: m.conversions,
-        visits: m.visits,
-        bounceRate: m.bounceRate,
-        independentReadings,
-      })),
-      baselineId,
-      cfg.seed + gen * 7919
-    );
-    log(`  building behavior report for generation ${gen}...`);
-    progress?.evaluating();
-    report = buildComputedReport(gen, pool, metrics, decisions);
-    totalVisits = visits.length;
+      // 3. Metrics + Bayesian decisions + evaluator report.
+      metrics = pool.map((v) => computeMetrics(v, visits));
+      metrics.sort((a, b) => b.fitness - a.fitness);
+      const baselineId = pool.some((v) => v.id === "v0-baseline")
+        ? "v0-baseline"
+        : metrics[metrics.length - 1].variantId;
+      const independentReadings =
+        readingMode === "heuristic"
+          ? personas.length
+          : personas.length * readingsPerPair;
+      decisions = analyzeGeneration(
+        metrics.map((m) => ({
+          id: m.variantId,
+          conversions: m.conversions,
+          visits: m.visits,
+          bounceRate: m.bounceRate,
+          independentReadings,
+        })),
+        baselineId,
+        cfg.seed + gen * 7919
+      );
+      log(`  building behavior report for generation ${gen}...`);
+      progress?.evaluating();
+      report = buildComputedReport(gen, pool, metrics, decisions);
+      totalVisits = visits.length;
     }
 
     // 4. Breed offspring (skip after the final generation unless demo preload).

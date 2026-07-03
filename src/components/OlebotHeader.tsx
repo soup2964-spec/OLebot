@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function JellyHeader() {
+export function OlebotHeader() {
   const path = usePathname();
   const isLive = path.startsWith("/live");
 
