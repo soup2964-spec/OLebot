@@ -46,7 +46,6 @@ export function LandingPagePreview({
             transformOrigin: "top left",
           }}
           tabIndex={-1}
-          loading="lazy"
         />
       )}
     </div>

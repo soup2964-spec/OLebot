@@ -1,11 +1,16 @@
 import { GENERATION_0 } from "@/config/variants";
 import { POSTHOG_EVENTS } from "@/lib/analytics/posthog-events";
 import type { DeployState } from "@/lib/deploy/state";
-import { getLabDocumentSync, LAB_DOC } from "@/lib/supabase/lab-documents";
+import {
+  getLabDocument,
+  getLabDocumentSync,
+  LAB_DOC,
+  listExperimentNumbers,
+  setLabDocument,
+} from "@/lib/supabase/lab-documents";
 import type { ExperimentRun } from "@/lib/schema/experiment";
 import type { PageVariant } from "@/lib/schema/page";
 import { compactRunForStorage } from "@/lib/evolve/compact-run";
-import { getLabDocument, setLabDocument } from "@/lib/supabase/lab-documents";
 
 let cachedRun: ExperimentRun | null | undefined;
 
@@ -69,9 +74,25 @@ export function allVariantsSync(): PageVariant[] {
 }
 
 export async function getVariant(id: string): Promise<PageVariant | undefined> {
+  return findVariant(id);
+}
+
+/** Resolve a variant from active run, deploy state, or saved experiment snapshots. */
+export async function findVariant(id: string): Promise<PageVariant | undefined> {
   if (id === "production") return getProductionVariant() ?? undefined;
+
   const variants = await allVariants();
-  return variants.find((v) => v.id === id);
+  const fromActive = variants.find((v) => v.id === id);
+  if (fromActive) return fromActive;
+
+  const numbers = await listExperimentNumbers();
+  for (let i = numbers.length - 1; i >= 0; i--) {
+    const run = await getLabDocument<ExperimentRun>(LAB_DOC.experiment(numbers[i]!));
+    const found = run?.variants.find((v) => v.id === id);
+    if (found) return found;
+  }
+
+  return undefined;
 }
 
 export async function getVisit(generation: number, visitId: string) {
