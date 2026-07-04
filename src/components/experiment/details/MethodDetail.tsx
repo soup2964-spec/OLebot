@@ -78,7 +78,7 @@ const TIER_CARDS: {
 /**
  * Comparison method — horizontal tier cards with pop-up detail panels.
  */
-export function MethodDetail() {
+export function MethodDetail({ experimentNumber = 1 }: { experimentNumber?: number }) {
   const [openId, setOpenId] = useState<TierId | null>("fitness");
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -186,7 +186,7 @@ export function MethodDetail() {
         )}
       </div>
 
-      <RobustnessDetail />
+      <RobustnessDetail experimentNumber={experimentNumber} />
     </div>
   );
 }

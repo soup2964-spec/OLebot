@@ -10,7 +10,7 @@ function variantName(id: string): string {
   return v ? variantPageTitle(v) : id;
 }
 
-export function RobustnessDetail() {
+export function RobustnessDetail({ experimentNumber = 1 }: { experimentNumber?: number }) {
   const [robustness, setRobustness] = useState<RobustnessSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,7 +19,8 @@ export function RobustnessDetail() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/robustness", { cache: "no-store" });
+      const qs = new URLSearchParams({ experiment: String(experimentNumber) });
+      const res = await fetch(`/api/robustness?${qs}`, { cache: "no-store" });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
         throw new Error(body?.error ?? `HTTP ${res.status}`);
@@ -31,7 +32,7 @@ export function RobustnessDetail() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [experimentNumber]);
 
   useEffect(() => {
     void load();

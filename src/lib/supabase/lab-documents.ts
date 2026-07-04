@@ -11,6 +11,7 @@ export const LAB_DOC = {
   CALIBRATION: "calibration",
   EXPERIMENT_PROGRESS: "experiment_progress",
   experiment: (n: number) => `experiment:${n}`,
+  robustness: (n: number) => `robustness:${n}`,
 } as const;
 
 const FS_PATHS: Record<string, string> = {
@@ -23,8 +24,10 @@ const FS_PATHS: Record<string, string> = {
 
 function fsPathForId(id: string): string | null {
   if (FS_PATHS[id]) return FS_PATHS[id];
-  const m = /^experiment:(\d+)$/.exec(id);
-  if (m) return `data/experiments/experiment-${m[1]}.json`;
+  const exp = /^experiment:(\d+)$/.exec(id);
+  if (exp) return `data/experiments/experiment-${exp[1]}.json`;
+  const rob = /^robustness:(\d+)$/.exec(id);
+  if (rob) return `data/robustness/robustness-${rob[1]}.json`;
   return null;
 }
 

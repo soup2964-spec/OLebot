@@ -26,9 +26,17 @@ function clearLocalExperimentFiles() {
   if (!labFsWritable()) return;
 
   const expDir = path.join(process.cwd(), "data", "experiments");
-  if (!fs.existsSync(expDir)) return;
-  for (const f of fs.readdirSync(expDir)) {
-    if (f.endsWith(".json")) rmIfExists(path.join(expDir, f));
+  if (fs.existsSync(expDir)) {
+    for (const f of fs.readdirSync(expDir)) {
+      if (f.endsWith(".json")) rmIfExists(path.join(expDir, f));
+    }
+  }
+
+  const robDir = path.join(process.cwd(), "data", "robustness");
+  if (fs.existsSync(robDir)) {
+    for (const f of fs.readdirSync(robDir)) {
+      if (f.endsWith(".json")) rmIfExists(path.join(robDir, f));
+    }
   }
 }
 
@@ -37,7 +45,10 @@ async function deleteRemoteExperimentDocs() {
   if (!sb) return;
 
   const numbers = await listExperimentNumbers();
-  const ids = [...numbers.map((n) => LAB_DOC.experiment(n)), LAB_DOC.ACTIVE_RUN];
+  const ids = [
+    ...numbers.flatMap((n) => [LAB_DOC.experiment(n), LAB_DOC.robustness(n)]),
+    LAB_DOC.ACTIVE_RUN,
+  ];
   if (ids.length) {
     const { error } = await sb.from("lab_documents").delete().in("id", ids);
     if (error) throw new Error(`lab_documents delete: ${error.message}`);

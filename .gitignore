@@ -47,3 +47,4 @@ next-env.d.ts
 # Local lab runtime (experiments write here)
 /data/run.json
 /data/experiments/
+/data/robustness/

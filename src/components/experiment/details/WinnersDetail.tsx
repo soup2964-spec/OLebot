@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ExperimentRun } from "@/lib/schema/experiment";
 import type { PageVariant } from "@/lib/schema/page";
 import type { VariantMetrics } from "@/lib/schema/events";
@@ -26,6 +26,10 @@ export function WinnersDetail({
   const [genIdx, setGenIdx] = useState(() =>
     run?.generations?.length ? run.generations.length - 1 : 0
   );
+
+  useEffect(() => {
+    setGenIdx(run?.generations?.length ? run.generations.length - 1 : 0);
+  }, [run?.id, run?.generations?.length]);
 
   const gen = run?.generations?.[genIdx];
   const baselineRate = useMemo(() => {

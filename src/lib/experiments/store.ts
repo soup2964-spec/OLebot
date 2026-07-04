@@ -2,6 +2,7 @@ import type { ExperimentRun } from "@/lib/schema/experiment";
 import type { ExperimentProgress } from "@/lib/schema/experiment-progress";
 import { compactRunForStorage } from "@/lib/evolve/compact-run";
 import { loadRun } from "@/lib/registry";
+import type { RobustnessSnapshot } from "@/lib/evolve/robustness";
 import {
   getLabDocument,
   LAB_DOC,
@@ -16,6 +17,19 @@ import {
 
 export async function saveExperimentRun(experimentNumber: number, run: ExperimentRun) {
   await setLabDocument(LAB_DOC.experiment(experimentNumber), compactRunForStorage(run));
+}
+
+export async function saveExperimentRobustness(
+  experimentNumber: number,
+  snapshot: RobustnessSnapshot
+) {
+  await setLabDocument(LAB_DOC.robustness(experimentNumber), snapshot);
+}
+
+export async function loadExperimentRobustness(
+  experimentNumber: number
+): Promise<RobustnessSnapshot | null> {
+  return getLabDocument<RobustnessSnapshot>(LAB_DOC.robustness(experimentNumber));
 }
 
 export async function loadExperimentRun(experimentNumber: number): Promise<ExperimentRun | null> {

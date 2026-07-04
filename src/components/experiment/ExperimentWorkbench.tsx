@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ExperimentRun, GenerationRun } from "@/lib/schema/experiment";
 import type { VisitIndex } from "@/lib/registry";
 import type { PageVariant } from "@/lib/schema/page";
@@ -232,21 +232,33 @@ export function ExperimentWorkbench({
 
   useEffect(() => {
     void pollProgress();
-    const t = setInterval(pollProgress, 15_000);
+    const intervalMs = isRunning ? 5_000 : 15_000;
+    const t = setInterval(pollProgress, intervalMs);
     return () => clearInterval(t);
-  }, [pollProgress]);
+  }, [pollProgress, isRunning]);
+
+  const prevProgressStatus = useRef<ExperimentProgress["status"] | null>(null);
+  useEffect(() => {
+    const prev = prevProgressStatus.current;
+    prevProgressStatus.current = progress?.status ?? null;
+
+    if (progress?.status !== "complete" || prev === "complete") return;
+    const completed = progress.experimentNumber ?? iteration;
+    void loadIteration(completed);
+    void pollCatalogLite();
+  }, [progress?.status, progress?.experimentNumber, iteration, loadIteration, pollCatalogLite]);
 
   useEffect(() => {
     if (!isRunning) return;
     void pollCatalogLite();
-    const t = setInterval(pollCatalogLite, 15_000);
+    const t = setInterval(pollCatalogLite, 5_000);
     return () => clearInterval(t);
   }, [isRunning, pollCatalogLite]);
 
   useEffect(() => {
     if (!isRunning || iteration !== maxIteration) return;
     void loadIteration(iteration, { lite: true });
-    const t = setInterval(() => loadIteration(iteration, { lite: true }), 30_000);
+    const t = setInterval(() => loadIteration(iteration, { lite: true }), 10_000);
     return () => clearInterval(t);
   }, [isRunning, iteration, maxIteration, loadIteration]);
 

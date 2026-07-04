@@ -238,6 +238,8 @@ export interface RunConfig {
   offspringPerGeneration: number;
   /** llm = LLM reads each page as each persona; heuristic = rule-based readings, still uses LLM eval/breed. */
   personaReadingMode?: PersonaReadingMode;
+  /** When set (experiment 2+), starts from prior bred pages instead of gen-0. */
+  initialPool?: PageVariant[];
   log?: (msg: string) => void;
   progress?: ExperimentProgressReporter;
 }
@@ -277,9 +279,14 @@ export async function runExperiment(cfg: RunConfig = DEFAULT_CONFIG): Promise<Ex
   const personaSet = await getCalibratedPersonaSet();
   const personas = personaSet.personas;
   const baselineHtml = loadSourceBaselineHtml();
-  const baselineVariant = (await import("@/config/variants")).GENERATION_0[0];
-  const allVariants: PageVariant[] = [...(await import("@/config/variants")).GENERATION_0];
-  let pool: PageVariant[] = [...(await import("@/config/variants")).GENERATION_0];
+  const { GENERATION_0: gen0 } = await import("@/config/variants");
+  const baselineVariant = gen0[0];
+  const startingPool =
+    cfg.initialPool?.length && cfg.initialPool.length > 0
+      ? cfg.initialPool.map((v) => structuredClone(v))
+      : [...gen0];
+  const allVariants: PageVariant[] = [...startingPool];
+  let pool: PageVariant[] = [...startingPool];
   const generations: GenerationRun[] = [];
 
   for (let gen = 0; gen < cfg.generations; gen++) {

@@ -12,7 +12,7 @@ import {
   loadExperimentProgress,
 } from "./experiment-progress";
 import { isProgressActivelyRunning } from "./experiment-progress-utils";
-import { saveExperimentRun } from "@/lib/experiments/store";
+import { saveExperimentRun, saveExperimentRobustness } from "@/lib/experiments/store";
 import { sortBredVariants } from "@/lib/comparison/snapshots";
 import { invalidateLoopCache, loadLoopState, nextExperimentNumber, normalizeExperimentHistory, saveLoopState, type LoopState } from "./state";
 
@@ -51,6 +51,12 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
 
   const history = normalizeExperimentHistory(loopState.experimentHistory);
   const experimentNumber = nextExperimentNumber(history);
+  const previousPool =
+    experimentNumber === 1
+      ? undefined
+      : sortBredVariants(
+          history.find((e) => e.experimentNumber === experimentNumber - 1)?.currentVariants ?? []
+        );
 
   const seed = Date.now() % 1_000_000_000;
   const runId = `run-${seed}`;
@@ -63,6 +69,7 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
       ...llmExperimentConfig(seed, (msg) => console.log(`[experiment] ${msg}`)),
       generations,
       personaReadingMode: mode === "full" ? "llm" : "heuristic",
+      initialPool: previousPool?.length ? previousPool : undefined,
       progress,
     });
 
@@ -71,7 +78,8 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
     await saveExperimentRun(experimentNumber, run);
     invalidateRunCache();
     writeAllVariantHtml(run.variants, { includeLabBaseline: true });
-    await refreshRobustnessSnapshot(run);
+    const robustness = await refreshRobustnessSnapshot(run);
+    await saveExperimentRobustness(experimentNumber, robustness);
 
     const offspringIds =
       [...run.generations].reverse().find((g) => g.offspringIds?.length)?.offspringIds ?? [];
