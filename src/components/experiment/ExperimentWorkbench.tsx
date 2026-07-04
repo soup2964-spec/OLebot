@@ -162,8 +162,10 @@ export function ExperimentWorkbench({
       if (data.experimentProgress) setProgress(data.experimentProgress);
       const nextDeploy = data.deployVersion ?? data.deploy?.deployVersion ?? 0;
       setDeployVersion(nextDeploy);
-      setIterationRun(runFromPayload(data));
-      setVisitIndex(data.index ?? null);
+      if (!options?.lite || data.generations?.length) {
+        setIterationRun(runFromPayload(data));
+        setVisitIndex(data.index ?? null);
+      }
       return data;
     } catch {
       return null;

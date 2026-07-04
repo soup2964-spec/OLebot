@@ -4,7 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { VisitIndex, VisitSummary } from "@/lib/registry";
 import type { Visit } from "@/lib/schema/events";
 import type { PageVariant } from "@/lib/schema/page";
-import { PERSONA_SET_V1 } from "@/config/personas";
+import type { Persona, PersonaSet } from "@/lib/schema/persona";
+import {
+  formatPersonaStatLine,
+  personaStatsForVariant,
+} from "@/lib/personas/experiment-stats";
 import { ReplayTheater } from "@/components/ReplayTheater";
 import {
   ScrollDepthBar,
@@ -19,21 +23,53 @@ export function BehaviorDashboard({
   index,
   variants,
   initialVariantId,
+  runId,
 }: {
   index: VisitIndex;
   variants: PageVariant[];
   /** Pre-select variant from workbench page comparison. */
   initialVariantId?: string | null;
+  /** Bust persona stats when the active experiment run changes. */
+  runId?: string | null;
 }) {
-  const [genIdx, setGenIdx] = useState(index.length - 1);
+  const [genIdx, setGenIdx] = useState(() => Math.max(0, index.length - 1));
   const [variantId, setVariantId] = useState(
-    initialVariantId ?? index[index.length - 1]?.variantIds[0] ?? ""
+    () => initialVariantId ?? index[Math.max(0, index.length - 1)]?.variantIds[0] ?? ""
   );
   const [personaFilter, setPersonaFilter] = useState<string>("all");
   const [outcomeFilter, setOutcomeFilter] = useState<OutcomeFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [visit, setVisit] = useState<Visit | null>(null);
   const [loading, setLoading] = useState(false);
+  const [personaSet, setPersonaSet] = useState<PersonaSet | null>(null);
+
+  const personas = personaSet?.personas ?? [];
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/personas", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setPersonaSet(data as PersonaSet);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!index.length) return;
+    const nextGenIdx = index.length - 1;
+    const nextVariantId =
+      initialVariantId && index[nextGenIdx]?.variantIds.includes(initialVariantId)
+        ? initialVariantId
+        : index[nextGenIdx]?.variantIds[0] ?? "";
+    setGenIdx(nextGenIdx);
+    setVariantId(nextVariantId);
+    setPersonaFilter("all");
+    setSelectedId(null);
+  }, [index, runId, initialVariantId]);
 
   useEffect(() => {
     if (initialVariantId) setVariantId(initialVariantId);
@@ -73,35 +109,10 @@ export function BehaviorDashboard({
     };
   }, [metrics, gen, variantId]);
 
-  const personaStats = useMemo(() => {
-    return new Map(
-      PERSONA_SET_V1.personas.map((p) => {
-        const row = metrics?.byPersona[p.id];
-        if (row?.visits) {
-          return [
-            p.id,
-            {
-              visits: row.visits,
-              conversionRate: row.conversions / row.visits,
-              bounceRate: 0,
-              avgScroll: 0,
-            },
-          ] as const;
-        }
-        const visits = gen?.visits.filter((v) => v.variantId === variantId && v.personaId === p.id) ?? [];
-        const n = visits.length || 1;
-        return [
-          p.id,
-          {
-            visits: visits.length,
-            conversionRate: visits.filter((v) => v.converted).length / n,
-            bounceRate: visits.filter((v) => v.bounced).length / n,
-            avgScroll: visits.reduce((s, v) => s + v.scrollDepth, 0) / n,
-          },
-        ] as const;
-      })
-    );
-  }, [metrics, gen, variantId]);
+  const personaStats = useMemo(
+    () => personaStatsForVariant(metrics, personas),
+    [metrics, personas]
+  );
 
   const fetchVisit = useCallback(async (id: string, generation: number) => {
     setLoading(true);
@@ -144,19 +155,15 @@ export function BehaviorDashboard({
           stat={`${stats.visits} visits · ${(stats.conversionRate * 100).toFixed(0)}% conv`}
           onClick={() => setPersonaFilter("all")}
         />
-        {PERSONA_SET_V1.personas.map((p) => {
-          const row = personaStats.get(p.id)!;
+        {personas.map((p) => {
+          const row = personaStats.get(p.id);
           return (
             <PersonaCard
               key={p.id}
               active={personaFilter === p.id}
               name={p.name}
               role={p.role}
-              stat={
-                row.visits
-                  ? `${row.visits} visits · ${(row.conversionRate * 100).toFixed(0)}% conv`
-                  : `${(p.trafficWeight * 100).toFixed(0)}% traffic mix`
-              }
+              stat={formatPersonaStatLine(row)}
               onClick={() => setPersonaFilter(personaFilter === p.id ? "all" : p.id)}
             />
           );
@@ -206,7 +213,7 @@ export function BehaviorDashboard({
           onChange={setPersonaFilter}
           options={[
             { value: "all", label: "All personas" },
-            ...PERSONA_SET_V1.personas.map((p) => ({ value: p.id, label: p.name })),
+            ...personas.map((p) => ({ value: p.id, label: p.name })),
           ]}
         />
         <div className="flex gap-1">
@@ -242,6 +249,7 @@ export function BehaviorDashboard({
                 key={v.id}
                 summary={v}
                 variant={variant}
+                personas={personas}
                 selected={v.id === selectedId}
                 onSelect={() => setSelectedId(v.id)}
               />
@@ -257,7 +265,7 @@ export function BehaviorDashboard({
         {/* Detail pane */}
         <div className="space-y-6">
           {selectedSummary && variant && (
-            <SelectedVisitHeader summary={selectedSummary} variant={variant} />
+            <SelectedVisitHeader summary={selectedSummary} variant={variant} personas={personas} />
           )}
 
           {loading && (
@@ -288,7 +296,7 @@ export function BehaviorDashboard({
 
           {metrics && (
             <>
-              <PersonaBreakdown metrics={metrics} />
+              <PersonaBreakdown metrics={metrics} personas={personas} />
               <ObjectionFailures metrics={metrics} variantName={variant?.name} />
             </>
           )}
@@ -301,15 +309,17 @@ export function BehaviorDashboard({
 function VisitPreviewCard({
   summary,
   variant,
+  personas,
   selected,
   onSelect,
 }: {
   summary: VisitSummary;
   variant?: PageVariant;
+  personas: Persona[];
   selected: boolean;
   onSelect: () => void;
 }) {
-  const persona = PERSONA_SET_V1.personas.find((p) => p.id === summary.personaId);
+  const persona = personas.find((p) => p.id === summary.personaId);
 
   return (
     <button
@@ -363,11 +373,13 @@ function VisitPreviewCard({
 function SelectedVisitHeader({
   summary,
   variant,
+  personas,
 }: {
   summary: VisitSummary;
   variant: PageVariant;
+  personas: Persona[];
 }) {
-  const persona = PERSONA_SET_V1.personas.find((p) => p.id === summary.personaId);
+  const persona = personas.find((p) => p.id === summary.personaId);
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -478,10 +490,12 @@ function ObjectionFailures({
 
 function PersonaBreakdown({
   metrics,
+  personas,
 }: {
   metrics: {
     byPersona: Record<string, { visits: number; conversions: number }>;
   };
+  personas: Persona[];
 }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-schole-surface p-5">
@@ -489,7 +503,7 @@ function PersonaBreakdown({
         Conversion by persona
       </h2>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        {PERSONA_SET_V1.personas.map((p) => {
+        {personas.map((p) => {
           const row = metrics.byPersona[p.id] ?? { visits: 0, conversions: 0 };
           const rate = row.visits ? row.conversions / row.visits : 0;
           return (

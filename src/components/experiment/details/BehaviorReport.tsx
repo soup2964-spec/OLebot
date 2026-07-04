@@ -104,7 +104,8 @@ export function BehaviorReport({
           ? "LLM persona agents read each page and simulate buyer visits — scroll depth, section reads, objections, and demo clicks."
           : "Heuristic persona models simulate buyer visits — scroll depth, section reads, objections, and demo clicks."}{" "}
         Pick a persona and visit below to replay what happened on each page and why they converted
-        or left.
+        or left. Persona cards show <strong>observed visits and conversion</strong> for the selected
+        variant and generation from this experiment — not static priors.
         {selectedVariantId ? (
           <>
             {" "}
@@ -120,6 +121,7 @@ export function BehaviorReport({
           index={index}
           variants={variants}
           initialVariantId={selectedVariantId}
+          runId={_run?.id ?? null}
         />
       )}
 

@@ -66,7 +66,7 @@ export function ExperimentDetailPanel({
 
       {activeView === "versions" && <VersionsDetail variants={variants} />}
       {activeView === "method" && <MethodDetail />}
-      {activeView === "personas" && <PersonasDetail />}
+      {activeView === "personas" && <PersonasDetail run={run} />}
       {activeView === "behavior" && (
         <BehaviorReport
           run={run}
