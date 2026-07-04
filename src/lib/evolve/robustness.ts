@@ -13,6 +13,11 @@ export interface RobustnessSnapshot {
   version: 1;
   nSeeds: number;
   visitsPerSeed: number;
+  /** Seed used for the live / committed experiment run. */
+  referenceSeed: number;
+  /** Variant ranked #1 at referenceSeed (matches the experiment leaderboard). */
+  referenceWinnerId: string;
+  /** Variant ranked #1 most often across all seeds in this sweep. */
   modalWinnerId: string;
   winnerStabilityPct: number;
   generatedAt: string;

@@ -1,4 +1,5 @@
 import { runExperiment, llmExperimentConfig } from "@/lib/evolve/run";
+import { refreshRobustnessSnapshot } from "@/lib/evolve/robustness-snapshot";
 import { DEMO_PRELOAD_SEED, demoPreloadEnabled } from "@/lib/evolve/demo-preload";
 import { GENERATION_0 } from "@/config/variants";
 import { promoteAndDeploy, type PromoteResult } from "@/lib/deploy/promote";
@@ -75,6 +76,7 @@ export async function runManualExperiment(): Promise<ManualExperimentResult> {
     await saveExperimentRun(experimentNumber, run);
     invalidateRunCache();
     writeAllVariantHtml(run.variants, { includeLabBaseline: true });
+    await refreshRobustnessSnapshot(run);
 
     const offspringIds =
       [...run.generations].reverse().find((g) => g.offspringIds?.length)?.offspringIds ?? [];
