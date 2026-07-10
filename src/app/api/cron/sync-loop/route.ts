@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { maybeAutoSync } from "@/lib/loop/sync";
+import { maybeAutoSync } from "@/domains/loop/sync";
 
 /** Vercel Cron — polls for new traffic and runs the loop when thresholds are met. */
 export async function GET(request: Request) {

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { loadRun } from "@/lib/registry";
-import { loadDeployState } from "@/lib/deploy/state";
-import { getComparisonVariants, promoteAndDeploy } from "@/lib/deploy/promote";
-import { writeAllVariantHtml } from "@/lib/deploy/write-html";
+import { loadRun } from "@/platform/registry";
+import { loadDeployState } from "@/domains/deploy/state";
+import { getComparisonVariants, promoteAndDeploy } from "@/domains/deploy/promote";
+import { writeAllVariantHtml } from "@/domains/deploy/write-html";
 
 export async function GET() {
   const deploy = await loadDeployState();

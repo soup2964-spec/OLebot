@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   clearExperimentProgress,
   loadExperimentProgress,
-} from "@/lib/loop/experiment-progress";
+} from "@/domains/loop/experiment-progress";
 
 export const dynamic = "force-dynamic";
 

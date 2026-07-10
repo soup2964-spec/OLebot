@@ -1,0 +1,518 @@
+"use client";
+
+import {
+  formatPersonaStatLine,
+} from "@/domains/personas/experiment-stats";
+import { ReplayTheater } from "@/features/workbench/behavior/ReplayTheater";
+import {
+  ScrollDepthBar,
+  VariantSectionHeatmap,
+  VisitPathStrip,
+} from "@/features/workbench/behavior/VisitVisuals";
+import { variantPageTitle } from "@/domains/variants/display-name";
+import type { VisitIndex, VisitSummary } from "@/platform/registry";
+import type { Visit } from "@/platform/schema/events";
+import type { PageVariant } from "@/platform/schema/page";
+import type { Persona } from "@/platform/schema/persona";
+import { useBehaviorDashboard } from "./useBehaviorDashboard";
+
+type OutcomeFilter = "all" | "converted" | "lost" | "bounced";
+
+export function BehaviorDashboard({
+  index,
+  variants,
+  initialVariantId,
+  runId,
+}: {
+  index: VisitIndex;
+  variants: PageVariant[];
+  initialVariantId?: string | null;
+  runId?: string | null;
+}) {
+  const {
+    genIdx,
+    setGenIdx,
+    variantId,
+    setVariantId,
+    personaFilter,
+    setPersonaFilter,
+    outcomeFilter,
+    setOutcomeFilter,
+    selectedId,
+    setSelectedId,
+    visit,
+    loading,
+    personas,
+    gen,
+    variant,
+    metrics,
+    filtered,
+    stats,
+    personaStats,
+    selectedSummary,
+  } = useBehaviorDashboard({ index, variants, initialVariantId, runId });
+
+  return (
+    <div className="space-y-6">
+      {/* Persona strip — who visited and how they behaved on this variant */}
+      <div
+        className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+        aria-label="Buyer personas"
+      >
+        <PersonaCard
+          active={personaFilter === "all"}
+          name="All personas"
+          role="Combined traffic mix"
+          stat={`${stats.visits} visits · ${(stats.conversionRate * 100).toFixed(0)}% conv`}
+          onClick={() => setPersonaFilter("all")}
+        />
+        {personas.map((p) => {
+          const row = personaStats.get(p.id);
+          return (
+            <PersonaCard
+              key={p.id}
+              active={personaFilter === p.id}
+              name={p.name}
+              role={p.role}
+              stat={formatPersonaStatLine(row)}
+              onClick={() => setPersonaFilter(personaFilter === p.id ? "all" : p.id)}
+            />
+          );
+        })}
+      </div>
+
+      {/* KPI strip */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <Kpi label="Visits" value={String(stats.visits)} />
+        <Kpi label="Conversion" value={`${(stats.conversionRate * 100).toFixed(1)}%`} accent />
+        <Kpi label="Bounce rate" value={`${(stats.bounceRate * 100).toFixed(0)}%`} />
+        <Kpi label="Avg scroll" value={`${(stats.avgScroll * 100).toFixed(0)}%`} />
+        <Kpi label="Avg dwell" value={`${(stats.avgDwell / 1000).toFixed(0)}s`} />
+      </div>
+
+      {/* Filters */}
+      <div className="sticky top-[57px] z-30 -mx-1 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
+        <FilterSelect
+          label="Generation"
+          value={String(genIdx)}
+          onChange={(v) => {
+            const idx = Number(v);
+            setGenIdx(idx);
+            setVariantId(index[idx].variantIds[0]);
+            setSelectedId(null);
+          }}
+          options={index.map((g, i) => ({
+            value: String(i),
+            label: `Gen ${g.generation} · ${(g.totalVisits ?? g.visits.length).toLocaleString()} visits`,
+          }))}
+        />
+        <FilterSelect
+          label="Variant"
+          value={variantId}
+          onChange={(v) => {
+            setVariantId(v);
+            setSelectedId(null);
+          }}
+          options={(gen?.variantIds ?? []).map((id) => {
+            const v = variants.find((x) => x.id === id);
+            return { value: id, label: v ? variantPageTitle(v) : id };
+          })}
+        />
+        <FilterSelect
+          label="Persona"
+          value={personaFilter}
+          onChange={setPersonaFilter}
+          options={[
+            { value: "all", label: "All personas" },
+            ...personas.map((p) => ({ value: p.id, label: p.name })),
+          ]}
+        />
+        <div className="flex gap-1">
+          {(["all", "converted", "lost", "bounced"] as OutcomeFilter[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setOutcomeFilter(f)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize transition ${
+                outcomeFilter === f
+                  ? "bg-schole-primary text-white"
+                  : "bg-slate-100 text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        <span className="ml-auto text-xs text-slate-500">{filtered.length} matching</span>
+      </div>
+
+      {/* Main split */}
+      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+        {/* Visit preview list */}
+        <aside className="max-h-[720px] space-y-2 overflow-y-auto rounded-2xl border border-slate-200 bg-schole-surface p-2">
+          <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Visit previews
+          </div>
+          {filtered.length === 0 ? (
+            <p className="p-4 text-sm text-slate-500">No visits match filters.</p>
+          ) : (
+            filtered.slice(0, 100).map((v) => (
+              <VisitPreviewCard
+                key={v.id}
+                summary={v}
+                variant={variant}
+                personas={personas}
+                selected={v.id === selectedId}
+                onSelect={() => setSelectedId(v.id)}
+              />
+            ))
+          )}
+          {filtered.length > 100 && (
+            <p className="px-2 py-2 text-xs text-slate-600">
+              Showing first 100 of {filtered.length}. Narrow filters to see more.
+            </p>
+          )}
+        </aside>
+
+        {/* Detail pane */}
+        <div className="space-y-6">
+          {selectedSummary && variant && (
+            <SelectedVisitHeader summary={selectedSummary} variant={variant} personas={personas} />
+          )}
+
+          {loading && (
+            <div className="flex h-64 items-center justify-center rounded-2xl border border-slate-200 bg-schole-surface">
+              <p className="text-sm text-slate-500">Loading full visit trace…</p>
+            </div>
+          )}
+
+          {!loading && visit && variant && (
+            <ReplayTheater visit={visit} variant={variant} />
+          )}
+
+          {variant && metrics && (
+            <section className="rounded-2xl border border-slate-200 bg-schole-surface p-5">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Section engagement · {variantPageTitle(variant)}
+              </h2>
+              <p className="mt-1 text-xs text-slate-600">
+                Aggregate read rate and exit rate across all{" "}
+                {(metrics?.visits ?? stats.visits).toLocaleString()} simulated visits on this
+                variant.
+              </p>
+              <div className="mt-4">
+                <VariantSectionHeatmap variant={variant} perSection={metrics.perSection} />
+              </div>
+            </section>
+          )}
+
+          {metrics && (
+            <>
+              <PersonaBreakdown metrics={metrics} personas={personas} />
+              <ObjectionFailures metrics={metrics} variantName={variant?.name} />
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VisitPreviewCard({
+  summary,
+  variant,
+  personas,
+  selected,
+  onSelect,
+}: {
+  summary: VisitSummary;
+  variant?: PageVariant;
+  personas: Persona[];
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const persona = personas.find((p) => p.id === summary.personaId);
+
+  return (
+    <button
+      onClick={onSelect}
+      className={`w-full rounded-xl border p-3 text-left transition ${
+        selected
+          ? "border-schole-primary/60 bg-schole-primary/10"
+          : "border-slate-200 bg-slate-100 hover:border-slate-300"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={`flex h-9 w-9 flex-none items-center justify-center rounded-full text-sm font-bold ${
+            summary.converted
+              ? "bg-emerald-500/20 text-emerald-400"
+              : summary.bounced
+                ? "bg-rose-500/20 text-rose-400"
+                : "bg-slate-100 text-slate-400"
+          }`}
+        >
+          {persona?.name?.[0] ?? "?"}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-medium text-slate-900">
+              {persona?.name ?? summary.personaId}
+            </span>
+            <OutcomeBadge summary={summary} />
+          </div>
+          <p className="mt-0.5 truncate text-[11px] text-slate-500">{persona?.role}</p>
+          <div className="mt-2">
+            <ScrollDepthBar depth={summary.scrollDepth} />
+          </div>
+          {variant && (
+            <div className="mt-2">
+              <VisitPathStrip path={summary.path} sections={variant.sections} compact />
+            </div>
+          )}
+          <p className="mt-2 line-clamp-2 text-[11px] leading-relaxed text-slate-400">
+            {summary.verdictPreview}
+          </p>
+          <div className="mt-1 text-[10px] text-slate-600">
+            {(summary.totalDwellMs / 1000).toFixed(0)}s on page
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function SelectedVisitHeader({
+  summary,
+  variant,
+  personas,
+}: {
+  summary: VisitSummary;
+  variant: PageVariant;
+  personas: Persona[];
+}) {
+  const persona = personas.find((p) => p.id === summary.personaId);
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-slate-500">Selected visit</div>
+          <h2 className="mt-1 text-lg font-semibold text-slate-900">
+            {persona?.name} on {variantPageTitle(variant)}
+          </h2>
+          <p className="text-sm text-slate-400">{persona?.role}</p>
+        </div>
+        <OutcomeBadge summary={summary} large />
+      </div>
+      <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500">
+        <span>
+          Scroll <strong className="text-slate-700">{(summary.scrollDepth * 100).toFixed(0)}%</strong>
+        </span>
+        <span>
+          Dwell <strong className="text-slate-700">{(summary.totalDwellMs / 1000).toFixed(0)}s</strong>
+        </span>
+        <span>
+          Sections touched <strong className="text-slate-700">{summary.path.length}</strong>
+        </span>
+      </div>
+      <div className="mt-3 flex items-center gap-3 text-[10px] text-slate-600">
+        <LegendDot color="bg-schole-primary" label="Read" />
+        <LegendDot color="bg-amber-400" label="Skim" />
+        <LegendDot color="bg-rose-500" label="Bounce" />
+      </div>
+    </div>
+  );
+}
+
+function PersonaCard({
+  active,
+  name,
+  role,
+  stat,
+  onClick,
+}: {
+  active: boolean;
+  name: string;
+  role: string;
+  stat: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`flex min-w-[9.5rem] flex-1 shrink-0 flex-col rounded-xl border px-3 py-3 text-left transition ${
+        active
+          ? "border-schole-primary/40 bg-schole-primary/5 ring-2 ring-schole-primary/30 shadow-md"
+          : "border-slate-200 bg-white hover:shadow-sm"
+      }`}
+    >
+      <span className="text-sm font-semibold leading-tight text-slate-900">{name}</span>
+      <span className="mt-0.5 line-clamp-2 text-[11px] text-slate-600">{role}</span>
+      <span className="mt-2 truncate font-mono text-[10px] font-medium text-slate-500">{stat}</span>
+    </button>
+  );
+}
+
+function ObjectionFailures({
+  metrics,
+  variantName,
+}: {
+  metrics: { objectionFailures?: Record<string, number> };
+  variantName?: string;
+}) {
+  const failures = metrics.objectionFailures ?? {};
+  const entries = Object.entries(failures)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6);
+
+  if (entries.length === 0) return null;
+
+  const max = Math.max(1, ...entries.map(([, c]) => c));
+
+  return (
+    <section className="rounded-2xl border border-rose-100 bg-rose-50/30 p-5">
+      <h2 className="text-sm font-semibold text-slate-900">
+        Why non-converters left{variantName ? ` · ${variantName}` : ""}
+      </h2>
+      <p className="mt-1 text-xs text-slate-600">
+        Critical objections still unresolved at exit — explains lost demo bookings.
+      </p>
+      <div className="mt-4 space-y-2">
+        {entries.map(([objection, count]) => (
+          <div key={objection}>
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium text-slate-700">{objection.replace(/_/g, " ")}</span>
+              <span className="tabular-nums text-slate-500">{count} lost</span>
+            </div>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-white">
+              <div
+                className="h-full rounded-full bg-rose-400"
+                style={{ width: `${(count / max) * 100}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PersonaBreakdown({
+  metrics,
+  personas,
+}: {
+  metrics: {
+    byPersona: Record<string, { visits: number; conversions: number }>;
+  };
+  personas: Persona[];
+}) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-schole-surface p-5">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        Conversion by persona
+      </h2>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {personas.map((p) => {
+          const row = metrics.byPersona[p.id] ?? { visits: 0, conversions: 0 };
+          const rate = row.visits ? row.conversions / row.visits : 0;
+          return (
+            <div
+              key={p.id}
+              className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2"
+            >
+              <div>
+                <div className="text-sm font-medium text-slate-900">{p.name}</div>
+                <div className="text-[10px] text-slate-500">{row.visits} visits</div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-semibold text-schole-primary">
+                  {(rate * 100).toFixed(0)}%
+                </div>
+                <div className="text-[10px] text-slate-600">{row.conversions} conv</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function OutcomeBadge({ summary, large }: { summary: VisitSummary; large?: boolean }) {
+  const label = summary.converted ? "Converted" : summary.bounced ? "Bounced" : "Lost";
+  const cls = summary.converted
+    ? "bg-emerald-500/15 text-emerald-400"
+    : summary.bounced
+      ? "bg-rose-500/15 text-rose-400"
+      : "bg-slate-200 text-slate-400";
+  return (
+    <span
+      className={`rounded-full font-medium ${cls} ${large ? "px-3 py-1 text-xs" : "px-2 py-0.5 text-[10px]"}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function Kpi({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-xl border p-4 ${
+        accent ? "border-schole-primary/40 bg-schole-primary/10" : "border-slate-200 bg-white"
+      }`}
+    >
+      <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-1 text-2xl font-bold text-slate-900">{value}</div>
+    </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="flex items-center gap-2 text-xs text-slate-500">
+      <span className="hidden sm:inline">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1">
+      <span className={`h-2 w-3 rounded-sm ${color}`} />
+      {label}
+    </span>
+  );
+}
+

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { POSTHOG_EVENTS } from "@/lib/analytics/posthog-events";
-import { loadRun } from "@/lib/registry";
-import { fetchPostHogMetrics } from "@/lib/calibration/posthog";
-import { computeCalibration } from "@/lib/calibration/calibrate";
-import { loadCalibration, saveCalibration } from "@/lib/calibration/store";
-import type { SimulatedMetricsSnapshot } from "@/lib/calibration/types";
+import { POSTHOG_EVENTS } from "@/domains/analytics/posthog-events";
+import { loadRun } from "@/platform/registry";
+import { fetchPostHogMetrics } from "@/domains/calibration/posthog";
+import { computeCalibration } from "@/domains/calibration/calibrate";
+import { loadCalibration, saveCalibration } from "@/domains/calibration/store";
+import type { SimulatedMetricsSnapshot } from "@/domains/calibration/types";
 
 async function simulatedFromRun(): Promise<SimulatedMetricsSnapshot | null> {
   const run = await loadRun();

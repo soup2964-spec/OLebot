@@ -1,20 +1,53 @@
-# Scholé Landing Lab
+# Olébot / Scholé Landing Lab
 
 Autonomous landing page evolution for [Scholé AI](https://schole.ai/).
 
 LLM-powered persona agents simulate user behavior on landing page variants. A Thompson-sampling bandit allocates traffic, an evaluator agent scores results, and an optimizer agent breeds improved pages — generation after generation — with evidence-backed changelogs.
 
-**Live repo:** https://github.com/soup2964-spec/schole-landing-lab
+**Live repo:** https://github.com/soup2964-spec/OLebot
+
+## Live edits (start here)
+
+Under time pressure, edit **[`src/content/`](src/content/EDIT.md)** first:
+
+| Want to change… | File |
+|-----------------|------|
+| Variant copy / CTAs | `src/content/variants.ts` → then `npm run prepare:variants` |
+| Personas / objections | `src/content/personas.ts` |
+| Promote / kill thresholds | `src/content/thresholds.ts` |
+| Workbench section labels | `src/content/criteria.ts` |
+
+Full cheat sheet: [`src/content/EDIT.md`](src/content/EDIT.md). **Do not** hand-edit `public/baseline/variants/*.html`.
+
+## Codebase map
+
+```
+src/
+  content/      # EDIT HERE — copy, personas, criteria, thresholds
+  features/     # UI by surface
+    workbench/  # Simulation dashboard (/)
+    live/       # Live analytics (/live)
+    landing/    # Variant pages (/v/[id])
+    shell/      # Header / chrome
+  domains/      # Business logic (evolve, sim, replica, loop, …)
+  platform/     # Schema, supabase, registry, LLM, FS helpers
+  app/          # Thin Next.js routes + API
+  styles/       # globals.css
+```
+
+`public/`, `data/`, `scripts/`, and `supabase/` stay at the repo root (deploy / FS contracts).
 
 ## What you'll see
 
-| Tab | Requirement covered |
-|-----|---------------------|
-| **Variants** | The initial landing page versions (6 Generation-0 strategic bets + bred offspring) |
-| **Method** | How the pages are compared (personas, objection ledger, bandit, rubric) |
-| **Behavior** | Simulated user behavior (heatmaps + replay theater) |
-| **Results** | Which versions performed better (leaderboard, allocation, scorecards) |
-| **Evolution** | New generated variations + what changed and why (changelogs) |
+| Surface | What it covers |
+|---------|----------------|
+| **Control** (`/`) | Run experiments, autonomous / LLM toggles |
+| **Versions** | Gen-0 + bred page comparison |
+| **Method / Personas / Behavior / Winners** | Side-menu detail panels on `/` |
+| **Live** (`/live`) | Live loop + calibration |
+| **Variants** (`/v/[id]`) | Live landing replicas |
+
+Legacy paths (`/variants`, `/experiment`, `/personas`, `/behavior`, `/results`, `/evolution`) redirect to `/`.
 
 ## Quick start
 
@@ -24,20 +57,18 @@ cp .env.example .env.local   # set KIE_API_KEY or OPENAI_API_KEY for experiments
 npm run dev                  # open http://localhost:3000
 ```
 
-Run an experiment from the **Control** tab in the dashboard (hybrid ~2–5 min, full LLM ~20 min).
+Run an experiment from the **Control** tab (hybrid ~2–5 min, full LLM ~20 min).
 
 ### Full LLM experiment (optional)
 
 ```bash
-cp .env.example .env.local
-# set OPENAI_API_KEY and optionally NEXT_PUBLIC_CLARITY_ID
 npm run experiment  # ~30-60 min, writes data/run.json with LLM readings
 ```
 
 ## Architecture
 
 ```
-Generation 0 variants (JSON schema)
+Generation 0 variants (JSON in src/content/variants.ts)
         ↓
 Persona agents (objection-gated conversion)
         ↓
@@ -47,20 +78,21 @@ Evaluator agent (rubric scorecards)
         ↓
 Optimizer agent (mutation + crossover + changelog)
         ↓
-Generation N+1 …
+Generation N+1 … → HTML replicas under public/baseline/
 ```
 
-- **Pages are structured JSON**, rendered by a fixed component library — agents read them cheaply, the optimizer can only emit valid pages, and diffs are precise.
-- **Personas carry objection ledgers** grounded in published 2025–26 buyer research (TalentLMS, G2, Rise Up, eLearning Industry, Docebo).
-- **PostHog + Google Tag Manager + Clarity** tag every variant page (`variant_id`, `cta_click`, `scroll_depth`) for sim-to-real calibration. Live traffic adjusts persona parameters via `POST /api/calibration`.
+- **Pages are structured JSON**, rendered via the replica HTML pipeline and React fallbacks.
+- **Personas carry objection ledgers** grounded in published buyer research.
+- **PostHog + GTM + Clarity** tag every variant page for sim-to-real calibration.
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start Next.js dev server |
-| `npm run experiment` | Full LLM-powered multi-generation run (CLI) |
+| `npm run dev` | Start Next.js (runs `prepare:pages` first) |
+| `npm run experiment` | Full LLM multi-generation run (CLI) |
 | `npm run reset:lab` | Wipe experiment history and bred pages |
+| `npm run prepare:variants` | Rebuild Gen-0 HTML after copy edits |
 | `npm run build` | Production build |
 
 ## Deploy
@@ -72,10 +104,10 @@ Deploy to Vercel. Set `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_GTM_ID`, and serve
 Every variant page sends a session heartbeat + PostHog/GTM events. When **5+ new visitors** arrive (configurable via `LOOP_MIN_NEW_VISITORS`):
 
 1. Pull live metrics from PostHog
-2. Recalibrate persona parameters (`data/calibration.json`)
-3. Re-run the simulation (`data/run.json`)
-4. Dashboard auto-refreshes (polls every 30s)
+2. Recalibrate persona parameters
+3. Re-run the simulation
+4. Dashboard auto-refreshes
 
-Vercel Cron hits `/api/cron/sync-loop` every 5 minutes as a backup trigger. Set `CRON_SECRET` in Vercel env vars.
+Vercel Cron hits `/api/cron/sync-loop` daily (`0 12 * * *` in `vercel.json`) as a backup trigger. Set `CRON_SECRET` in Vercel env vars.
 
 Built for the Scholé AI GTM challenge.

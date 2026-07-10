@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { kieChatJSON } from "../src/lib/kie-claude";
+import { kieChatJSON } from "../src/platform/kie-claude";
 
 async function main() {
   const r = await kieChatJSON<{ answer: string }>(

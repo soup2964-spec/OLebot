@@ -4,9 +4,9 @@ import {
   llmExperimentProviderLabel,
   manualExperimentMode,
   runManualExperiment,
-} from "@/lib/loop/manual-experiment";
-import { isProgressActivelyRunning, loadExperimentProgress } from "@/lib/loop/experiment-progress";
-import { isAutonomousMode, loadLoopState, saveLoopState } from "@/lib/loop/state";
+} from "@/domains/loop/manual-experiment";
+import { isProgressActivelyRunning, loadExperimentProgress } from "@/domains/loop/experiment-progress";
+import { isAutonomousMode, loadLoopState, saveLoopState } from "@/domains/loop/state";
 
 /** Background experiment via after() — Hobby plan caps at 300s. */
 export const maxDuration = 300;

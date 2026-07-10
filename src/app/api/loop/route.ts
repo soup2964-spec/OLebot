@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getLoopStatus, maybeAutoSync, syncLoop } from "@/lib/loop/sync";
-import { recordHeartbeat } from "@/lib/loop/state";
+import { getLoopStatus, maybeAutoSync, syncLoop } from "@/domains/loop/sync";
+import { recordHeartbeat } from "@/domains/loop/state";
 
 export async function GET() {
   const autoResult = await maybeAutoSync();

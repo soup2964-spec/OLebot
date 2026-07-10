@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import {
   ingestAnalyticsEvent,
   liveAnalyticsEnabled,
-} from "@/lib/supabase/live-store";
-import type { AnalyticsIngestBody } from "@/lib/supabase/types";
+} from "@/platform/supabase/live-store";
+import type { AnalyticsIngestBody } from "@/platform/supabase/types";
 
 export async function POST(req: Request) {
   if (!liveAnalyticsEnabled()) {

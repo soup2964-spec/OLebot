@@ -5,7 +5,7 @@ import {
   fetchLiveBehaviorSnapshot,
   ingestAnalyticsEvent,
   liveAnalyticsEnabled,
-} from "../src/lib/supabase/live-store";
+} from "../src/platform/supabase/live-store";
 
 async function main() {
   console.log("Supabase configured:", liveAnalyticsEnabled());

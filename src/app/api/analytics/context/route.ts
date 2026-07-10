@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { GTM_CHALLENGE } from "@/lib/analytics/posthog-events";
-import { loadExperimentProgress } from "@/lib/loop/experiment-progress";
-import { loadLoopState, normalizeExperimentHistory } from "@/lib/loop/state";
+import { GTM_CHALLENGE } from "@/domains/analytics/posthog-events";
+import { loadExperimentProgress } from "@/domains/loop/experiment-progress";
+import { loadLoopState, normalizeExperimentHistory } from "@/domains/loop/state";
 
 export const dynamic = "force-dynamic";
 

@@ -1,6 +1,6 @@
-import { allVariants, loadRun, visitIndex } from "@/lib/registry";
-import { loadDeployState } from "@/lib/deploy/state";
-import { ExperimentWorkbench } from "@/components/experiment/ExperimentWorkbench";
+import { allVariants, loadRun, visitIndex } from "@/platform/registry";
+import { loadDeployState } from "@/domains/deploy/state";
+import { ExperimentWorkbench } from "@/features/workbench/ExperimentWorkbench";
 
 export default async function Home() {
   const run = await loadRun();

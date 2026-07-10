@@ -7,11 +7,11 @@ config({ path: ".env.local" });
 
 import fs from "fs";
 import path from "path";
-import type { ExperimentRun } from "../src/lib/schema/experiment";
+import type { ExperimentRun } from "../src/platform/schema/experiment";
 import {
   refreshRobustnessSnapshot,
   ROBUSTNESS_JSON_PATH,
-} from "../src/lib/evolve/robustness-snapshot";
+} from "../src/domains/evolve/robustness-snapshot";
 
 const RUN_PATH = path.join(process.cwd(), "data", "run.json");
 

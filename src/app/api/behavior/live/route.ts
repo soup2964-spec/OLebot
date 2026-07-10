@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   fetchLiveBehaviorSnapshot,
   liveAnalyticsEnabled,
-} from "@/lib/supabase/live-store";
+} from "@/platform/supabase/live-store";
 
 export async function GET(req: Request) {
   if (!liveAnalyticsEnabled()) {

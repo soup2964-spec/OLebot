@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { AnalyticsProvider } from "@/components/AnalyticsProvider";
-import { OlebotShell } from "@/components/OlebotShell";
+import "../styles/globals.css";
+import { AnalyticsProvider } from "@/features/shell/AnalyticsProvider";
+import { OlebotShell } from "@/features/shell/OlebotShell";
 
 const inter = Inter({
   variable: "--font-inter",

@@ -9,7 +9,7 @@ import { config } from "dotenv";
 config({ path: path.join(process.cwd(), ".env.local") });
 
 async function main() {
-  const { runExperiment, DEFAULT_CONFIG } = await import("../src/lib/evolve/run");
+  const { runExperiment, DEFAULT_CONFIG } = await import("../src/domains/evolve/run");
 
   const run = await runExperiment({
     ...DEFAULT_CONFIG,

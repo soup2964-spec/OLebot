@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { recordHeartbeat } from "@/lib/loop/state";
-import { maybeAutoSync } from "@/lib/loop/sync";
+import { recordHeartbeat } from "@/domains/loop/state";
+import { maybeAutoSync } from "@/domains/loop/sync";
 
 /** Called once per browser session when a visitor lands on a variant page. */
 export async function POST(request: Request) {

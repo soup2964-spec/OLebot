@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { findVariant } from "@/lib/registry";
-import { renderVariantHtml } from "@/lib/replica/render-variant-html";
+import { findVariant } from "@/platform/registry";
+import { renderVariantHtml } from "@/domains/replica/render-variant-html";
 
 export async function GET(
   _req: Request,

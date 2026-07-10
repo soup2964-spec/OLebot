@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { getCalibratedPersonaSet } from "@/lib/calibration/store";
+import { getCalibratedPersonaSet } from "@/domains/calibration/store";
 
 export async function GET() {
   const personaSet = await getCalibratedPersonaSet();

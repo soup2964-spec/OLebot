@@ -1,9 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { resetLabState } from "@/lib/lab/reset-lab";
-import { isProgressActivelyRunning, loadExperimentProgress } from "@/lib/loop/experiment-progress";
-import { isAutonomousMode, loadLoopState } from "@/lib/loop/state";
+import { resetLabState } from "@/platform/lab/reset-lab";
+import { isProgressActivelyRunning, loadExperimentProgress } from "@/domains/loop/experiment-progress";
+import { isAutonomousMode, loadLoopState } from "@/domains/loop/state";
 
 export async function POST() {
   const state = await loadLoopState();

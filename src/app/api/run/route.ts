@@ -1,13 +1,13 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { allVariants, loadRun, visitIndex } from "@/lib/registry";
-import { getComparisonVariants } from "@/lib/deploy/promote";
-import { loadDeployState } from "@/lib/deploy/state";
-import { ensureExperimentSnapshots, loadRunForExperiment, buildExperimentCatalog, buildExperimentCatalogLite } from "@/lib/experiments/store";
-import { loadLoopState, saveLoopState, normalizeExperimentHistory } from "@/lib/loop/state";
-import { loadExperimentProgress } from "@/lib/loop/experiment-progress";
-import type { ExperimentRun } from "@/lib/schema/experiment";
+import { allVariants, loadRun, visitIndex } from "@/platform/registry";
+import { getComparisonVariants } from "@/domains/deploy/promote";
+import { loadDeployState } from "@/domains/deploy/state";
+import { ensureExperimentSnapshots, loadRunForExperiment, buildExperimentCatalog, buildExperimentCatalogLite } from "@/domains/experiments/store";
+import { loadLoopState, saveLoopState, normalizeExperimentHistory } from "@/domains/loop/state";
+import { loadExperimentProgress } from "@/domains/loop/experiment-progress";
+import type { ExperimentRun } from "@/platform/schema/experiment";
 
 function runPayload(run: ExperimentRun) {
   const lastGen = run.generations[run.generations.length - 1];

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LiveDashboard } from "@/components/live/LiveDashboard";
+import { LiveDashboard } from "@/features/live/LiveDashboard";
 
 export default function LivePage() {
   return (

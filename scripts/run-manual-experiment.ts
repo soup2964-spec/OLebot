@@ -9,9 +9,9 @@ config({ path: path.join(process.cwd(), ".env.local") });
 
 async function main() {
   const { manualExperimentMode, runManualExperiment } = await import(
-    "../src/lib/loop/manual-experiment"
+    "../src/domains/loop/manual-experiment"
   );
-  const { loadLoopState } = await import("../src/lib/loop/state");
+  const { loadLoopState } = await import("../src/domains/loop/state");
 
   const state = await loadLoopState();
   const mode = manualExperimentMode(state);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVisit, loadRun } from "@/lib/registry";
+import { getVisit, loadRun } from "@/platform/registry";
 
 export async function GET(
   req: NextRequest,

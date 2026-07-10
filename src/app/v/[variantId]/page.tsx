@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { allVariantsSync, getVariant } from "@/lib/registry";
-import { LandingPage } from "@/components/LandingPage";
+import { allVariantsSync, getVariant } from "@/platform/registry";
+import { LandingPage } from "@/features/landing/LandingPage";
 
 export function generateStaticParams() {
   return allVariantsSync().map((v) => ({ variantId: v.id }));

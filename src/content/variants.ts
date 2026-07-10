@@ -1,0 +1,327 @@
+import type { PageVariant, Section } from "@/platform/schema/page";
+import type { ReplicaSectionId } from "@/domains/replica/baseline-copy";
+
+/**
+ * Generation 0: exact schole.ai replica as control + five challengers that share
+ * the same Framer layout and section structure. Each challenger only swaps text
+ * in targeted sections (see prepare-variant-html.ts) — pixel-identical otherwise.
+ *
+ * ICP map (aligned to persona set v1):
+ *   v1-roi         → HR & L&D buyers (Dana, Marcus): dashboard, adoption metrics
+ *   v2-compliance  → EU compliance leads (Anneke): Article 4, auditability
+ *   v3-problem     → executives staring at the adoption gap (Marcus, Dana)
+ *   v4-credibility → technical evaluators (Tomas, Sofia): research + integration
+ *   v5-learner     → individual employees (Priya): Olé, XP, 2-minute lessons
+ */
+
+/** Clone baseline sections; override only the sections that change per variant. */
+function fromBaseline(
+  meta: Omit<PageVariant, "sections">,
+  overrides: Partial<Record<ReplicaSectionId, Partial<Section>>>
+): PageVariant {
+  const sections = baseline.sections.map((s) => ({
+    ...s,
+    ...(overrides[s.id as ReplicaSectionId] ?? {}),
+  }));
+  return { ...meta, sections };
+}
+
+const baseline: PageVariant = {
+  id: "v0-baseline",
+  name: "Baseline (exact schole.ai replica)",
+  strategy: "baseline",
+  generation: 0,
+  parentIds: [],
+  ctaGoal: "Book a demo",
+  thesis:
+    "Exact Framer snapshot of schole.ai's live landing page — the control arm every other variant is measured against.",
+  sections: [
+    {
+      id: "hero",
+      type: "hero",
+      headline: "Faster competency. Higher engagement. Agentic Learning with Scholé.",
+      body: "Scholé uses the best of AI to construct exactly the right lesson for each learner. It's targeted, practical, and built on 10+ years of AI-for-education research from EPFL and UC Berkeley.",
+      ctaLabel: "Book a demo",
+      addresses: ["credibility", "relevance_to_role"],
+      readSeconds: 10,
+    },
+    {
+      id: "how",
+      type: "how_it_works",
+      headline: "Learn the new way with Scholé",
+      body: "Scholé is a multi-agent pedagogical engine for adaptive and personalized learning. No more one-size-fits-all courses.",
+      addresses: ["relevance_to_role", "content_quality"],
+      readSeconds: 12,
+    },
+    {
+      id: "problem",
+      type: "problem",
+      headline: "The adoption gap is real. Scholé closes it.",
+      body: "You bought the tools — ChatGPT, Copilot, Gemini, Claude. But if employees don't know how to use them in their daily work, you're not getting the return. Scholé helps every employee understand why AI is relevant to their role.",
+      addresses: ["employee_adoption"],
+      readSeconds: 15,
+    },
+    {
+      id: "features",
+      type: "features",
+      headline: "Learning that adapts to each person",
+      body: "Every employee follows a path built around their tools, skills, and pace. The lesson content adjusts in real time as they progress.",
+      items: [
+        { title: "Adapts in real time", detail: "Lesson content adjusts as each learner progresses." },
+        { title: "Content tied to daily work", detail: "Every lesson maps to the learner's actual tools — Notion, Excel, PowerPoint — and job function." },
+        { title: "Measurable outcomes", detail: "Completion rates, mastery levels, and adoption metrics, trackable in natural language from day one." },
+      ],
+      addresses: ["relevance_to_role", "roi_proof"],
+      readSeconds: 18,
+    },
+    {
+      id: "tour",
+      type: "product_tour",
+      headline: "What your employees get",
+      body: "Ask Olé, an AI tutor team that adjusts to each learner — never too easy, never too hard. Skill scores updated after every lesson, XP and level-ups that reward consistency. 2-minute micro-lessons on mobile, desktop, text, audio, and video.",
+      addresses: ["time_cost", "relevance_to_role"],
+      readSeconds: 16,
+    },
+    {
+      id: "proof",
+      type: "social_proof",
+      headline: "Teams at these organizations are already learning on Scholé",
+      body: "Decathlon Switzerland and the Harvard Data Science Initiative use Scholé today.",
+      items: [
+        { title: "Decathlon", detail: "\"It has significantly improved perceptions of AI at Decathlon Switzerland... The HR dashboard is one of the most business-oriented I have encountered.\" — Leader of People Development" },
+        { title: "Harvard DSI", detail: "\"We work with the Scholé team to teach Harvard Data Science Initiative students online, and there is simply no comparison. They are the best.\"" },
+      ],
+      addresses: ["credibility", "employee_adoption"],
+      readSeconds: 20,
+    },
+    {
+      id: "press",
+      type: "credibility",
+      headline: "Backed by the best, featured in the press",
+      body: "Scholé AI is already featured in the press. Recognized by UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. Launched #1 on Product Hunt.",
+      addresses: ["credibility"],
+      readSeconds: 12,
+    },
+    {
+      id: "faq",
+      type: "faq",
+      headline: "Common questions",
+      body: "How is Scholé different from Coursera or LinkedIn Learning? How is it different from ChatGPT? Is it compatible with our existing LMS or HRIS? What does EU AI Act compliance cover?",
+      items: [
+        { title: "LMS/HRIS compatibility", detail: "Scholé integrates with existing LMS and HRIS systems." },
+        { title: "EU AI Act", detail: "Scholé helps you prepare for EU AI Act literacy requirements." },
+      ],
+      addresses: ["integration_friction", "compliance_coverage"],
+      readSeconds: 14,
+    },
+    {
+      id: "cta",
+      type: "cta",
+      headline: "Ready to turn AI tools into real AI adoption?",
+      body: "Whether you're preparing for the EU AI Act or want your teams to use AI with clarity and confidence, Scholé helps you move from awareness to measurable adoption. 20 minutes, live with a founder.",
+      ctaLabel: "Book a demo",
+      addresses: [],
+      readSeconds: 8,
+    },
+  ],
+};
+
+/** ICP: HR & L&D buyers — same page, hero + problem + features + proof + cta retargeted to dashboard ROI. */
+const roi = fromBaseline(
+  {
+    id: "v1-roi",
+    name: "HR & L&D buyer (dashboard-led)",
+    strategy: "roi",
+    generation: 0,
+    parentIds: [],
+    ctaGoal: "Book a demo",
+    thesis:
+      "Same schole.ai layout with hero and key sections retargeted to the HR dashboard and the adoption metrics an L&D leader needs to defend budget.",
+  },
+  {
+    hero: {
+      headline: "Stop reporting completion rates. Start proving AI adoption.",
+      body: "Scholé's HR dashboard turns AI training into numbers your CFO respects: adoption rate, mastery level, and time to skill for every team and every tool, trackable in natural language from day one.",
+      ctaLabel: "See the dashboard live",
+      addresses: ["roi_proof"],
+    },
+    problem: {
+      headline: "Completion certificates don't survive a budget meeting.",
+      body: "Most L&D teams can show who finished a course. Almost none can show who changed how they work. That gap is why learning budgets get cut, and why L&D is not in the room when priorities get set.",
+      addresses: ["roi_proof"],
+    },
+    features: {
+      headline: "Insights your LMS admin can't give you",
+      body: "Ask questions in plain language and get answers about real adoption for every team and every tool, ready before your next QBR.",
+      addresses: ["roi_proof", "employee_adoption"],
+    },
+    proof: {
+      headline: "One of the most business-oriented HR dashboards I have encountered",
+      body: "\"A true asset for any L&D leader whose role is increasingly evolving to align more closely with business priorities.\" Raphaëlle Rey, Leader of People Development, Decathlon Switzerland",
+      addresses: ["credibility", "roi_proof"],
+    },
+    cta: {
+      headline: "Bring numbers to your next budget meeting",
+      body: "20 minutes, live with a founder. We will show the dashboard on data like yours and leave you with a metric framework you can use either way.",
+      addresses: ["roi_proof"],
+    },
+  }
+);
+
+/** ICP: EU compliance leads — same page; hero, problem, faq, and cta lead with Article 4 urgency. */
+const compliance = fromBaseline(
+  {
+    id: "v2-compliance",
+    name: "EU compliance lead (AI Act-led)",
+    strategy: "compliance",
+    generation: 0,
+    parentIds: [],
+    ctaGoal: "Book a demo",
+    thesis:
+      "Same schole.ai layout; hero and problem sections retargeted to EU AI Act Article 4 compliance instead of burying it in the FAQ.",
+  },
+  {
+    hero: {
+      headline: "The EU AI Act made AI literacy mandatory. Scholé makes it auditable.",
+      body: "Role-specific AI literacy for your entire workforce, live this quarter, with per-employee evidence that regulators and boards can read.",
+      ctaLabel: "Get compliant this quarter",
+      addresses: ["compliance_coverage"],
+    },
+    problem: {
+      headline: "Article 4 requires AI literacy. Generic training won't pass audit.",
+      body: "Providers and deployers must ensure sufficient AI literacy that accounts for technical knowledge, experience, and context of use. A one-size-fits-all webinar does not meet that bar.",
+      addresses: ["compliance_coverage", "roi_proof"],
+    },
+    faq: {
+      headline: "What does EU AI Act compliance cover?",
+      body: "Scholé maps role-specific learning paths to Article 4, with per-employee mastery records you can export for audit.",
+      addresses: ["compliance_coverage", "integration_friction"],
+    },
+    cta: {
+      headline: "The deadline isn't moving. Neither is your board.",
+      body: "A 20 minute call: we map Article 4 requirements to your org and show you the audit trail live.",
+      ctaLabel: "Book a compliance walkthrough",
+      addresses: ["compliance_coverage"],
+    },
+  }
+);
+
+/** ICP: executives — same page; promotes the buried "Most companies have AI" line to the hero. */
+const problemFirst = fromBaseline(
+  {
+    id: "v3-problem",
+    name: "Executive adoption gap (problem-first)",
+    strategy: "problem_first",
+    generation: 0,
+    parentIds: [],
+    ctaGoal: "Book a demo",
+    thesis:
+      "Same schole.ai layout; hero swaps to the live site's mid-page adoption-gap headline, with problem and how sections agitating on the gap.",
+  },
+  {
+    hero: {
+      headline: "Most companies have AI. Very few turn it into measurable impact.",
+      body: "You bought ChatGPT, Copilot, Gemini, Claude. The subscriptions are active. Ask most employees what changed in their daily work, and the answer is: not much. Scholé closes that gap.",
+      ctaLabel: "See how",
+      addresses: ["employee_adoption"],
+    },
+    problem: {
+      headline: "The adoption gap, in your own numbers.",
+      body: "83% of HR leaders believe their company supports AI learning. Only 64% of employees agree. Half of your workforce says workload leaves no room for training at all. Meanwhile the licenses renew, and the productivity gains stay theoretical.",
+      addresses: ["employee_adoption", "time_cost"],
+    },
+    how: {
+      headline: "The fix: meet employees where they already are",
+      body: "Scholé's multi-agent engine builds each employee's path around their actual role and daily tools like Notion, Excel, PowerPoint, and Slack. 2 minute micro-lessons that fit inside the workday.",
+      addresses: ["relevance_to_role", "time_cost", "employee_adoption"],
+    },
+    cta: {
+      headline: "Your licenses renew either way",
+      body: "20 minutes with a founder. Bring your adoption numbers if you have them and we will show you what closing the gap looks like.",
+      addresses: [],
+    },
+  }
+);
+
+/** ICP: technical evaluators — same page; hero, how, press, and cta lead with research pedigree. */
+const credibility = fromBaseline(
+  {
+    id: "v4-credibility",
+    name: "Technical evaluator (research + integration)",
+    strategy: "credibility",
+    generation: 0,
+    parentIds: [],
+    ctaGoal: "Book a demo",
+    thesis:
+      "Same schole.ai layout; hero and credibility sections retargeted to EPFL/Berkeley research pedigree and integration answers for the IT gatekeeper.",
+  },
+  {
+    hero: {
+      headline: "Ten years of learning science research. Now a product.",
+      body: "Scholé was built inside EPFL's Machine Learning for Education Lab and UC Berkeley by researchers with 40+ papers on personalized learning, LLMs, and knowledge tracing. Not another AI wrapper. The actual research, productized.",
+      addresses: ["credibility", "content_quality"],
+    },
+    how: {
+      headline: "What a pedagogical engine actually does",
+      body: "Scholé models each learner's knowledge state in real time, using the same knowledge tracing research the founders published for a decade, and only generates lesson content it can ground in validated knowledge.",
+      addresses: ["content_quality", "relevance_to_role"],
+    },
+    press: {
+      headline: "Recognized by the institutions that set the bar",
+      body: "UC Berkeley, EPFL, Harvard, DARPA, and InnoSuisse. #1 at the Learning Engineering Tools Competition. MultiModN, the peer-reviewed modular architecture featured at NeurIPS, inspired Scholé's agent-first approach.",
+      addresses: ["credibility", "content_quality"],
+    },
+    cta: {
+      headline: "Talk to the researchers, not a sales team",
+      body: "20 minutes, live with a founder. Ask the hard questions. They wrote the papers.",
+      addresses: ["credibility"],
+    },
+  }
+);
+
+/** ICP: individual employees — same page; hero, problem, tour, and cta retargeted to learner self-serve. */
+const learnerFirst = fromBaseline(
+  {
+    id: "v5-learner",
+    name: "Employee self-serve (learner-first)",
+    strategy: "learner_first",
+    generation: 0,
+    parentIds: [],
+    ctaGoal: "Start for free",
+    thesis:
+      "Same schole.ai layout; hero and learner sections retargeted to the Olé tutor experience with a self-serve CTA instead of book-a-demo.",
+  },
+  {
+    hero: {
+      headline: "Learning that fits your workday. Finally.",
+      body: "2 minute lessons built around your actual job and the tools you already use. An AI tutor that meets you exactly where you are. No lecture halls, no 45 minute modules, no generic Intro to AI.",
+      ctaLabel: "Start for free",
+      addresses: ["time_cost", "relevance_to_role"],
+    },
+    problem: {
+      headline: "This is about making you faster. Not replacing you.",
+      body: "AI is reshaping every role, including yours. The people who thrive are the ones who make AI do their boring work. Scholé teaches you to use ChatGPT, Copilot, and Claude on your real tasks.",
+      addresses: ["automation_anxiety", "relevance_to_role"],
+    },
+    tour: {
+      headline: "Meet your tutor team",
+      body: "Not one AI but a team of pedagogical agents: Olé adjusts to your level, Atlas connects concepts to your work, and Zeteo makes practice interactive.",
+      addresses: ["relevance_to_role", "content_quality", "time_cost"],
+    },
+    cta: {
+      headline: "Your first lesson takes 2 minutes",
+      body: "Start free, no credit card required. Tell Olé your role and tools, and it builds your path.",
+      ctaLabel: "Start for free",
+      addresses: ["time_cost", "price_clarity"],
+    },
+  }
+);
+
+export const GENERATION_0: PageVariant[] = [
+  baseline,
+  roi,
+  compliance,
+  problemFirst,
+  credibility,
+  learnerFirst,
+];

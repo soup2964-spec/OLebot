@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { loadExperimentRobustness } from "@/lib/experiments/store";
-import { readRobustnessSnapshot } from "@/lib/evolve/robustness-snapshot";
+import { loadExperimentRobustness } from "@/domains/experiments/store";
+import { readRobustnessSnapshot } from "@/domains/evolve/robustness-snapshot";
 
 export async function GET(request: Request) {
   const experimentParam = new URL(request.url).searchParams.get("experiment");
