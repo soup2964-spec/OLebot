@@ -7,9 +7,9 @@ config({ path: ".env.local" });
 
 import fs from "fs";
 import path from "path";
-import { GENERATION_0 } from "../src/content/variants";
-import { LAB_DOC, invalidateLabDocumentCache, setLabDocument } from "../src/platform/supabase/lab-documents";
-import { getSupabaseAdmin } from "../src/platform/supabase/server";
+import { GENERATION_0 } from "../src/config/variants";
+import { LAB_DOC, invalidateLabDocumentCache, setLabDocument } from "../src/shared/db/lab-documents";
+import { getSupabaseAdmin } from "../src/shared/db/server";
 
 const ROOT = process.cwd();
 const VARIANTS_DIR = path.join(ROOT, "public", "baseline", "variants");

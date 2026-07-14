@@ -4,8 +4,8 @@
  */
 import fs from "fs";
 import path from "path";
-import { injectLabGuard, prepareLabHtml } from "../src/domains/replica/prepare-lab-html";
-import { SECTION_MARKERS } from "../src/domains/replica/section-markers";
+import { injectLabGuard, prepareLabHtml } from "../src/lab/replica/prepare-lab-html";
+import { SECTION_MARKERS } from "../src/lab/replica/section-markers";
 
 const ROOT = path.join(__dirname, "..");
 const OUT = path.join(ROOT, "public", "baseline", "index.html");

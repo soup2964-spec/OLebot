@@ -8,32 +8,30 @@ LLM-powered persona agents simulate user behavior on landing page variants. A Th
 
 ## Live edits (start here)
 
-Under time pressure, edit **[`src/content/`](src/content/EDIT.md)** first:
+Under time pressure, edit **`src/config/`** first:
 
 | Want to change… | File |
 |-----------------|------|
-| Variant copy / CTAs | `src/content/variants.ts` → then `npm run prepare:variants` |
-| Personas / objections | `src/content/personas.ts` |
-| Promote / kill thresholds | `src/content/thresholds.ts` |
-| Workbench section labels | `src/content/criteria.ts` |
+| Variant copy / CTAs | `src/config/variants.ts` → then `npm run prepare:variants` |
+| Personas / objections | `src/config/personas.ts` |
+| Promote / kill thresholds | `src/config/thresholds.ts` |
+| Workbench section labels | `src/config/criteria.ts` |
 
-Full cheat sheet: [`src/content/EDIT.md`](src/content/EDIT.md). **Do not** hand-edit `public/baseline/variants/*.html`.
+**Do not** hand-edit `public/baseline/variants/*.html`.
 
 ## Codebase map
 
 ```
 src/
-  content/      # EDIT HERE — copy, personas, criteria, thresholds
-  features/     # UI by surface
-    workbench/  # Simulation dashboard (/)
-    live/       # Live analytics (/live)
-    landing/    # Variant pages (/v/[id])
-    shell/      # Header / chrome
-  domains/      # Business logic (evolve, sim, replica, loop, …)
-  platform/     # Schema, supabase, registry, LLM, FS helpers
-  app/          # Thin Next.js routes + API
+  config/       # EDIT HERE — copy, personas, criteria, thresholds
+  ui/           # React by surface (workbench / live / landing / shell)
+  lab/          # Product brain (simulation → evolution → live-loop → …)
+  shared/       # Infra (schema, db, llm, fs, stats, registry)
+  app/          # Thin Next.js routes + API (grouped; URLs unchanged)
   styles/       # globals.css
 ```
+
+Dependency rule: `app → ui → lab → shared` (and `lab` reads `config`).
 
 `public/`, `data/`, `scripts/`, and `supabase/` stay at the repo root (deploy / FS contracts).
 
@@ -68,7 +66,7 @@ npm run experiment  # ~30-60 min, writes data/run.json with LLM readings
 ## Architecture
 
 ```
-Generation 0 variants (JSON in src/content/variants.ts)
+Generation 0 variants (JSON in src/config/variants.ts)
         ↓
 Persona agents (objection-gated conversion)
         ↓

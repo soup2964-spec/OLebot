@@ -4,14 +4,14 @@
  */
 import fs from "fs";
 import path from "path";
-import { GENERATION_0 } from "../src/content/variants";
+import { GENERATION_0 } from "../src/config/variants";
 import {
   applyVariantToBaselineHtml,
   buildVariantHtmlReplacements,
-} from "../src/domains/replica/apply-variant";
-import { injectLabGuard, stripLabGuard } from "../src/domains/replica/prepare-lab-html";
-import { normalizeVariantForReplica } from "../src/domains/deploy/normalize-variant";
-import type { PageVariant } from "../src/platform/schema/page";
+} from "../src/lab/replica/apply-variant";
+import { injectLabGuard, stripLabGuard } from "../src/lab/replica/prepare-lab-html";
+import { normalizeVariantForReplica } from "../src/lab/deploy/normalize-variant";
+import type { PageVariant } from "../src/shared/schema/page";
 
 const ROOT = path.join(__dirname, "..");
 const BASELINE_HTML = path.join(ROOT, "public", "baseline", "index.html");

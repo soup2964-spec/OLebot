@@ -11,16 +11,16 @@
  */
 import fs from "fs";
 import path from "path";
-import type { PageVariant } from "../src/platform/schema/page";
-import type { Visit } from "../src/platform/schema/events";
-import { POSTHOG_EVENTS } from "../src/domains/analytics/posthog-events";
-import { GENERATION_0 } from "../src/content/variants";
-import { getCalibratedPersonaSetSync } from "../src/domains/calibration/store";
-import { heuristicReadPage } from "../src/domains/sim/heuristic-reading";
-import { sampleVisit } from "../src/domains/sim/visit";
-import { ThompsonBandit } from "../src/domains/sim/bandit";
-import { makeRng, pickWeighted } from "../src/domains/sim/rng";
-import { analyzeGeneration } from "../src/platform/stats/bayes";
+import type { PageVariant } from "../src/shared/schema/page";
+import type { Visit } from "../src/shared/schema/events";
+import { POSTHOG_EVENTS } from "../src/lab/analytics/posthog-events";
+import { GENERATION_0 } from "../src/config/variants";
+import { getCalibratedPersonaSetSync } from "../src/lab/calibration/store";
+import { heuristicReadPage } from "../src/lab/simulation/heuristic-reading";
+import { sampleVisit } from "../src/lab/simulation/visit";
+import { ThompsonBandit } from "../src/lab/simulation/bandit";
+import { makeRng, pickWeighted } from "../src/lab/simulation/rng";
+import { analyzeGeneration } from "../src/shared/stats/bayes";
 
 const REPLICATIONS = 20;
 const VISITS_PER_REPLICATION = 4800;

@@ -4,8 +4,8 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { loadRun } from "../src/platform/registry";
-import { promoteAndDeploy } from "../src/domains/deploy/promote";
+import { loadRun } from "../src/shared/registry";
+import { promoteAndDeploy } from "../src/lab/deploy/promote";
 
 const forceBest = process.argv.includes("--promote");
 

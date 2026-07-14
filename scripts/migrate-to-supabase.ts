@@ -9,7 +9,7 @@ config({ path: ".env.local" });
 
 import fs from "fs";
 import path from "path";
-import { LAB_DOC, setLabDocument, labDocumentsEnabled } from "../src/platform/supabase/lab-documents";
+import { LAB_DOC, setLabDocument, labDocumentsEnabled } from "../src/shared/db/lab-documents";
 
 async function migrateFile(id: string, filePath: string) {
   const full = path.join(process.cwd(), filePath);
